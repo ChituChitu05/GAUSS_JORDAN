@@ -4,6 +4,7 @@ const article = document.getElementById("article");
 const btnAXB = document.getElementById("AXB");
 const btnInversa = document.getElementById("inversa");
 const btnDeterminante = document.getElementById("determinante");
+const btnTheme = document.getElementById("themeToggle");
 
 document.addEventListener("DOMContentLoaded", () => {
     inicializarMatriz(article, "axb");
@@ -32,3 +33,11 @@ if (btnDeterminante) {
         btnInversa.classList.remove("seleccionado");
     });
 }
+
+btnTheme.addEventListener("click", () => {
+    document.body.classList.toggle("light");
+
+    btnTheme.textContent = document.body.classList.contains("light")
+        ? "MODO OSCURO"
+        : "MODO CLARO";
+});

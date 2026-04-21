@@ -56,6 +56,12 @@ export function createTd(id){
     td.id = id;
     return td;
 }
+export function createSpan(text = "", className = "") {
+    const span = document.createElement("span");
+    span.textContent = text;
+    if (className) span.className = className;
+    return span;
+}
 const UI = {
     createSection,
     createButton,
@@ -64,7 +70,8 @@ const UI = {
     createDiv,
     createTable,
     createRow,
-    createTd
+    createTd,
+    createSpan
 };
 
 export default UI;

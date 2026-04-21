@@ -20,7 +20,7 @@ export function inicializarMatriz(article, modo) {
 
     // Determinar dimensiones iniciales según el modo
     let [filasIniciales, columnasIniciales] = [2, 2]; // Por defecto cuadrada para inversa y determinante
-    
+
     if (modo === "axb") {
         [filasIniciales, columnasIniciales] = [2, 3];
         table.dataset.minRows = "2";
@@ -54,7 +54,7 @@ export function inicializarMatriz(article, modo) {
     if (modo === "axb") buttonText = "Calcular AX = B";
     else if (modo === "inversa") buttonText = "Calcular Inversa";
     else if (modo === "determinante") buttonText = "Calcular Determinante";
-    
+
     const button = UI.createButton("btnCalcular", buttonText, "btnCalcular");
 
     mainSection.appendChild(wrapper);
@@ -62,9 +62,9 @@ export function inicializarMatriz(article, modo) {
     article.appendChild(mainSection);
 
     configurarEventos(article, table);
-    
+
     if (modo === "axb") actualizarSeparador(table);
-    
+
     if (modo === "axb") {
         document.getElementById("btnCalcular").onclick = calcularSistemasEcuaciones;
     } else if (modo === "inversa") {
@@ -76,7 +76,7 @@ export function inicializarMatriz(article, modo) {
 
 export function cambiarModo(article, nuevoModo) {
     const table = document.getElementById("inputTable");
-    
+
     // Guardar matriz actual antes de cambiar
     if (table) {
         try {
@@ -86,7 +86,7 @@ export function cambiarModo(article, nuevoModo) {
             currentMatrixState = null;
         }
     }
-    
+
     if (!table) {
         inicializarMatriz(article, nuevoModo);
         return;
@@ -95,7 +95,7 @@ export function cambiarModo(article, nuevoModo) {
     currentOperation = nuevoModo;
 
     const btn = document.getElementById("btnCalcular");
-    
+
     if (nuevoModo === "axb") {
         btn.textContent = "Calcular AX = B";
         btn.onclick = calcularSistemasEcuaciones;
@@ -152,11 +152,11 @@ function configurarEventos(article, table) {
     if (inputHandler) {
         article.removeEventListener('input', inputHandler);
     }
-    
+
     // Crear nuevos handlers
     keydownHandler = (e) => manejarKeydown(e, table);
     inputHandler = manejarInput;
-    
+
     // Agregar event listeners
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
@@ -167,21 +167,21 @@ function manejarInput(e) {
     if (input.tagName !== 'INPUT') return;
     const valor = input.value;
     if (valor === "") return;
-    
+
     // Validación más estricta: números enteros, fracciones simples o negativos
     const regex = /^-?\d*\/?\d*$/;
     if (!regex.test(valor)) {
         input.value = valor.slice(0, -1);
         return;
     }
-    
+
     // Prevenir múltiples signos negativos
     const negativos = (valor.match(/-/g) || []).length;
     if (negativos > 1 || (negativos === 1 && valor.indexOf('-') !== 0)) {
         input.value = valor.replace(/-/g, '');
         return;
     }
-    
+
     // Prevenir múltiples barras
     if ((valor.match(/\//g) || []).length > 1) {
         input.value = valor.slice(0, -1);
@@ -191,7 +191,7 @@ function manejarInput(e) {
 function manejarKeydown(e, table) {
     const input = e.target;
     if (input.tagName !== 'INPUT') return;
-    
+
     // Atajo Ctrl+Enter para calcular
     if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
@@ -199,45 +199,45 @@ function manejarKeydown(e, table) {
         if (btn) btn.click();
         return;
     }
-    
+
     const cell = input.closest('td');
     if (!cell) return;
-    
+
     const row = cell.parentElement;
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
 
     // Navegación con flechas
     let targetInput = null;
-    
+
     if (e.key === 'ArrowLeft') {
         e.preventDefault();
         if (colIndex > 0) {
             targetInput = row.cells[colIndex - 1]?.querySelector("input");
         }
     }
-    
+
     if (e.key === 'ArrowRight') {
         e.preventDefault();
         if (colIndex < row.cells.length - 1) {
             targetInput = row.cells[colIndex + 1]?.querySelector("input");
         }
     }
-    
+
     if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (rowIndex > 0) {
             targetInput = table.rows[rowIndex - 1]?.cells[colIndex]?.querySelector("input");
         }
     }
-    
+
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (rowIndex < table.rows.length - 1) {
             targetInput = table.rows[rowIndex + 1]?.cells[colIndex]?.querySelector("input");
         }
     }
-    
+
     if (targetInput) {
         targetInput.focus();
         targetInput.select();
@@ -258,7 +258,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
         if (currentOperation === "axb") {
             requestAnimationFrame(() => actualizarSeparador(table));
         }
-        
+
         // Mover foco a la nueva fila
         setTimeout(() => {
             const newRow = table.rows[rowIndex + 1];
@@ -278,7 +278,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
         if (currentOperation === "axb") {
             actualizarSeparador(table);
         }
-        
+
         // Mover foco a la nueva columna
         setTimeout(() => {
             const newInput = row.cells[colIndex + 1]?.querySelector("input");
@@ -294,7 +294,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     if (e.key === 'Backspace') {
         if (input.value === "") {
             e.preventDefault();
-            
+
             let prevInput = null;
             if (colIndex > 0) {
                 prevInput = row.cells[colIndex - 1]?.querySelector("input");
@@ -315,7 +315,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
                     if (currentOperation === "axb") actualizarSeparador(table);
                     return;
                 }
-                
+
                 // Eliminar columna vacía
                 if (table.rows[0].cells.length > minCols && Auxiliares.columnaVacia(table, colIndex)) {
                     Auxiliares.eliminarColumna(table, colIndex);
@@ -328,10 +328,10 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
 
 function actualizarSeparador(table) {
     if (!table || !table.rows.length) return;
-    
+
     eliminarSeparador(table);
     const sep = table.rows[0].cells.length - 2;
-    
+
     if (sep >= 0) {
         requestAnimationFrame(() => {
             for (let row of table.rows) {
@@ -344,7 +344,20 @@ function actualizarSeparador(table) {
         });
     }
 }
+function crearFraccionHTML(valor) {
+    const str = fraccionToString(valor);
 
+    if (!str.includes("/")) return str;
+
+    const [num, den] = str.split("/");
+
+    return `
+        <span class="frac">
+            <span class="top">${num}</span>
+            <span class="bottom">${den}</span>
+        </span>
+    `;
+}
 // RESULTADOS 
 function calcularSistemasEcuaciones() {
     limpiarResultados();
@@ -383,7 +396,7 @@ function calcularSistemasEcuaciones() {
             const row = UI.createRow();
             fila.forEach((valor, colIndex) => {
                 const cell = UI.createTd();
-                cell.textContent = fraccionToString(valor);
+                cell.innerHTML = crearFraccionHTML(valor);
                 if (tieneVectorColumna && colIndex === fila.length - 2) {
                     cell.classList.add("separator-col");
                 }
@@ -449,7 +462,7 @@ function calcularInversa() {
             const row = UI.createRow();
             fila.forEach(valor => {
                 const cell = UI.createTd();
-                cell.textContent = fraccionToString(valor);
+                cell.innerHTML = crearFraccionHTML(valor);
                 row.appendChild(cell);
             });
             resultadoTable.appendChild(row);
@@ -477,89 +490,78 @@ function calcularDeterminante() {
     try {
         const inputs = table.querySelectorAll('input');
         inputs.forEach(input => {
-            if (input.value.trim() === '') {
-                input.value = '0';
-            }
+            if (input.value.trim() === '') input.value = '0';
         });
 
         const matriz = parsearMatriz(table);
         const resultado = calcularDet(matriz);
-        
-        // Construir cadena de factores
-        let factoresStr = "";
-        if (resultado.historialFactores.length === 0) {
-            factoresStr = "";
-        } else {
-            factoresStr = resultado.historialFactores.map(f => {
-                if (f === -1) return "(-1)";
-                if (typeof f === 'number') {
-                    return `(${f})`;
-                } else {
-                    return `(${fraccionToString(f)})`;
-                }
-            }).join("");
-        }
-        
-        // Calcular producto de la diagonal
-        const diagonalValues = [];
-        for (let i = 0; i < resultado.matrizFinal.length; i++) {
-            diagonalValues.push(fraccionToString(resultado.matrizFinal[i][i]));
-        }
-        
-        // PASO 1: det(A) = factoresStr |matriz|
-        const step1 = UI.createDiv();
-        step1.className = "det-step";
-        step1.innerHTML = `
-            <span class="det-text"><strong>det(A)</strong> =</span>
-            <span class="det-text">${factoresStr}</span>
-            <div class="det-matrix">
-                ${generarTablaMatriz(resultado.matrizFinal)}
-            </div>
-        `;
-        
-        // PASO 2: = factoresStr (producto diagonal)
-        const step2 = UI.createDiv();
-        step2.className = "det-step";
-        step2.innerHTML = `
-            <span class="det-text"><strong>=</strong></span>
-            <span class="det-text">${factoresStr}</span>
-            <span class="det-text">(${diagonalValues.join(" × ")})</span>
-        `;
-        
-        // PASO 3: = resultado
-        const step3 = UI.createDiv();
-        step3.className = "det-result";
-        step3.innerHTML = `
-            <strong>=</strong> <span class="det-result-value">${fraccionToString(resultado.determinante)}</span>
-        `;
-        
-        const wrapper = UI.createDiv();
+
+        const factoresStr = resultado.historialFactores
+            .map(f => f === -1 ? "(-1)" : `(${fraccionToString(f)})`)
+            .join("");
+
+        const wrapper = document.createElement("div");
         wrapper.className = "result-wrapper";
-        wrapper.appendChild(step1);
-        wrapper.appendChild(step2);
-        wrapper.appendChild(step3);
-        
+
+        const label = document.createElement("div");
+        label.className = "result-label";
+        label.innerHTML = "det(A) =";
+
+  
+        const container = document.createElement("div");
+        container.className = "det-container";
+
+        const content = document.createElement("div");
+        content.className = "det-content";
+
+
+        const step1 = document.createElement("div");
+        step1.className = "det-step";
+
+        const factores = document.createElement("span");
+        factores.className = "det-factores";
+        factores.innerHTML = factoresStr;
+
+        const mult = document.createElement("span");
+        mult.className = "det-mult";
+        mult.textContent = " ";
+
+        const matrixWrapper = document.createElement("div");
+        matrixWrapper.className = "det-matrix-wrapper";
+
+        const tableMatrix = UI.createTable();
+        tableMatrix.className = "result-table det-matrix";
+
+        resultado.matrizFinal.forEach((fila, i) => {
+            const row = UI.createRow();
+            fila.forEach((valor, j) => {
+                const cell = UI.createTd();
+                cell.innerHTML = crearFraccionHTML(valor);
+                if (i === j) cell.classList.add("diagonal-cell");
+                row.appendChild(cell);
+            });
+            tableMatrix.appendChild(row);
+        });
+
+        matrixWrapper.appendChild(tableMatrix);
+        step1.append(factores, mult, matrixWrapper);
+        const equal = document.createElement("span");
+        equal.className = "det-equal";
+        equal.textContent = "=";
+
+        const value = document.createElement("span");
+        value.className = "det-result-value";
+        value.innerHTML = crearFraccionHTML(resultado.determinante);
+
+        content.append(step1, equal, value);
+        container.appendChild(content);
+
+        wrapper.append(label, container);
         result.appendChild(wrapper);
         article.appendChild(result);
-        
+        console.log("Resultado del determinante:", resultado);
     } catch (error) {
         mostrarError(result, error.message);
         article.appendChild(result);
     }
-}
-
-// Función auxiliar para generar la tabla HTML de una matriz
-function generarTablaMatriz(matriz) {
-    let html = '<table class="result-table" style="margin:0">';
-    for (let i = 0; i < matriz.length; i++) {
-        html += '<tr>';
-        for (let j = 0; j < matriz[i].length; j++) {
-            const value = fraccionToString(matriz[i][j]);
-            const diagonalClass = (i === j) ? 'class="diagonal-cell"' : '';
-            html += `<td ${diagonalClass}>${value}</td>`;
-        }
-        html += '</tr>';
-    }
-    html += '</table>';
-    return html;
 }
