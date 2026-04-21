@@ -1,52 +1,71 @@
+// calculos.js
 import {
     esCero,
     multiplicarFracciones,
     dividirFracciones,
     restarFracciones,
-    normalizarSigno
+    normalizarSigno,
+    fraccionToString
 } from "./auxiliares.js";
 import { swapFilas } from "./operaciones.js";
+import gaussJordan from "./gaussJordan.js";
 
-function aplicarGaussJordan(matriz) {
-    const filas = matriz.length;
-    const columnas = matriz[0].length;
+// Eliminación gaussiana para determinante (solo triangular superior)
+function aplicarGaussiana(matriz) {
+    const n = matriz.length;
+    let swaps = 0;
     let filaPivote = 0;
 
-    for (let col = 0; col < columnas && filaPivote < filas; col++) {
-        // Buscar pivote
-        if (esCero(matriz[filaPivote][col])) {
-            let encontrado = false;
-            for (let fila = filaPivote + 1; fila < filas; fila++) {
-                if (!esCero(matriz[fila][col])) {
-                    swapFilas(matriz, filaPivote, fila);
-                    encontrado = true;
-                    break;
-                }
+    for (let col = 0; col < n && filaPivote < n; col++) {
+        // Buscar pivote en la columna actual desde filaPivote hasta abajo
+        let pivoteFila = -1;
+        for (let fila = filaPivote; fila < n; fila++) {
+            if (!esCero(matriz[fila][col])) {
+                pivoteFila = fila;
+                break;
             }
-            if (!encontrado) continue;
         }
-
-        // Normalizar pivote a 1
+        
+        // Si no hay pivote en esta columna, pasar a la siguiente columna
+        if (pivoteFila === -1) continue;
+        
+        // Si el pivote no está en la fila actual, intercambiar
+        if (pivoteFila !== filaPivote) {
+            swapFilas(matriz, filaPivote, pivoteFila);
+            swaps++;
+        }
+        
+        // Hacer ceros debajo del pivote SIN normalizar
         const pivote = matriz[filaPivote][col];
-        if (!esCero(pivote)) {
-            const inverso = dividirFracciones({ num: 1, den: 1 }, pivote);
-            for (let k = 0; k < columnas; k++) {
-                matriz[filaPivote][k] = multiplicarFracciones(matriz[filaPivote][k], inverso);
-                matriz[filaPivote][k] = normalizarSigno(matriz[filaPivote][k]);
-            }
-        }
-
-        // Hacer ceros en toda la columna
-        for (let fila = 0; fila < filas; fila++) {
-            if (fila !== filaPivote && !esCero(matriz[fila][col])) {
-                const factor = matriz[fila][col];
-                for (let k = 0; k < columnas; k++) {
+        for (let fila = filaPivote + 1; fila < n; fila++) {
+            if (!esCero(matriz[fila][col])) {
+                const factor = dividirFracciones(matriz[fila][col], pivote);
+                for (let k = col; k < n; k++) {
                     const termino = multiplicarFracciones(matriz[filaPivote][k], factor);
                     matriz[fila][k] = restarFracciones(matriz[fila][k], termino);
                     matriz[fila][k] = normalizarSigno(matriz[fila][k]);
                 }
             }
         }
+        
+        filaPivote++; // Avanzar a la siguiente fila pivote
+    }
+    
+    return { matriz, swaps };
+}
+
+// Gauss-Jordan completo (para AXB e Inversa)
+function aplicarGaussJordan(matriz, esAXB = false) {
+    const filas = matriz.length;
+    const columnas = esAXB ? matriz[0].length - 1 : matriz[0].length;
+    let filaPivote = 0;
+
+    for (let col = 0; col < columnas && filaPivote < filas; col++) {
+        if (!gaussJordan.buscarPivote(matriz, filaPivote, col)) continue;
+
+        gaussJordan.hacerPivoteUno(matriz, filaPivote, matriz[filaPivote][col]);
+        gaussJordan.hacerCerosArriba(matriz, filaPivote, col);
+        gaussJordan.hacerCerosDebajo(matriz, filaPivote, col);
 
         filaPivote++;
     }
@@ -54,25 +73,24 @@ function aplicarGaussJordan(matriz) {
 }
 
 export function resolverAXB(matriz) {
-    return aplicarGaussJordan(matriz);
+    const copia = matriz.map(fila => [...fila]);
+    return aplicarGaussJordan(copia, true);
 }
 
 export function resolverInv(matriz) {
     const n = matriz.length;
-
+    
     if (!matriz.every(fila => fila.length === n)) {
         throw new Error("La matriz debe ser cuadrada");
     }
 
-    // Crear matriz aumentada [A | I]
     const aumentada = matriz.map((fila, i) => [
         ...fila.map(v => ({ num: v.num, den: v.den })),
         ...Array.from({ length: n }, (_, j) => ({ num: i === j ? 1 : 0, den: 1 }))
     ]);
 
-    aplicarGaussJordan(aumentada);
+    aplicarGaussJordan(aumentada, false);
 
-    // Verificar que la izquierda es identidad
     for (let i = 0; i < n; i++) {
         const { num, den } = aumentada[i][i];
         if (num === 0 || Math.abs(num) !== Math.abs(den)) {
@@ -85,69 +103,28 @@ export function resolverInv(matriz) {
 
 export function calcularDet(matriz) {
     const n = matriz.length;
-
-    // Validar que sea cuadrada
-    for (let i = 0; i < n; i++) {
-        if (matriz[i].length !== n) {
-            throw new Error("La matriz debe ser cuadrada");
-        }
+    
+    if (!matriz.every(fila => fila.length === n)) {
+        throw new Error("La matriz debe ser cuadrada");
     }
 
-    // Copiar matriz
-    const m = matriz.map(fila => fila.map(valor => ({ num: valor.num, den: valor.den })));
+    const copia = matriz.map(fila => fila.map(v => ({ num: v.num, den: v.den })));
+    const { matriz: triangular, swaps } = aplicarGaussiana(copia);
 
-    let swaps = 0;
     let det = { num: 1, den: 1 };
-
-    // Eliminación gaussiana a triangular superior
     for (let i = 0; i < n; i++) {
-        // Buscar pivote
-        if (esCero(m[i][i])) {
-            for (let j = i + 1; j < n; j++) {
-                if (!esCero(m[j][i])) {
-                    swapFilas(m, i, j);
-                    swaps++;
-                    break;
-                }
-            }
-        }
-
-        const pivote = m[i][i];
-
-        // Si no hay pivote, determinante = 0
-        if (esCero(pivote)) {
-            return {
-                determinante: { num: 0, den: 1 },
-                matrizFinal: m,
-                factores: { swaps, multiplicadores: [] }
-            };
-        }
-
-        // Multiplicar determinante por el pivote
-        det = multiplicarFracciones(det, pivote);
-
-        // Eliminar debajo
-        for (let j = i + 1; j < n; j++) {
-            if (!esCero(m[j][i])) {
-                const factor = dividirFracciones(m[j][i], pivote);
-
-                for (let k = i; k < n; k++) {
-                    const termino = multiplicarFracciones(m[i][k], factor);
-                    m[j][k] = restarFracciones(m[j][k], termino);
-                    m[j][k] = normalizarSigno(m[j][k]);
-                }
-            }
-        }
+        det = multiplicarFracciones(det, triangular[i][i]);
     }
 
-    // Ajustar signo por swaps
     if (swaps % 2 === 1) {
         det = multiplicarFracciones(det, { num: -1, den: 1 });
     }
 
+    const historialFactores = swaps > 0 ? Array(swaps).fill(-1) : [];
+
     return {
-        determinante: det,
-        matrizFinal: m,
-        factores: { swaps, multiplicadores: [] }
+        matrizFinal: triangular,
+        historialFactores: historialFactores,
+        determinante: normalizarSigno(det)
     };
 }

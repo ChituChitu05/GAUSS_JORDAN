@@ -4,6 +4,9 @@ import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 
 let currentOperation = "axb"; // Puede ser "axb", "inversa" o "determinante"
+let currentMatrixState = null; // Guardar estado de la matriz
+let keydownHandler = null;
+let inputHandler = null;
 
 export function inicializarMatriz(article, modo) {
     currentOperation = modo;
@@ -61,7 +64,6 @@ export function inicializarMatriz(article, modo) {
     configurarEventos(article, table);
     
     if (modo === "axb") actualizarSeparador(table);
-
     
     if (modo === "axb") {
         document.getElementById("btnCalcular").onclick = calcularSistemasEcuaciones;
@@ -74,6 +76,17 @@ export function inicializarMatriz(article, modo) {
 
 export function cambiarModo(article, nuevoModo) {
     const table = document.getElementById("inputTable");
+    
+    // Guardar matriz actual antes de cambiar
+    if (table) {
+        try {
+            currentMatrixState = parsearMatriz(table);
+        } catch (error) {
+            console.warn("No se pudo guardar el estado de la matriz:", error);
+            currentMatrixState = null;
+        }
+    }
+    
     if (!table) {
         inicializarMatriz(article, nuevoModo);
         return;
@@ -105,6 +118,7 @@ export function cambiarModo(article, nuevoModo) {
 }
 
 function eliminarSeparador(table) {
+    if (!table) return;
     for (let row of table.rows) {
         for (let cell of row.cells) {
             cell.style.borderRight = "";
@@ -117,11 +131,35 @@ function limpiar(article) {
     while (article.firstChild) article.removeChild(article.firstChild);
 }
 
+function limpiarResultados() {
+    const prev = document.getElementById("resultSection");
+    if (prev) prev.remove();
+}
+
+function mostrarError(container, mensaje) {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "error-message";
+    errorDiv.style.cssText = "padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px; margin-top: 20px;";
+    errorDiv.innerHTML = `<strong>Error:</strong> ${mensaje}`;
+    container.appendChild(errorDiv);
+}
+
 function configurarEventos(article, table) {
-    article.removeEventListener('keydown', manejarKeydown);
-    article.addEventListener('keydown', (e) => manejarKeydown(e, table));
-    article.removeEventListener('input', manejarInput);
-    article.addEventListener('input', manejarInput);
+    // Remover event listeners anteriores
+    if (keydownHandler) {
+        article.removeEventListener('keydown', keydownHandler);
+    }
+    if (inputHandler) {
+        article.removeEventListener('input', inputHandler);
+    }
+    
+    // Crear nuevos handlers
+    keydownHandler = (e) => manejarKeydown(e, table);
+    inputHandler = manejarInput;
+    
+    // Agregar event listeners
+    article.addEventListener('keydown', keydownHandler);
+    article.addEventListener('input', inputHandler);
 }
 
 function manejarInput(e) {
@@ -129,13 +167,38 @@ function manejarInput(e) {
     if (input.tagName !== 'INPUT') return;
     const valor = input.value;
     if (valor === "") return;
-    if (!/^[-]?\d*\/?\d*$/.test(valor)) input.value = valor.slice(0, -1);
-    if ((valor.match(/\//g) || []).length > 1) input.value = valor.slice(0, -1);
+    
+    // Validación más estricta: números enteros, fracciones simples o negativos
+    const regex = /^-?\d*\/?\d*$/;
+    if (!regex.test(valor)) {
+        input.value = valor.slice(0, -1);
+        return;
+    }
+    
+    // Prevenir múltiples signos negativos
+    const negativos = (valor.match(/-/g) || []).length;
+    if (negativos > 1 || (negativos === 1 && valor.indexOf('-') !== 0)) {
+        input.value = valor.replace(/-/g, '');
+        return;
+    }
+    
+    // Prevenir múltiples barras
+    if ((valor.match(/\//g) || []).length > 1) {
+        input.value = valor.slice(0, -1);
+    }
 }
 
 function manejarKeydown(e, table) {
     const input = e.target;
     if (input.tagName !== 'INPUT') return;
+    
+    // Atajo Ctrl+Enter para calcular
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        const btn = document.getElementById("btnCalcular");
+        if (btn) btn.click();
+        return;
+    }
     
     const cell = input.closest('td');
     if (!cell) return;
@@ -264,82 +327,90 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
 }
 
 function actualizarSeparador(table) {
+    if (!table || !table.rows.length) return;
+    
     eliminarSeparador(table);
     const sep = table.rows[0].cells.length - 2;
+    
     if (sep >= 0) {
-        for (let row of table.rows) {
-            const cell = row.cells[sep];
-            if (cell) {
-                cell.style.borderRight = "2px solid var(--primary)";
-                cell.classList.add("separator");
+        requestAnimationFrame(() => {
+            for (let row of table.rows) {
+                const cell = row.cells[sep];
+                if (cell) {
+                    cell.style.borderRight = "2px solid var(--primary)";
+                    cell.classList.add("separator");
+                }
             }
-        }
+        });
     }
 }
 
 // RESULTADOS 
 function calcularSistemasEcuaciones() {
-    const prev = document.getElementById("resultSection");
-    if (prev) prev.remove();
+    limpiarResultados();
 
-    const result = createSection("resultSection", "RESULTADO AX = B");
+    const result = UI.createSection("resultSection", "RESULTADO AX = B");
     const article = document.getElementById("article");
     const table = document.getElementById("inputTable");
 
-    const inputs = table.querySelectorAll('input');
-    inputs.forEach(input => {
-        if (input.value.trim() === '') {
-            input.value = '0';
-        }
-    });
-
-    const matriz = parsearMatriz(table);
-    const resultado = resolverAXB(matriz);
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "result-wrapper";
-
-    const label = document.createElement("div");
-    label.className = "result-label";
-    label.textContent = "A =";
-
-    const matrixContainer = document.createElement("div");
-    matrixContainer.className = "result-matrix-container";
-
-    const resultadoTable = UI.createTable("resultadoTable");
-    resultadoTable.className = "result-table";
-
-    const tieneVectorColumna = resultado[0] && resultado[0].length > 1;
-
-    resultado.forEach((fila) => {
-        const row = UI.createRow();
-        fila.forEach((valor, colIndex) => {
-            const cell = UI.createTd();
-            cell.textContent = fraccionToString(valor);
-            if (tieneVectorColumna && colIndex === fila.length - 2) {
-                cell.classList.add("separator-col");
+    try {
+        const inputs = table.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.value.trim() === '') {
+                input.value = '0';
             }
-            row.appendChild(cell);
         });
-        resultadoTable.appendChild(row);
-    });
 
-    if (tieneVectorColumna) {
-        resultadoTable.classList.add("separator-mode");
+        const matriz = parsearMatriz(table);
+        const resultado = resolverAXB(matriz);
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "result-wrapper";
+
+        const label = document.createElement("div");
+        label.className = "result-label";
+        label.textContent = "A =";
+
+        const matrixContainer = document.createElement("div");
+        matrixContainer.className = "result-matrix-container";
+
+        const resultadoTable = UI.createTable("resultadoTable");
+        resultadoTable.className = "result-table";
+
+        const tieneVectorColumna = resultado[0] && resultado[0].length > 1;
+
+        resultado.forEach((fila) => {
+            const row = UI.createRow();
+            fila.forEach((valor, colIndex) => {
+                const cell = UI.createTd();
+                cell.textContent = fraccionToString(valor);
+                if (tieneVectorColumna && colIndex === fila.length - 2) {
+                    cell.classList.add("separator-col");
+                }
+                row.appendChild(cell);
+            });
+            resultadoTable.appendChild(row);
+        });
+
+        if (tieneVectorColumna) {
+            resultadoTable.classList.add("separator-mode");
+        }
+
+        matrixContainer.appendChild(resultadoTable);
+        wrapper.appendChild(label);
+        wrapper.appendChild(matrixContainer);
+        result.appendChild(wrapper);
+        article.appendChild(result);
+    } catch (error) {
+        mostrarError(result, error.message);
+        article.appendChild(result);
     }
-
-    matrixContainer.appendChild(resultadoTable);
-    wrapper.appendChild(label);
-    wrapper.appendChild(matrixContainer);
-    result.appendChild(wrapper);
-    article.appendChild(result);
 }
 
 function calcularInversa() {
-    const prev = document.getElementById("resultSection");
-    if (prev) prev.remove();
+    limpiarResultados();
 
-    const result = createSection("resultSection", "RESULTADO INVERSA");
+    const result = UI.createSection("resultSection", "RESULTADO INVERSA");
     const article = document.getElementById("article");
     const table = document.getElementById("inputTable");
 
@@ -391,24 +462,19 @@ function calcularInversa() {
         article.appendChild(result);
 
     } catch (error) {
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "error-message";
-        errorDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
-        result.appendChild(errorDiv);
+        mostrarError(result, error.message);
         article.appendChild(result);
     }
 }
 
 function calcularDeterminante() {
-    const prev = document.getElementById("resultSection");
-    if (prev) prev.remove();
+    limpiarResultados();
 
-    const result = createSection("resultSection", "RESULTADO DETERMINANTE");
+    const result = UI.createSection("resultSection", "RESULTADO DETERMINANTE");
     const article = document.getElementById("article");
     const table = document.getElementById("inputTable");
 
     try {
-        // Validar que todos los inputs tengan valores
         const inputs = table.querySelectorAll('input');
         inputs.forEach(input => {
             if (input.value.trim() === '') {
@@ -417,81 +483,83 @@ function calcularDeterminante() {
         });
 
         const matriz = parsearMatriz(table);
-        
-        // Validar que sea cuadrada
-        const n = matriz.length;
-        const esCuadrada = matriz.every(fila => fila.length === n);
-        
-        if (!esCuadrada) {
-            throw new Error("La matriz debe ser cuadrada para calcular su determinante");
-        }
-        
-        // Calcular determinante
         const resultado = calcularDet(matriz);
         
-        // Crear wrapper para resultados
-        const wrapper = document.createElement("div");
+        // Construir cadena de factores
+        let factoresStr = "";
+        if (resultado.historialFactores.length === 0) {
+            factoresStr = "";
+        } else {
+            factoresStr = resultado.historialFactores.map(f => {
+                if (f === -1) return "(-1)";
+                if (typeof f === 'number') {
+                    return `(${f})`;
+                } else {
+                    return `(${fraccionToString(f)})`;
+                }
+            }).join("");
+        }
+        
+        // Calcular producto de la diagonal
+        const diagonalValues = [];
+        for (let i = 0; i < resultado.matrizFinal.length; i++) {
+            diagonalValues.push(fraccionToString(resultado.matrizFinal[i][i]));
+        }
+        
+        // PASO 1: det(A) = factoresStr |matriz|
+        const step1 = UI.createDiv();
+        step1.className = "det-step";
+        step1.innerHTML = `
+            <span class="det-text"><strong>det(A)</strong> =</span>
+            <span class="det-text">${factoresStr}</span>
+            <div class="det-matrix">
+                ${generarTablaMatriz(resultado.matrizFinal)}
+            </div>
+        `;
+        
+        // PASO 2: = factoresStr (producto diagonal)
+        const step2 = UI.createDiv();
+        step2.className = "det-step";
+        step2.innerHTML = `
+            <span class="det-text"><strong>=</strong></span>
+            <span class="det-text">${factoresStr}</span>
+            <span class="det-text">(${diagonalValues.join(" × ")})</span>
+        `;
+        
+        // PASO 3: = resultado
+        const step3 = UI.createDiv();
+        step3.className = "det-result";
+        step3.innerHTML = `
+            <strong>=</strong> <span class="det-result-value">${fraccionToString(resultado.determinante)}</span>
+        `;
+        
+        const wrapper = UI.createDiv();
         wrapper.className = "result-wrapper";
-        
-        // Mostrar determinante
-        const detContainer = document.createElement("div");
-        detContainer.className = "determinante-container";
-        
-        const detLabel = document.createElement("div");
-        detLabel.className = "result-label";
-        detLabel.textContent = "det(A) =";
-        
-        const detValue = document.createElement("div");
-        detValue.className = "determinante-value";
-        detValue.textContent = fraccionToString(resultado.determinante);
-        
-        detContainer.appendChild(detLabel);
-        detContainer.appendChild(detValue);
-        wrapper.appendChild(detContainer);
-        
-        // Opcional: Mostrar la matriz triangular superior resultante
-        const matrizLabel = document.createElement("div");
-        matrizLabel.className = "result-label";
-        matrizLabel.textContent = "Matriz triangular superior:";
-        matrizLabel.style.marginTop = "20px";
-        wrapper.appendChild(matrizLabel);
-        
-        const matrixContainer = document.createElement("div");
-        matrixContainer.className = "result-matrix-container";
-        
-        const resultadoTable = UI.createTable("resultadoTable");
-        resultadoTable.className = "result-table";
-        
-        resultado.matrizFinal.forEach(fila => {
-            const row = UI.createRow();
-            fila.forEach(valor => {
-                const cell = UI.createTd();
-                cell.textContent = fraccionToString(valor);
-                row.appendChild(cell);
-            });
-            resultadoTable.appendChild(row);
-        });
-        
-        matrixContainer.appendChild(resultadoTable);
-        wrapper.appendChild(matrixContainer);
-        
-        // Mostrar información adicional (número de intercambios)
-        const infoContainer = document.createElement("div");
-        infoContainer.className = "info-container";
-        infoContainer.style.marginTop = "15px";
-        infoContainer.style.fontSize = "14px";
-        infoContainer.style.color = "var(--text-secondary)";
-        infoContainer.innerHTML = `<strong>Información:</strong> Intercambios de filas: ${resultado.factores.swaps}`;
-        wrapper.appendChild(infoContainer);
+        wrapper.appendChild(step1);
+        wrapper.appendChild(step2);
+        wrapper.appendChild(step3);
         
         result.appendChild(wrapper);
         article.appendChild(result);
         
     } catch (error) {
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "error-message";
-        errorDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
-        result.appendChild(errorDiv);
+        mostrarError(result, error.message);
         article.appendChild(result);
     }
+}
+
+// Función auxiliar para generar la tabla HTML de una matriz
+function generarTablaMatriz(matriz) {
+    let html = '<table class="result-table" style="margin:0">';
+    for (let i = 0; i < matriz.length; i++) {
+        html += '<tr>';
+        for (let j = 0; j < matriz[i].length; j++) {
+            const value = fraccionToString(matriz[i][j]);
+            const diagonalClass = (i === j) ? 'class="diagonal-cell"' : '';
+            html += `<td ${diagonalClass}>${value}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    return html;
 }

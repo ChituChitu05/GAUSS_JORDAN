@@ -1,5 +1,6 @@
+// gaussJordan.js
 import { swapFilas, multiplicarFila, sumarFilas, restarFilas } from './operaciones.js';
-import { esCero, dividirFracciones, normalizarSigno } from './auxiliares.js';
+import { esCero, dividirFracciones, normalizarSigno, multiplicarFracciones, restarFracciones} from './auxiliares.js';
 
 export function buscarPivote(matriz, filaActual, columnaActual) {
     if (!esCero(matriz[filaActual][columnaActual])) {
@@ -35,7 +36,6 @@ export function hacerCerosDebajo(matriz, filaPivote, columnaPivote) {
     for (let fila = filaPivote + 1; fila < matriz.length; ++fila) {
         const factor = matriz[fila][columnaPivote];
         if (!esCero(factor)) {
-            // fila = fila - factor * filaPivote
             restarFilas(matriz, fila, filaPivote, factor);
         }
     }
@@ -50,11 +50,49 @@ export function hacerCerosArriba(matriz, filaPivote, columnaPivote) {
     }
 }
 
+export function hacerCerosDebajoSinNormalizar(matriz, filaPivote, columnaPivote) {
+    if (esCero(matriz[filaPivote][columnaPivote])) {
+        return;
+    }
+    
+    for (let fila = filaPivote + 1; fila < matriz.length; ++fila) {
+        if (!esCero(matriz[fila][columnaPivote])) {
+            const factor = dividirFracciones(matriz[fila][columnaPivote], matriz[filaPivote][columnaPivote]);
+            
+            for (let k = columnaPivote; k < matriz[0].length; k++) {
+                const termino = multiplicarFracciones(matriz[filaPivote][k], factor);
+                matriz[fila][k] = restarFracciones(matriz[fila][k], termino);
+                matriz[fila][k] = normalizarSigno(matriz[fila][k]);
+            }
+        }
+    }
+}
+
+export function hacerCerosArribaSinNormalizar(matriz, filaPivote, columnaPivote) {
+    if (esCero(matriz[filaPivote][columnaPivote])) {
+        return;
+    }
+    
+    for (let fila = 0; fila < filaPivote; ++fila) {
+        if (!esCero(matriz[fila][columnaPivote])) {
+            const factor = dividirFracciones(matriz[fila][columnaPivote], matriz[filaPivote][columnaPivote]);
+            
+            for (let k = columnaPivote; k < matriz[0].length; k++) {
+                const termino = multiplicarFracciones(matriz[filaPivote][k], factor);
+                matriz[fila][k] = restarFracciones(matriz[fila][k], termino);
+                matriz[fila][k] = normalizarSigno(matriz[fila][k]);
+            }
+        }
+    }
+}
+
 const gaussJordan = {
     buscarPivote,
     hacerPivoteUno,
     hacerCerosDebajo,
-    hacerCerosArriba
+    hacerCerosArriba,
+    hacerCerosDebajoSinNormalizar,
+    hacerCerosArribaSinNormalizar
 };
 
 export default gaussJordan;

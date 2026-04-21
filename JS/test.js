@@ -1,5 +1,5 @@
 // tests.js - Script de pruebas para Gauss-Jordan, Inversa y Determinante
-import { resolverAXB, resolverInv, calcularDeterminante } from "./calculos.js";
+import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 import { 
     fraccionToString
 } from "./auxiliares.js";
@@ -287,7 +287,7 @@ function ejecutarTests() {
                     break;
                     
                 case "determinante":
-                    resultado = calcularDeterminante(matrizPrueba);
+                    resultado = calcularDet(matrizPrueba);
                     const detValue = resultado.determinante;
                     console.log(`✓ Determinante: ${detValue.num}/${detValue.den} = ${detValue.num/detValue.den}`);
                     
@@ -295,7 +295,7 @@ function ejecutarTests() {
                         if (fraccionesIguales(resultado.determinante, test.determinanteEsperado)) {
                             console.log(`✓ Valor esperado correcto`);
                         } else {
-                            console.log(`⚠ Valor esperado: ${test.determinanteEsperado.num}/${test.determinanteEsperado.den}`);
+                            console.log(`⚠ Valor esperado: ${fraccionToString(test.determinanteEsperado)}`);
                         }
                     }
                     pasaron++;
