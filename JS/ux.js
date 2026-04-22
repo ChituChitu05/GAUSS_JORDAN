@@ -368,9 +368,19 @@ function calcularSistemasEcuaciones() {
 
     try {
         const inputs = table.querySelectorAll('input');
+
         inputs.forEach(input => {
-            if (input.value.trim() === '') {
+            let v = input.value.trim();
+
+            if (v === '') {
                 input.value = '0';
+                return;
+            }
+
+            // caso: /5  →  1/5
+            if (/^\/\d+$/.test(v)) {
+                input.value = `1${v}`;
+                return;
             }
         });
 
@@ -429,9 +439,19 @@ function calcularInversa() {
 
     try {
         const inputs = table.querySelectorAll('input');
+
         inputs.forEach(input => {
-            if (input.value.trim() === '') {
+            let v = input.value.trim();
+
+            if (v === '') {
                 input.value = '0';
+                return;
+            }
+
+            // caso: /5  →  1/5
+            if (/^\/\d+$/.test(v)) {
+                input.value = `1${v}`;
+                return;
             }
         });
 
@@ -489,8 +509,20 @@ function calcularDeterminante() {
 
     try {
         const inputs = table.querySelectorAll('input');
+
         inputs.forEach(input => {
-            if (input.value.trim() === '') input.value = '0';
+            let v = input.value.trim();
+
+            if (v === '') {
+                input.value = '0';
+                return;
+            }
+
+            // caso: /5  →  1/5
+            if (/^\/\d+$/.test(v)) {
+                input.value = `1${v}`;
+                return;
+            }
         });
 
         const matriz = parsearMatriz(table);
@@ -507,7 +539,7 @@ function calcularDeterminante() {
         label.className = "result-label";
         label.innerHTML = "det(A) =";
 
-  
+
         const container = document.createElement("div");
         container.className = "det-container";
 
