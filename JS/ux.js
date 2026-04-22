@@ -145,7 +145,7 @@ function mostrarError(container, mensaje) {
 }
 
 function configurarEventos(article, table) {
-    // Remover event listeners anteriores
+
     if (keydownHandler) {
         article.removeEventListener('keydown', keydownHandler);
     }
@@ -153,11 +153,9 @@ function configurarEventos(article, table) {
         article.removeEventListener('input', inputHandler);
     }
 
-    // Crear nuevos handlers
     keydownHandler = (e) => manejarKeydown(e, table);
     inputHandler = manejarInput;
 
-    // Agregar event listeners
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
 }
@@ -165,26 +163,51 @@ function configurarEventos(article, table) {
 function manejarInput(e) {
     const input = e.target;
     if (input.tagName !== 'INPUT') return;
-    const valor = input.value;
+    let valor = input.value;
     if (valor === "") return;
 
-    // Validación más estricta: números enteros, fracciones simples o negativos
-    const regex = /^-?\d*\/?\d*$/;
+    if (valor.includes('./') || valor.includes('/.')) {
+        input.value = valor.slice(0, -1);
+        return;
+    }
+
+    const partes = valor.split('/');
+    
+    if (partes.length > 2) {
+        input.value = valor.slice(0, -1);
+        return;
+    }
+    
+    if (partes.length === 2) {
+        const izquierda = partes[0];
+        const derecha = partes[1];
+        
+        if ((izquierda.match(/\./g) || []).length > 1) {
+            input.value = valor.slice(0, -1);
+            return;
+        }
+        
+        if ((derecha.match(/\./g) || []).length > 1) {
+            input.value = valor.slice(0, -1);
+            return;
+        }
+    } else {
+        if ((valor.match(/\./g) || []).length > 1) {
+            input.value = valor.slice(0, -1);
+            return;
+        }
+    }
+
+    const regex = /^-?\d*\.?\d*\/?\d*\.?\d*$/;
     if (!regex.test(valor)) {
         input.value = valor.slice(0, -1);
         return;
     }
 
-    // Prevenir múltiples signos negativos
     const negativos = (valor.match(/-/g) || []).length;
     if (negativos > 1 || (negativos === 1 && valor.indexOf('-') !== 0)) {
         input.value = valor.replace(/-/g, '');
         return;
-    }
-
-    // Prevenir múltiples barras
-    if ((valor.match(/\//g) || []).length > 1) {
-        input.value = valor.slice(0, -1);
     }
 }
 
