@@ -518,7 +518,6 @@ function calcularDeterminante() {
                 return;
             }
 
-            // caso: /5  →  1/5
             if (/^\/\d+$/.test(v)) {
                 input.value = `1${v}`;
                 return;
