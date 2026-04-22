@@ -1,16 +1,10 @@
 // calculos.js
 import {
-    esCero,
-    multiplicarFracciones,
-    dividirFracciones,
-    restarFracciones,
-    normalizarSigno,
-    fraccionToString
-} from "./auxiliares.js";
+    esCero,multiplicarFracciones,dividirFracciones,restarFracciones,normalizarSigno,fraccionToString} from "./auxiliares.js";
 import { swapFilas } from "./operaciones.js";
 import gaussJordan from "./gaussJordan.js";
 
-// Eliminación gaussiana para determinante (solo triangular superior)
+// Eliminación gaussiana para determinante
 function aplicarGaussiana(matriz) {
     const n = matriz.length;
     let swaps = 0;
@@ -54,7 +48,8 @@ function aplicarGaussiana(matriz) {
     return { matriz, swaps };
 }
 
-// Gauss-Jordan completo (para AXB e Inversa)
+// Gauss Jordan completo para AXB e Inversa
+// esAXB indica si la última columna es el vector resultado (en caso de AXB) o parte de la matriz aumentada (en caso de inversa).
 function aplicarGaussJordan(matriz, esAXB = false) {
     const filas = matriz.length;
     const columnas = esAXB ? matriz[0].length - 1 : matriz[0].length;

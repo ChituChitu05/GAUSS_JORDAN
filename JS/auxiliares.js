@@ -19,7 +19,7 @@ export function simplificar(num, den) {
     return [numSimp, denSimp];
 }
 
-// Convertir string "a/b", "a/", "/b", "a" a objeto {num, den}
+// Convertir string "a/b", "a/", "/b", "a" a {num, den}
 export function parsearFraccion(valor) {
     if (valor === "" || valor === null || valor === undefined) {
         return { num: 0, den: 1 };

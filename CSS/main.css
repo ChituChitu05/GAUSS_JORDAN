@@ -11,8 +11,9 @@
     --primary: #3b82f6;
     --primary-dark: #2563eb;
 
-    --bg-page: #0f172a;
-    --bg-surface: #1e293b;
+    --bg-page: #0b1220;
+    --bg-surface: #2a3a55;   /* más claro para que destaque el section */
+
     --bg-aside: #020617;
     --bg-header: #020617;
 
@@ -28,10 +29,12 @@
 
 /* ===== MODO CLARO ===== */
 body.light {
-    --bg-page: #f8fafc;
+    --bg-page: #eef2f7;
+
     --bg-surface: #ffffff;
-    --bg-aside: #e2e8f0;
-    --bg-header: #e2e8f0;
+
+    --bg-aside: #cbd5e1; 
+    --bg-header: #cbd5e1; 
 
     --text-primary: #0f172a;
     --text-secondary: #334155;
@@ -120,6 +123,19 @@ section {
 
     width: 100%;
     max-width: 500px;
+
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+/* modo claro shadow */
+body.light section {
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+/* hover opcional */
+section:hover {
+    transform: translateY(-2px);
+    transition: 0.2s;
 }
 
 /* ===== TITLES ===== */
@@ -154,7 +170,6 @@ section h2 {
     gap: 0;
 }
 
-/* SIN BORDE, SOLO FONDO */
 .result-wrapper {
     background: var(--bg-surface);
     border-radius: 12px;
@@ -178,7 +193,6 @@ section h2 {
     align-items: center;
 }
 
-/* resultado en verde */
 #resultSection .result-label {
     color: var(--success);
 }
@@ -341,7 +355,7 @@ section h2 {
     }
 }
 
-
+/* ===== THEME TOGGLE ===== */
 #themeToggle {
     margin-top: 2rem;
     width: 100%;
@@ -367,4 +381,8 @@ section h2 {
 
 #themeToggle:active {
     transform: scale(0.96);
+}
+
+.result-table td.separator-col {
+    border-right: 2px solid var(--success);
 }
