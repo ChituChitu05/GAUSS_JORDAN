@@ -6,42 +6,49 @@
     font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
 }
 
-/* ===== VARIABLES (MODO OSCURO BASE) ===== */
+
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-
-    --bg-page: #0b1220;
-    --bg-surface: #2a3a55;   /* más claro para que destaque el section */
-
-    --bg-aside: #020617;
-    --bg-header: #020617;
-
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-
-    --border: #334155;
-
-    --success: #10b981;
-    --error: #ef4444;
-    --error-bg: #7f1d1d;
+    --primary:      #FF3B5C;
+    --primary-dark: #D92B4B;
+ 
+    --bg-page:    #0D1117;
+    --bg-surface: #161C26;
+    --bg-aside:   #0A0E16;
+    --bg-header:  #0A0E16;
+ 
+    --text-primary:   #F0F4FF;
+    --text-secondary: #8B9EC9;
+ 
+    --border: #1E2A42;
+ 
+    --success:  #00C8A0;
+    --error:    #FF3B5C;
+    --error-bg: #2A0A12;
+ 
+    --accent-glow: rgba(255, 59, 92, 0.25);
+    --success-glow: rgba(0, 200, 160, 0.25);
 }
-
-/* ===== MODO CLARO ===== */
+ 
 body.light {
-    --bg-page: #eef2f7;
-
-    --bg-surface: #ffffff;
-
-    --bg-aside: #cbd5e1; 
-    --bg-header: #cbd5e1; 
-
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
-
-    --border: #cbd5e1;
-
-    --error-bg: #fee2e2;
+    --primary:      #6C63FF;
+    --primary-dark: #4F46E5;
+ 
+    --bg-page:    #F4F6FF;
+    --bg-surface: #FFFFFF;
+    --bg-aside:   #E8EEFF;
+    --bg-header:  #E8EEFF;
+ 
+    --text-primary:   #1A1A2E;
+    --text-secondary: #4A5568;
+ 
+    --border: #D0D8F0;
+ 
+    --success:  #00B894;
+    --error:    #E53E3E;
+    --error-bg: #FFF5F5;
+ 
+    --accent-glow: rgba(108, 99, 255, 0.15);
+    --success-glow: rgba(0, 184, 148, 0.15);
 }
 
 /* ===== LAYOUT ===== */
