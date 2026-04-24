@@ -93,18 +93,19 @@ function manejarInput(e) {
     if (/\/(\.\d)/.test(valor)) {
         const partes = valor.split('/');
         if (partes[1] && partes[1].startsWith('.')) {
-            input.value = partes[0] + '/0' + partes[1].substring(1);
+            input.value = partes[0] + '/0.' + partes[1].substring(1);
             return;
         }
     }
     if (/\/(-\.\d)/.test(valor)) {
         const partes = valor.split('/');
         if (partes[1] && partes[1].startsWith('-.')) {
-            input.value = partes[0] + '/-0' + partes[1].substring(2);
+            input.value = partes[0] + '/-0.' + partes[1].substring(2);
             return;
         }
     }
 
+    // Rechazar punto seguido de barra
     if (valor.includes('./')) {
         input.value = valor.slice(0, -1);
         return;
@@ -112,11 +113,13 @@ function manejarInput(e) {
 
     const partes = valor.split('/');
 
+    // No permitir más de una barra
     if (partes.length > 2) {
         input.value = valor.slice(0, -1);
         return;
     }
 
+    // Validar decimales (máximo un punto por parte)
     if (partes.length === 2) {
         const izquierda = partes[0];
         const derecha = partes[1];
@@ -135,19 +138,38 @@ function manejarInput(e) {
         }
     }
 
-    const regex = /^-?\d*\.?\d*\/?\d*\.?\d*$/;
-    if (!regex.test(valor)) {
+    // Validar signos negativos
+    const negativos = (valor.match(/-/g) || []).length;
+    
+    // Máximo 2 signos negativos
+    if (negativos > 2) {
         input.value = valor.slice(0, -1);
         return;
     }
-
-    const negativos = (valor.match(/-/g) || []).length;
-    if (negativos > 2 || (negativos === 2 && !/^-?\d*\.?\d*\/-?\d*\.?\d*$/.test(valor))) {
-        input.value = valor.replace(/-/g, '');
-        return;
+    
+    // Si hay 2 negativos, deben estar al inicio y después de la barra
+    if (negativos === 2) {
+        if (!/^-\d*\.?\d*\/-\d*\.?\d*$/.test(valor)) {
+            input.value = valor.slice(0, -1);
+            return;
+        }
     }
-    if (negativos === 1 && valor.indexOf('-') !== 0 && !valor.includes('/-')) {
-        input.value = valor.replace(/-/g, '');
+    
+    // Si hay 1 negativo, debe estar al inicio O después de la barra
+    if (negativos === 1) {
+        const esNegativoAlInicio = valor.indexOf('-') === 0;
+        const esNegativoEnDenominador = /\/-/.test(valor);
+        if (!esNegativoAlInicio && !esNegativoEnDenominador) {
+            input.value = valor.slice(0, -1);
+            return;
+        }
+    }
+
+    // Validar formato general (ACEPTA: números, negativos, barra, punto decimal)
+    // Ejemplos válidos: 5, -3, 5/2, -3/4, 3/-4, -3/-4, 0.5, 3.5/2.7
+    const regex = /^-?\d*\.?\d*(\/-?\d*\.?\d*)?$/;
+    if (!regex.test(valor)) {
+        input.value = valor.slice(0, -1);
         return;
     }
 }
