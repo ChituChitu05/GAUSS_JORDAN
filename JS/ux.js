@@ -1,4 +1,3 @@
-este es mi nuevo codigo, podriamos hacer que, si es una fraccion, podamos ingresar 2 sigonos menos, uno en el  numeradosr y otro en el denominador y despues se simplifiqueb?
 import UI, { createSection } from "./ui.js";
 import { parsearMatriz, fraccionToString, esFraccion, simplificar, tieneDecimales, formatearResultado } from "./auxiliares.js";
 import Auxiliares from "./auxiliares.js";
