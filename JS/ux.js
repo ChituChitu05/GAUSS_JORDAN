@@ -1,3 +1,4 @@
+este es mi nuevo codigo, podriamos hacer que, si es una fraccion, podamos ingresar 2 sigonos menos, uno en el  numeradosr y otro en el denominador y despues se simplifiqueb?
 import UI, { createSection } from "./ui.js";
 import { parsearMatriz, fraccionToString, esFraccion, simplificar, tieneDecimales, formatearResultado } from "./auxiliares.js";
 import Auxiliares from "./auxiliares.js";
@@ -341,7 +342,6 @@ function manejarClick(e, table) {
     }
 }
 
-// Reemplazar la función manejarInput con esta versión:
 function manejarInput(e) {
     const input = e.target;
     if (input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;
@@ -349,34 +349,53 @@ function manejarInput(e) {
     let valor = input.value;
     if (valor === "") return;
 
-    // NUEVO: Auto-corregir .x → 0.x
-    // Si empieza con punto, agregar 0 al inicio
+    // 1. Auto-corregir .x → 0.x (punto al inicio)
     if (/^\.\d/.test(valor)) {
         input.value = '0' + valor;
         return;
     }
 
+    // 2. Auto-corregir -.x → -0.x (menos punto al inicio)
     if (/^-\.\d/.test(valor)) {
         input.value = '-0' + valor.substring(1);
         return;
     }
 
-    if (/(\/\.\d)/.test(valor)) {
+
+    if (/\/(\.\d)/.test(valor)) {
         const partes = valor.split('/');
         if (partes[1] && partes[1].startsWith('.')) {
             input.value = partes[0] + '/0.' + partes[1].substring(1);
             return;
         }
     }
+    
+    // 4. Auto-corregir x/-. → x/-0. (barra, menos, punto)
+    if (/\/(-\.\d)/.test(valor)) {
+        const partes = valor.split('/');
+        if (partes[1] && partes[1].startsWith('-.')) {
+            input.value = partes[0] + '/-0' + partes[1].substring(2);
+            return;
+        }
+    }
+
+    // 5. Rechazar puntos seguidos de barra (./)
+    if (valor.includes('./')) {
+        input.value = valor.slice(0, -1);
+        return;
+    }
+
 
 
     const partes = valor.split('/');
 
+    // 7. No permitir más de una barra
     if (partes.length > 2) {
         input.value = valor.slice(0, -1);
         return;
     }
 
+    // 8. Validar decimales
     if (partes.length === 2) {
         const izquierda = partes[0];
         const derecha = partes[1];
@@ -397,14 +416,20 @@ function manejarInput(e) {
         }
     }
 
+    // 9. Validar formato general
     const regex = /^-?\d*\.?\d*\/?\d*\.?\d*$/;
     if (!regex.test(valor)) {
         input.value = valor.slice(0, -1);
         return;
     }
 
+    // 10. Validar signos negativos
     const negativos = (valor.match(/-/g) || []).length;
-    if (negativos > 1 || (negativos === 1 && valor.indexOf('-') !== 0)) {
+    if (negativos > 2 || (negativos === 2 && !/^-?\d*\.?\d*\/-?\d*\.?\d*$/.test(valor))) {
+        input.value = valor.replace(/-/g, '');
+        return;
+    }
+    if (negativos === 1 && valor.indexOf('-') !== 0 && !valor.includes('/-')) {
         input.value = valor.replace(/-/g, '');
         return;
     }
