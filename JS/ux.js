@@ -1,5 +1,5 @@
 import UI, { createSection } from "./ui.js";
-import { parsearMatriz, fraccionToString, esFraccion ,simplificar} from "./auxiliares.js";
+import { parsearMatriz, fraccionToString, esFraccion, simplificar, tieneDecimales, formatearResultado } from "./auxiliares.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 
@@ -83,33 +83,43 @@ function crearSpanCelda(value, row, col) {
     span.setAttribute("data-row", row);
     span.setAttribute("data-col", col);
     span.tabIndex = 0;
-    
+
     if (value && esFraccion(value)) {
-        // Simplificar la fracción antes de guardar
-        const fraccion = Auxiliares.parsearFraccion(value);
-        const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
-        
-        // Crear el valor simplificado
-        const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
-        span.setAttribute('data-value', valorSimplificado);
-        
-        if (denSimp === 1) {
-            // Es un entero
-            span.textContent = numSimp;
-        } else {
-            // Es una fracción, mostrar en formato vertical
+        // Verificar si tiene decimales
+        if (tieneDecimales(value)) {
+            // NO simplificar si tiene decimales
+            const [num, den] = value.split("/");
+            span.setAttribute('data-value', value);
             span.innerHTML = `
                 <span class="frac">
-                    <span class="top">${numSimp}</span>
-                    <span class="bottom">${denSimp}</span>
+                    <span class="top">${num}</span>
+                    <span class="bottom">${den}</span>
                 </span>
             `;
+        } else {
+            // Simplificar solo si NO tiene decimales
+            const fraccion = Auxiliares.parsearFraccion(value);
+            const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+
+            const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+            span.setAttribute('data-value', valorSimplificado);
+
+            if (denSimp === 1) {
+                span.textContent = numSimp;
+            } else {
+                span.innerHTML = `
+                    <span class="frac">
+                        <span class="top">${numSimp}</span>
+                        <span class="bottom">${denSimp}</span>
+                    </span>
+                `;
+            }
         }
     } else {
         span.setAttribute('data-value', value || "");
         span.textContent = value || "";
     }
-    
+
     return span;
 }
 
@@ -125,52 +135,50 @@ function crearInputCelda(value, row, col) {
 
 function spanToInput(span) {
     if (!span || !span.classList.contains('cell-span')) return null;
-    
+
     const row = parseInt(span.getAttribute('data-row'));
     const col = parseInt(span.getAttribute('data-col'));
     const value = span.getAttribute('data-value') || '';
-    
+
     const input = crearInputCelda(value, row, col);
     span.replaceWith(input);
-    
+
     input.focus();
     const length = input.value.length;
     input.setSelectionRange(length, length);
-    
+
     return input;
 }
-
 function inputToSpan(input) {
     if (!input || input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return null;
-    
+
     const row = parseInt(input.getAttribute('data-row'));
     const col = parseInt(input.getAttribute('data-col'));
     const value = input.value.trim();
-    
-    // Simplificar si es fracción antes de crear el span
+
+    // Simplificar solo si es fracción SIN decimales
     let finalValue = value;
-    if (value && esFraccion(value)) {
+    if (value && esFraccion(value) && !tieneDecimales(value)) {
         const fraccion = Auxiliares.parsearFraccion(value);
         const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
         finalValue = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
     }
-    
+
     const span = crearSpanCelda(finalValue, row, col);
     input.replaceWith(span);
-    
+
     return span;
 }
-
 function focusCell(row, col, table) {
     if (row < 0 || col < 0 || row >= table.rows.length) return false;
     if (col >= table.rows[row].cells.length) return false;
-    
+
     const cell = table.rows[row].cells[col];
     if (!cell) return false;
-    
+
     const span = cell.querySelector('.cell-span');
     const input = cell.querySelector('.cell-input');
-    
+
     if (span) {
         return !!spanToInput(span);
     } else if (input) {
@@ -178,7 +186,7 @@ function focusCell(row, col, table) {
         input.select();
         return true;
     }
-    
+
     return false;
 }
 
@@ -274,7 +282,7 @@ function configurarEventos(article, table) {
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
     article.addEventListener('click', clickHandler);
-    
+
     // Convertir input a span cuando pierde el foco
     article.addEventListener('focusout', (e) => {
         const target = e.target;
@@ -293,18 +301,18 @@ function configurarEventos(article, table) {
 
 function manejarClick(e, table) {
     const target = e.target;
-    
+
     // Convertir cualquier input existente a span (excepto el que se está clickeando)
     const allInputs = table.querySelectorAll('.cell-input');
     allInputs.forEach(input => {
         const inputCell = input.closest('td');
         const clickedCell = target.closest('td');
-        
+
         if (inputCell !== clickedCell) {
             inputToSpan(input);
         }
     });
-    
+
     // Si es un span de celda
     if (target.classList.contains('cell-span')) {
         e.preventDefault();
@@ -312,7 +320,7 @@ function manejarClick(e, table) {
         spanToInput(target);
         return;
     }
-    
+
     // Si es una fracción dentro de un span
     if (target.closest('.frac') && target.closest('.cell-span')) {
         const span = target.closest('.cell-span');
@@ -321,7 +329,7 @@ function manejarClick(e, table) {
         spanToInput(span);
         return;
     }
-    
+
     // Si es un td que contiene un span
     if (target.tagName === 'TD') {
         const span = target.querySelector('.cell-span');
@@ -333,34 +341,51 @@ function manejarClick(e, table) {
     }
 }
 
+// Reemplazar la función manejarInput con esta versión:
 function manejarInput(e) {
     const input = e.target;
     if (input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;
-    
+
     let valor = input.value;
     if (valor === "") return;
 
-    if (valor.includes('./') || valor.includes('/.')) {
-        input.value = valor.slice(0, -1);
+    // NUEVO: Auto-corregir .x → 0.x
+    // Si empieza con punto, agregar 0 al inicio
+    if (/^\.\d/.test(valor)) {
+        input.value = '0' + valor;
         return;
     }
 
+    if (/^-\.\d/.test(valor)) {
+        input.value = '-0' + valor.substring(1);
+        return;
+    }
+
+    if (/(\/\.\d)/.test(valor)) {
+        const partes = valor.split('/');
+        if (partes[1] && partes[1].startsWith('.')) {
+            input.value = partes[0] + '/0.' + partes[1].substring(1);
+            return;
+        }
+    }
+
+
     const partes = valor.split('/');
-    
+
     if (partes.length > 2) {
         input.value = valor.slice(0, -1);
         return;
     }
-    
+
     if (partes.length === 2) {
         const izquierda = partes[0];
         const derecha = partes[1];
-        
+
         if ((izquierda.match(/\./g) || []).length > 1) {
             input.value = valor.slice(0, -1);
             return;
         }
-        
+
         if ((derecha.match(/\./g) || []).length > 1) {
             input.value = valor.slice(0, -1);
             return;
@@ -387,13 +412,13 @@ function manejarInput(e) {
 
 function manejarKeydown(e, table) {
     const target = e.target;
-    
+
     // Si es un span de celda
     if (target.classList.contains('cell-span')) {
         manejarKeydownSpan(e, table, target);
         return;
     }
-    
+
     // Si no es input de celda, ignorar
     if (target.tagName !== 'INPUT' || !target.classList.contains('cell-input')) return;
 
@@ -492,34 +517,34 @@ function manejarKeydown(e, table) {
 function manejarKeydownSpan(e, table, span) {
     const cell = span.closest('td');
     if (!cell) return;
-    
+
     const row = cell.parentElement;
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
-    
-    switch(e.key) {
+
+    switch (e.key) {
         case 'Enter':
             e.preventDefault();
             spanToInput(span);
             setTimeout(() => {
                 const input = cell.querySelector('.cell-input');
                 if (input) {
-                    estructura({key: 'Enter', preventDefault: () => {}}, table, input, row, rowIndex, colIndex);
+                    estructura({ key: 'Enter', preventDefault: () => { } }, table, input, row, rowIndex, colIndex);
                 }
             }, 10);
             break;
-            
+
         case ' ':
             e.preventDefault();
             spanToInput(span);
             setTimeout(() => {
                 const input = cell.querySelector('.cell-input');
                 if (input) {
-                    estructura({key: ' ', preventDefault: () => {}}, table, input, row, rowIndex, colIndex);
+                    estructura({ key: ' ', preventDefault: () => { } }, table, input, row, rowIndex, colIndex);
                 }
             }, 10);
             break;
-            
+
         case 'Backspace':
             e.preventDefault();
             // Limpiar el span
@@ -534,35 +559,35 @@ function manejarKeydownSpan(e, table, span) {
                 focusCell(rowIndex - 1, prevRow.cells.length - 1, table);
             }
             break;
-            
+
         case 'ArrowLeft':
             e.preventDefault();
             if (colIndex > 0) {
                 focusCell(rowIndex, colIndex - 1, table);
             }
             break;
-            
+
         case 'ArrowRight':
             e.preventDefault();
             if (colIndex < row.cells.length - 1) {
                 focusCell(rowIndex, colIndex + 1, table);
             }
             break;
-            
+
         case 'ArrowUp':
             e.preventDefault();
             if (rowIndex > 0) {
                 focusCell(rowIndex - 1, colIndex, table);
             }
             break;
-            
+
         case 'ArrowDown':
             e.preventDefault();
             if (rowIndex < table.rows.length - 1) {
                 focusCell(rowIndex + 1, colIndex, table);
             }
             break;
-            
+
         default:
             // Cualquier tecla imprimible: convertir a input
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -587,7 +612,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     if (e.key === 'Enter') {
         e.preventDefault();
         if (input) inputToSpan(input);
-        
+
         Auxiliares.insertarFila(table, rowIndex + 1);
         if (currentOperation === "axb") {
             requestAnimationFrame(() => actualizarSeparador(table));
@@ -608,7 +633,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     if (e.key === ' ') {
         e.preventDefault();
         if (input) inputToSpan(input);
-        
+
         Auxiliares.insertarColumna(table, colIndex + 1);
         if (currentOperation === "axb") {
             actualizarSeparador(table);
@@ -629,7 +654,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     if (e.key === 'Backspace') {
         if (input.value === "") {
             e.preventDefault();
-            
+
             // Convertir a span vacío
             const emptySpan = crearSpanCelda("", rowIndex, colIndex);
             input.replaceWith(emptySpan);
@@ -637,7 +662,7 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
             // Mover a celda anterior
             let prevRowIndex = rowIndex;
             let prevColIndex = colIndex - 1;
-            
+
             if (colIndex > 0) {
                 prevColIndex = colIndex - 1;
                 prevRowIndex = rowIndex;
@@ -691,7 +716,10 @@ function actualizarSeparador(table) {
 
 // ========== CREAR FRACCIÓN HTML PARA RESULTADOS ==========
 
-function crearFraccionHTML(valor) {
+function crearFraccionHTML(valor, tieneDecimal = false) {
+    if (tieneDecimal) {
+        return valor; // Ya viene formateado como decimal
+    }
     const str = fraccionToString(valor);
     if (!str.includes("/")) return str;
     const [num, den] = str.split("/");
@@ -705,6 +733,7 @@ function crearFraccionHTML(valor) {
 
 // ========== RESULTADOS ==========
 
+// Reemplazar calcularSistemasEcuaciones con esta versión:
 function calcularSistemasEcuaciones() {
     limpiarResultados();
 
@@ -717,7 +746,7 @@ function calcularSistemasEcuaciones() {
         const allInputs = table.querySelectorAll('.cell-input');
         allInputs.forEach(input => inputToSpan(input));
 
-        // Corregir valores vacíos o parciales y simplificar
+        // Corregir valores vacíos o parciales
         const spans = table.querySelectorAll('.cell-span');
         spans.forEach(span => {
             let v = span.getAttribute('data-value') || '';
@@ -728,29 +757,45 @@ function calcularSistemasEcuaciones() {
             }
             if (/^\/\d+\.?\d*$/.test(v)) {
                 v = `1${v}`;
+                span.setAttribute('data-value', v);
             }
-            // Simplificar si es fracción
+            // Simplificar solo si NO tiene decimales
             if (esFraccion(v)) {
-                const fraccion = Auxiliares.parsearFraccion(v);
-                const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
-                const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
-                span.setAttribute('data-value', valorSimplificado);
-                
-                if (denSimp === 1) {
-                    span.textContent = numSimp;
-                } else {
+                if (tieneDecimales(v)) {
+                    const [num, den] = v.split("/");
+                    span.setAttribute('data-value', v);
                     span.innerHTML = `
                         <span class="frac">
-                            <span class="top">${numSimp}</span>
-                            <span class="bottom">${denSimp}</span>
+                            <span class="top">${num}</span>
+                            <span class="bottom">${den}</span>
                         </span>
                     `;
+                } else {
+                    const fraccion = Auxiliares.parsearFraccion(v);
+                    const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+                    const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+                    span.setAttribute('data-value', valorSimplificado);
+                    if (denSimp === 1) {
+                        span.textContent = numSimp;
+                    } else {
+                        span.innerHTML = `
+                            <span class="frac">
+                                <span class="top">${numSimp}</span>
+                                <span class="bottom">${denSimp}</span>
+                            </span>
+                        `;
+                    }
                 }
             }
         });
 
         const matriz = parsearMatriz(table);
         const resultado = resolverAXB(matriz);
+
+        // Detectar si la matriz original tenía decimales
+        const tieneDecimalesEnEntrada = matriz.some(fila => 
+            fila.some(celda => celda._tieneDecimal)
+        );
 
         const wrapper = document.createElement("div");
         wrapper.className = "result-wrapper";
@@ -771,7 +816,12 @@ function calcularSistemasEcuaciones() {
             const row = UI.createRow();
             fila.forEach((valor, colIndex) => {
                 const cell = UI.createTd();
-                cell.innerHTML = crearFraccionHTML(valor);
+                const valorFormateado = formatearResultado(valor, tieneDecimalesEnEntrada);
+                if (tieneDecimalesEnEntrada) {
+                    cell.textContent = valorFormateado;
+                } else {
+                    cell.innerHTML = crearFraccionHTML(valor, false);
+                }
                 if (tieneVectorColumna && colIndex === fila.length - 2) {
                     cell.classList.add("separator-col");
                 }
@@ -803,11 +853,9 @@ function calcularInversa() {
     const table = document.getElementById("inputTable");
 
     try {
-        // Convertir todos los inputs a spans antes de calcular
         const allInputs = table.querySelectorAll('.cell-input');
         allInputs.forEach(input => inputToSpan(input));
 
-        // Corregir valores vacíos o parciales y simplificar
         const spans = table.querySelectorAll('.cell-span');
         spans.forEach(span => {
             let v = span.getAttribute('data-value') || '';
@@ -818,23 +866,33 @@ function calcularInversa() {
             }
             if (/^\/\d+\.?\d*$/.test(v)) {
                 v = `1${v}`;
+                span.setAttribute('data-value', v);
             }
-            // Simplificar si es fracción
             if (esFraccion(v)) {
-                const fraccion = Auxiliares.parsearFraccion(v);
-                const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
-                const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
-                span.setAttribute('data-value', valorSimplificado);
-                
-                if (denSimp === 1) {
-                    span.textContent = numSimp;
-                } else {
+                if (tieneDecimales(v)) {
+                    const [num, den] = v.split("/");
+                    span.setAttribute('data-value', v);
                     span.innerHTML = `
                         <span class="frac">
-                            <span class="top">${numSimp}</span>
-                            <span class="bottom">${denSimp}</span>
+                            <span class="top">${num}</span>
+                            <span class="bottom">${den}</span>
                         </span>
                     `;
+                } else {
+                    const fraccion = Auxiliares.parsearFraccion(v);
+                    const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+                    const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+                    span.setAttribute('data-value', valorSimplificado);
+                    if (denSimp === 1) {
+                        span.textContent = numSimp;
+                    } else {
+                        span.innerHTML = `
+                            <span class="frac">
+                                <span class="top">${numSimp}</span>
+                                <span class="bottom">${denSimp}</span>
+                            </span>
+                        `;
+                    }
                 }
             }
         });
@@ -848,6 +906,10 @@ function calcularInversa() {
         }
 
         const resultado = resolverInv(matriz);
+
+        const tieneDecimalesEnEntrada = matriz.some(fila => 
+            fila.some(celda => celda._tieneDecimal)
+        );
 
         const wrapper = document.createElement("div");
         wrapper.className = "result-wrapper";
@@ -866,7 +928,12 @@ function calcularInversa() {
             const row = UI.createRow();
             fila.forEach(valor => {
                 const cell = UI.createTd();
-                cell.innerHTML = crearFraccionHTML(valor);
+                const valorFormateado = formatearResultado(valor, tieneDecimalesEnEntrada);
+                if (tieneDecimalesEnEntrada) {
+                    cell.textContent = valorFormateado;
+                } else {
+                    cell.innerHTML = crearFraccionHTML(valor, false);
+                }
                 row.appendChild(cell);
             });
             resultadoTable.appendChild(row);
@@ -892,11 +959,9 @@ function calcularDeterminante() {
     const table = document.getElementById("inputTable");
 
     try {
-        // Convertir todos los inputs a spans antes de calcular
         const allInputs = table.querySelectorAll('.cell-input');
         allInputs.forEach(input => inputToSpan(input));
 
-        // Corregir valores vacíos o parciales y simplificar
         const spans = table.querySelectorAll('.cell-span');
         spans.forEach(span => {
             let v = span.getAttribute('data-value') || '';
@@ -907,23 +972,33 @@ function calcularDeterminante() {
             }
             if (/^\/\d+\.?\d*$/.test(v)) {
                 v = `1${v}`;
+                span.setAttribute('data-value', v);
             }
-            // Simplificar si es fracción
             if (esFraccion(v)) {
-                const fraccion = Auxiliares.parsearFraccion(v);
-                const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
-                const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
-                span.setAttribute('data-value', valorSimplificado);
-                
-                if (denSimp === 1) {
-                    span.textContent = numSimp;
-                } else {
+                if (tieneDecimales(v)) {
+                    const [num, den] = v.split("/");
+                    span.setAttribute('data-value', v);
                     span.innerHTML = `
                         <span class="frac">
-                            <span class="top">${numSimp}</span>
-                            <span class="bottom">${denSimp}</span>
+                            <span class="top">${num}</span>
+                            <span class="bottom">${den}</span>
                         </span>
                     `;
+                } else {
+                    const fraccion = Auxiliares.parsearFraccion(v);
+                    const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+                    const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+                    span.setAttribute('data-value', valorSimplificado);
+                    if (denSimp === 1) {
+                        span.textContent = numSimp;
+                    } else {
+                        span.innerHTML = `
+                            <span class="frac">
+                                <span class="top">${numSimp}</span>
+                                <span class="bottom">${denSimp}</span>
+                            </span>
+                        `;
+                    }
                 }
             }
         });
@@ -931,8 +1006,12 @@ function calcularDeterminante() {
         const matriz = parsearMatriz(table);
         const resultado = calcularDet(matriz);
 
+        const tieneDecimalesEnEntrada = matriz.some(fila => 
+            fila.some(celda => celda._tieneDecimal)
+        );
+
         const factoresStr = resultado.historialFactores
-            .map(f => f === -1 ? "(-1)" : `(${fraccionToString(f)})`)
+            .map(f => f === -1 ? "(-1)" : `(${fraccionToString(f, tieneDecimalesEnEntrada)})`)
             .join("");
 
         const wrapper = document.createElement("div");
@@ -969,7 +1048,11 @@ function calcularDeterminante() {
             const row = UI.createRow();
             fila.forEach((valor, j) => {
                 const cell = UI.createTd();
-                cell.innerHTML = crearFraccionHTML(valor);
+                if (tieneDecimalesEnEntrada) {
+                    cell.textContent = formatearResultado(valor, true);
+                } else {
+                    cell.innerHTML = crearFraccionHTML(valor, false);
+                }
                 if (i === j) cell.classList.add("diagonal-cell");
                 row.appendChild(cell);
             });
@@ -984,7 +1067,9 @@ function calcularDeterminante() {
 
         const value = document.createElement("span");
         value.className = "det-result-value";
-        value.innerHTML = crearFraccionHTML(resultado.determinante);
+        value.innerHTML = tieneDecimalesEnEntrada 
+            ? formatearResultado(resultado.determinante, true)
+            : crearFraccionHTML(resultado.determinante, false);
 
         content.append(step1, equal, value);
         container.appendChild(content);
@@ -992,7 +1077,6 @@ function calcularDeterminante() {
         wrapper.append(label, container);
         result.appendChild(wrapper);
         article.appendChild(result);
-        console.log("Resultado del determinante:", resultado);
     } catch (error) {
         mostrarError(result, error.message);
         article.appendChild(result);

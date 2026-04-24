@@ -123,9 +123,16 @@ export function parsearMatriz(table) {
             
             try {
                 const frac = parsearFraccion(valor);
-                // Simplificar
                 const [num, den] = simplificar(frac.num, frac.den);
-                return { num, den };
+                
+                // Guardar si el valor original tenía decimales
+                const tieneDecimal = valor.includes('.');
+                
+                return { 
+                    num, 
+                    den,
+                    _tieneDecimal: tieneDecimal  // Metadata para recordar formato
+                };
             } catch (e) {
                 alert(`Error: ${e.message} en celda con valor "${valor}"`);
                 throw e;
@@ -133,12 +140,39 @@ export function parsearMatriz(table) {
         })
     );
 }
+// Agregar esta función antes del objeto auxiliares
+export function formatearResultado(frac, tieneDecimal) {
+    if (frac.den === 1) {
+        // Es entero
+        if (tieneDecimal && !Number.isInteger(frac.num)) {
+            return parseFloat(frac.num.toFixed(10)).toString();
+        }
+        return `${frac.num}`;
+    }
+    
+    if (frac.num === 0) return "0";
+    
+    if (tieneDecimal) {
+        // Mantener formato decimal
+        const valorDecimal = frac.num / frac.den;
+        // Evitar notación científica y redondeos extraños
+        return parseFloat(valorDecimal.toFixed(10)).toString();
+    }
+    
+    // Formato fracción normal
+    return `${frac.num}/${frac.den}`;
+}
+
 
 // Detectar si un valor es una fracción
 export function esFraccion(valor) {
     if (!valor || typeof valor !== 'string') return false;
     const fractionPattern = /^-?\d+\.?\d*\/-?\d+\.?\d*$/;
     return fractionPattern.test(valor.trim());
+}
+export function tieneDecimales(valor) {
+    if (!valor || !esFraccion(valor)) return false;
+    return valor.includes('.');
 }
 
 // Función auxiliar para actualizar atributos después de modificaciones
@@ -333,7 +367,9 @@ const auxiliares = {
     insertarFila,
     insertarColumna,
     normalizarSigno,
-    esFraccion
+    esFraccion,
+    tieneDecimales,
+    formatearResultado
 };
 
 export default auxiliares;
