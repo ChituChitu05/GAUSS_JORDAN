@@ -27,6 +27,12 @@
  
     --accent-glow: rgba(255, 59, 92, 0.25);
     --success-glow: rgba(0, 200, 160, 0.25);
+    
+    /* Nuevas variables para spans */
+    --cell-bg: #1A2030;
+    --cell-hover: #1E2A42;
+    --cell-focus: rgba(255, 59, 92, 0.15);
+    --input-focus: rgba(255, 59, 92, 0.2);
 }
  
 body.light {
@@ -49,6 +55,12 @@ body.light {
  
     --accent-glow: rgba(108, 99, 255, 0.15);
     --success-glow: rgba(0, 184, 148, 0.15);
+    
+    /* Nuevas variables para spans en modo claro */
+    --cell-bg: #F8FAFF;
+    --cell-hover: #EEF2FF;
+    --cell-focus: rgba(108, 99, 255, 0.1);
+    --input-focus: rgba(108, 99, 255, 0.15);
 }
 
 body {
@@ -281,20 +293,105 @@ section h2 {
     border-spacing: 8px;
 }
 
-#inputTable input {
+/* ===== ESTILOS PARA INPUTS Y SPANS DE CELDA ===== */
+#inputTable td {
+    padding: 0;
+    min-width: 75px;
+    height: 55px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Estilos base compartidos por inputs y spans */
+#inputTable .cell-input,
+#inputTable .cell-span {
     width: 75px;
     height: 55px;
     text-align: center;
     font-size: 1.4rem;
     color: var(--text-primary);
-    background: var(--bg-surface);
+    background: var(--cell-bg);
     border: 2px solid var(--border);
     border-radius: 8px;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    outline: none;
 }
 
+/* Estilos específicos para inputs */
+#inputTable .cell-input {
+    background: var(--cell-bg);
+}
+
+#inputTable .cell-input:focus {
+    border-color: var(--primary);
+    background: var(--input-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+#inputTable .cell-input::selection {
+    background: var(--primary);
+    color: white;
+}
+
+/* Estilos específicos para spans */
+#inputTable .cell-span {
+    cursor: pointer;
+    user-select: none;
+}
+
+#inputTable .cell-span:hover {
+    background: var(--cell-hover);
+    border-color: var(--primary);
+}
+
+#inputTable .cell-span:focus {
+    border-color: var(--primary);
+    background: var(--cell-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Span vacío */
+#inputTable .cell-span[data-value=""] {
+    color: transparent;
+}
+
+#inputTable .cell-span[data-value=""]:hover {
+    background: var(--cell-hover);
+}
+
+/* Fracciones dentro de spans */
+#inputTable .cell-span .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    font-size: 0.9em;
+    min-width: 45px;
+    color: var(--text-primary);
+}
+
+#inputTable .cell-span .frac .top {
+    border-bottom: 1px solid var(--text-primary);
+    padding-bottom: 2px;
+}
+
+#inputTable .cell-span .frac .bottom {
+    padding-top: 2px;
+}
+
+/* Ajustes responsive para inputs y spans */
 @media (max-width: 768px) {
-    #inputTable input {
+    #inputTable td {
+        min-width: 55px;
+        height: 45px;
+    }
+    
+    #inputTable .cell-input,
+    #inputTable .cell-span {
         width: 55px;
         height: 45px;
         font-size: 1rem;
@@ -302,6 +399,34 @@ section h2 {
     
     #inputTable {
         border-spacing: 4px;
+    }
+    
+    #inputTable .cell-span .frac {
+        min-width: 35px;
+        font-size: 0.8em;
+    }
+}
+
+@media (min-width: 1200px) {
+    #inputTable td {
+        min-width: 85px;
+        height: 60px;
+    }
+    
+    #inputTable .cell-input,
+    #inputTable .cell-span {
+        width: 85px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    #inputTable {
+        border-spacing: 10px;
+    }
+    
+    #inputTable .cell-span .frac {
+        min-width: 55px;
+        font-size: 1em;
     }
 }
 
@@ -327,6 +452,7 @@ section h2 {
     box-shadow: 0 4px 12px var(--accent-glow);
 }
 
+/* ===== RESULT TABLE ===== */
 .result-table {
     width: auto;
     min-width: auto;
@@ -349,6 +475,7 @@ section h2 {
     line-height: 1.2;
     font-size: 0.9em;
     min-width: 55px;
+    color: var(--text-primary);
 }
 
 .frac .top {
@@ -544,7 +671,8 @@ section h2 {
         font-size: 1em;
     }
     
-    #inputTable input {
+    #inputTable .cell-input,
+    #inputTable .cell-span {
         width: 85px;
         height: 60px;
         font-size: 1.5rem;
@@ -584,4 +712,60 @@ section h2 {
 
 .result-table td.separator-col {
     border-right: 2px solid var(--success);
+}
+
+/* ===== ESTILOS PARA FRACCIONES EN RESULTADOS ===== */
+.result-table .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    font-size: 0.9em;
+    min-width: 55px;
+    color: var(--text-primary);
+}
+
+.result-table .frac .top {
+    border-bottom: 1px solid var(--text-primary);
+    padding-bottom: 2px;
+}
+
+.result-table .frac .bottom {
+    padding-top: 2px;
+}
+
+/* ===== DIAGONAL CELL EN DETERMINANTE ===== */
+.diagonal-cell {
+    background: rgba(0, 200, 160, 0.1);
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+body.light .diagonal-cell {
+    background: rgba(0, 184, 148, 0.1);
+}
+
+/* ===== TRANSICIONES SUAVES PARA CAMBIO INPUT/SPAN ===== */
+#inputTable .cell-input,
+#inputTable .cell-span {
+    transition: all 0.15s ease-in-out;
+}
+
+/* ===== SCROLLBAR PERSONALIZADA ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }

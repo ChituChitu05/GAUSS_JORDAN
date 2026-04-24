@@ -1,12 +1,13 @@
 import UI, { createSection } from "./ui.js";
-import { parsearMatriz, fraccionToString } from "./auxiliares.js";
+import { parsearMatriz, fraccionToString, esFraccion ,simplificar} from "./auxiliares.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 
-let currentOperation = "axb"; // Puede ser "axb", "inversa" o "determinante"
-let currentMatrixState = null; // Guardar estado de la matriz
+let currentOperation = "axb";
+let currentMatrixState = null;
 let keydownHandler = null;
 let inputHandler = null;
+let clickHandler = null;
 
 export function inicializarMatriz(article, modo) {
     currentOperation = modo;
@@ -18,8 +19,7 @@ export function inicializarMatriz(article, modo) {
     const divTable = UI.createDiv("tableMain");
     const table = UI.createTable("inputTable");
 
-    // Determinar dimensiones iniciales según el modo
-    let [filasIniciales, columnasIniciales] = [2, 2]; // Por defecto cuadrada para inversa y determinante
+    let [filasIniciales, columnasIniciales] = [2, 2];
 
     if (modo === "axb") {
         [filasIniciales, columnasIniciales] = [2, 3];
@@ -35,12 +35,13 @@ export function inicializarMatriz(article, modo) {
         table.dataset.minCols = "1";
     }
 
+    // Crear tabla con spans vacíos inicialmente
     for (let i = 0; i < filasIniciales; i++) {
         const row = UI.createRow(`row${i}`);
         for (let j = 0; j < columnasIniciales; j++) {
             const cell = UI.createTd(`cell${i}${j}`);
-            const input = UI.createInput(`input${i}${j}`);
-            cell.appendChild(input);
+            const span = crearSpanCelda("", i, j);
+            cell.appendChild(span);
             row.appendChild(cell);
         }
         table.appendChild(row);
@@ -74,10 +75,118 @@ export function inicializarMatriz(article, modo) {
     }
 }
 
+// ========== FUNCIONES AUXILIARES PARA CREAR ELEMENTOS ==========
+
+function crearSpanCelda(value, row, col) {
+    const span = document.createElement("span");
+    span.className = "cell-span";
+    span.setAttribute("data-row", row);
+    span.setAttribute("data-col", col);
+    span.tabIndex = 0;
+    
+    if (value && esFraccion(value)) {
+        // Simplificar la fracción antes de guardar
+        const fraccion = Auxiliares.parsearFraccion(value);
+        const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+        
+        // Crear el valor simplificado
+        const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+        span.setAttribute('data-value', valorSimplificado);
+        
+        if (denSimp === 1) {
+            // Es un entero
+            span.textContent = numSimp;
+        } else {
+            // Es una fracción, mostrar en formato vertical
+            span.innerHTML = `
+                <span class="frac">
+                    <span class="top">${numSimp}</span>
+                    <span class="bottom">${denSimp}</span>
+                </span>
+            `;
+        }
+    } else {
+        span.setAttribute('data-value', value || "");
+        span.textContent = value || "";
+    }
+    
+    return span;
+}
+
+function crearInputCelda(value, row, col) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "cell-input";
+    input.value = value || "";
+    input.setAttribute("data-row", row);
+    input.setAttribute("data-col", col);
+    return input;
+}
+
+function spanToInput(span) {
+    if (!span || !span.classList.contains('cell-span')) return null;
+    
+    const row = parseInt(span.getAttribute('data-row'));
+    const col = parseInt(span.getAttribute('data-col'));
+    const value = span.getAttribute('data-value') || '';
+    
+    const input = crearInputCelda(value, row, col);
+    span.replaceWith(input);
+    
+    input.focus();
+    const length = input.value.length;
+    input.setSelectionRange(length, length);
+    
+    return input;
+}
+
+function inputToSpan(input) {
+    if (!input || input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return null;
+    
+    const row = parseInt(input.getAttribute('data-row'));
+    const col = parseInt(input.getAttribute('data-col'));
+    const value = input.value.trim();
+    
+    // Simplificar si es fracción antes de crear el span
+    let finalValue = value;
+    if (value && esFraccion(value)) {
+        const fraccion = Auxiliares.parsearFraccion(value);
+        const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+        finalValue = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+    }
+    
+    const span = crearSpanCelda(finalValue, row, col);
+    input.replaceWith(span);
+    
+    return span;
+}
+
+function focusCell(row, col, table) {
+    if (row < 0 || col < 0 || row >= table.rows.length) return false;
+    if (col >= table.rows[row].cells.length) return false;
+    
+    const cell = table.rows[row].cells[col];
+    if (!cell) return false;
+    
+    const span = cell.querySelector('.cell-span');
+    const input = cell.querySelector('.cell-input');
+    
+    if (span) {
+        return !!spanToInput(span);
+    } else if (input) {
+        input.focus();
+        input.select();
+        return true;
+    }
+    
+    return false;
+}
+
+// ========== CAMBIO DE MODO ==========
+
 export function cambiarModo(article, nuevoModo) {
     const table = document.getElementById("inputTable");
 
-    // Guardar matriz actual antes de cambiar
     if (table) {
         try {
             currentMatrixState = parsearMatriz(table);
@@ -93,7 +202,6 @@ export function cambiarModo(article, nuevoModo) {
     }
 
     currentOperation = nuevoModo;
-
     const btn = document.getElementById("btnCalcular");
 
     if (nuevoModo === "axb") {
@@ -116,6 +224,8 @@ export function cambiarModo(article, nuevoModo) {
         eliminarSeparador(table);
     }
 }
+
+// ========== FUNCIONES DE LIMPIEZA ==========
 
 function eliminarSeparador(table) {
     if (!table) return;
@@ -144,25 +254,89 @@ function mostrarError(container, mensaje) {
     container.appendChild(errorDiv);
 }
 
-function configurarEventos(article, table) {
+// ========== CONFIGURACIÓN DE EVENTOS ==========
 
+function configurarEventos(article, table) {
     if (keydownHandler) {
         article.removeEventListener('keydown', keydownHandler);
     }
     if (inputHandler) {
         article.removeEventListener('input', inputHandler);
     }
+    if (clickHandler) {
+        article.removeEventListener('click', clickHandler);
+    }
 
     keydownHandler = (e) => manejarKeydown(e, table);
     inputHandler = manejarInput;
+    clickHandler = (e) => manejarClick(e, table);
 
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
+    article.addEventListener('click', clickHandler);
+    
+    // Convertir input a span cuando pierde el foco
+    article.addEventListener('focusout', (e) => {
+        const target = e.target;
+        if (target.classList.contains('cell-input')) {
+            setTimeout(() => {
+                const activeElement = document.activeElement;
+                if (!activeElement || !activeElement.closest('#inputTable')) {
+                    inputToSpan(target);
+                }
+            }, 100);
+        }
+    });
+}
+
+// ========== MANEJADORES DE EVENTOS ==========
+
+function manejarClick(e, table) {
+    const target = e.target;
+    
+    // Convertir cualquier input existente a span (excepto el que se está clickeando)
+    const allInputs = table.querySelectorAll('.cell-input');
+    allInputs.forEach(input => {
+        const inputCell = input.closest('td');
+        const clickedCell = target.closest('td');
+        
+        if (inputCell !== clickedCell) {
+            inputToSpan(input);
+        }
+    });
+    
+    // Si es un span de celda
+    if (target.classList.contains('cell-span')) {
+        e.preventDefault();
+        e.stopPropagation();
+        spanToInput(target);
+        return;
+    }
+    
+    // Si es una fracción dentro de un span
+    if (target.closest('.frac') && target.closest('.cell-span')) {
+        const span = target.closest('.cell-span');
+        e.preventDefault();
+        e.stopPropagation();
+        spanToInput(span);
+        return;
+    }
+    
+    // Si es un td que contiene un span
+    if (target.tagName === 'TD') {
+        const span = target.querySelector('.cell-span');
+        if (span) {
+            e.preventDefault();
+            spanToInput(span);
+            return;
+        }
+    }
 }
 
 function manejarInput(e) {
     const input = e.target;
-    if (input.tagName !== 'INPUT') return;
+    if (input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;
+    
     let valor = input.value;
     if (valor === "") return;
 
@@ -212,8 +386,16 @@ function manejarInput(e) {
 }
 
 function manejarKeydown(e, table) {
-    const input = e.target;
-    if (input.tagName !== 'INPUT') return;
+    const target = e.target;
+    
+    // Si es un span de celda
+    if (target.classList.contains('cell-span')) {
+        manejarKeydownSpan(e, table, target);
+        return;
+    }
+    
+    // Si no es input de celda, ignorar
+    if (target.tagName !== 'INPUT' || !target.classList.contains('cell-input')) return;
 
     // Atajo Ctrl+Enter para calcular
     if (e.ctrlKey && e.key === 'Enter') {
@@ -223,52 +405,179 @@ function manejarKeydown(e, table) {
         return;
     }
 
+    const input = target;
     const cell = input.closest('td');
     if (!cell) return;
 
     const row = cell.parentElement;
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
+    const value = input.value.trim();
+
+    // Tab: convertir a span y mover al siguiente
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        inputToSpan(input);
+        if (colIndex < row.cells.length - 1) {
+            focusCell(rowIndex, colIndex + 1, table);
+        } else if (rowIndex < table.rows.length - 1) {
+            focusCell(rowIndex + 1, 0, table);
+        } else {
+            const btn = document.getElementById("btnCalcular");
+            if (btn) btn.focus();
+        }
+        return;
+    }
+
+    // Escape: convertir a span y salir
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        inputToSpan(input);
+        input.blur();
+        return;
+    }
 
     // Navegación con flechas
-    let targetInput = null;
-
     if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        if (colIndex > 0) {
-            targetInput = row.cells[colIndex - 1]?.querySelector("input");
+        if (input.selectionStart === 0 && input.selectionEnd === 0) {
+            e.preventDefault();
+            if (value) {
+                inputToSpan(input);
+            }
+            if (colIndex > 0) {
+                focusCell(rowIndex, colIndex - 1, table);
+            }
         }
+        return;
     }
 
     if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        if (colIndex < row.cells.length - 1) {
-            targetInput = row.cells[colIndex + 1]?.querySelector("input");
+        if (input.selectionStart === input.value.length && input.selectionEnd === input.value.length) {
+            e.preventDefault();
+            if (value) {
+                inputToSpan(input);
+            }
+            if (colIndex < row.cells.length - 1) {
+                focusCell(rowIndex, colIndex + 1, table);
+            }
         }
+        return;
     }
 
     if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (rowIndex > 0) {
-            targetInput = table.rows[rowIndex - 1]?.cells[colIndex]?.querySelector("input");
+        if (value) {
+            inputToSpan(input);
         }
+        if (rowIndex > 0) {
+            focusCell(rowIndex - 1, colIndex, table);
+        }
+        return;
     }
 
     if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (rowIndex < table.rows.length - 1) {
-            targetInput = table.rows[rowIndex + 1]?.cells[colIndex]?.querySelector("input");
+        if (value) {
+            inputToSpan(input);
         }
-    }
-
-    if (targetInput) {
-        targetInput.focus();
-        targetInput.select();
+        if (rowIndex < table.rows.length - 1) {
+            focusCell(rowIndex + 1, colIndex, table);
+        }
         return;
     }
 
     estructura(e, table, input, row, rowIndex, colIndex);
 }
+
+function manejarKeydownSpan(e, table, span) {
+    const cell = span.closest('td');
+    if (!cell) return;
+    
+    const row = cell.parentElement;
+    const rowIndex = row.rowIndex;
+    const colIndex = cell.cellIndex;
+    
+    switch(e.key) {
+        case 'Enter':
+            e.preventDefault();
+            spanToInput(span);
+            setTimeout(() => {
+                const input = cell.querySelector('.cell-input');
+                if (input) {
+                    estructura({key: 'Enter', preventDefault: () => {}}, table, input, row, rowIndex, colIndex);
+                }
+            }, 10);
+            break;
+            
+        case ' ':
+            e.preventDefault();
+            spanToInput(span);
+            setTimeout(() => {
+                const input = cell.querySelector('.cell-input');
+                if (input) {
+                    estructura({key: ' ', preventDefault: () => {}}, table, input, row, rowIndex, colIndex);
+                }
+            }, 10);
+            break;
+            
+        case 'Backspace':
+            e.preventDefault();
+            // Limpiar el span
+            span.setAttribute('data-value', '');
+            span.innerHTML = '';
+            span.textContent = '';
+            // Mover a celda anterior
+            if (colIndex > 0) {
+                focusCell(rowIndex, colIndex - 1, table);
+            } else if (rowIndex > 0) {
+                const prevRow = table.rows[rowIndex - 1];
+                focusCell(rowIndex - 1, prevRow.cells.length - 1, table);
+            }
+            break;
+            
+        case 'ArrowLeft':
+            e.preventDefault();
+            if (colIndex > 0) {
+                focusCell(rowIndex, colIndex - 1, table);
+            }
+            break;
+            
+        case 'ArrowRight':
+            e.preventDefault();
+            if (colIndex < row.cells.length - 1) {
+                focusCell(rowIndex, colIndex + 1, table);
+            }
+            break;
+            
+        case 'ArrowUp':
+            e.preventDefault();
+            if (rowIndex > 0) {
+                focusCell(rowIndex - 1, colIndex, table);
+            }
+            break;
+            
+        case 'ArrowDown':
+            e.preventDefault();
+            if (rowIndex < table.rows.length - 1) {
+                focusCell(rowIndex + 1, colIndex, table);
+            }
+            break;
+            
+        default:
+            // Cualquier tecla imprimible: convertir a input
+            if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                const input = spanToInput(span);
+                if (input) {
+                    input.value = e.key;
+                    input.setSelectionRange(1, 1);
+                }
+            }
+            break;
+    }
+}
+
+// ========== ESTRUCTURA (ENTER, ESPACIO, BACKSPACE) ==========
 
 function estructura(e, table, input, row, rowIndex, colIndex) {
     const minRows = parseInt(table.dataset.minRows) || 1;
@@ -277,18 +586,19 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     // INSERTAR FILA
     if (e.key === 'Enter') {
         e.preventDefault();
+        if (input) inputToSpan(input);
+        
         Auxiliares.insertarFila(table, rowIndex + 1);
         if (currentOperation === "axb") {
             requestAnimationFrame(() => actualizarSeparador(table));
         }
 
-        // Mover foco a la nueva fila
+        // Enfocar la nueva celda
         setTimeout(() => {
-            const newRow = table.rows[rowIndex + 1];
-            const firstInput = newRow?.cells[colIndex]?.querySelector("input");
-            if (firstInput) {
-                firstInput.focus();
-                firstInput.select();
+            const newCell = table.rows[rowIndex + 1]?.cells[colIndex];
+            if (newCell) {
+                const span = newCell.querySelector('.cell-span');
+                if (span) span.click();
             }
         }, 10);
         return;
@@ -297,17 +607,19 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     // INSERTAR COLUMNA
     if (e.key === ' ') {
         e.preventDefault();
+        if (input) inputToSpan(input);
+        
         Auxiliares.insertarColumna(table, colIndex + 1);
         if (currentOperation === "axb") {
             actualizarSeparador(table);
         }
 
-        // Mover foco a la nueva columna
+        // Enfocar la nueva celda
         setTimeout(() => {
-            const newInput = row.cells[colIndex + 1]?.querySelector("input");
-            if (newInput) {
-                newInput.focus();
-                newInput.select();
+            const newCell = table.rows[rowIndex]?.cells[colIndex + 1];
+            if (newCell) {
+                const span = newCell.querySelector('.cell-span');
+                if (span) span.click();
             }
         }, 10);
         return;
@@ -317,18 +629,25 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     if (e.key === 'Backspace') {
         if (input.value === "") {
             e.preventDefault();
+            
+            // Convertir a span vacío
+            const emptySpan = crearSpanCelda("", rowIndex, colIndex);
+            input.replaceWith(emptySpan);
 
-            let prevInput = null;
+            // Mover a celda anterior
+            let prevRowIndex = rowIndex;
+            let prevColIndex = colIndex - 1;
+            
             if (colIndex > 0) {
-                prevInput = row.cells[colIndex - 1]?.querySelector("input");
+                prevColIndex = colIndex - 1;
+                prevRowIndex = rowIndex;
             } else if (rowIndex > 0) {
-                const prevRow = table.rows[rowIndex - 1];
-                prevInput = prevRow?.cells[prevRow.cells.length - 1]?.querySelector("input");
+                prevRowIndex = rowIndex - 1;
+                prevColIndex = table.rows[rowIndex - 1].cells.length - 1;
             }
 
-            if (prevInput) {
-                prevInput.focus();
-                prevInput.select();
+            if (prevColIndex >= 0 && prevRowIndex >= 0) {
+                focusCell(prevRowIndex, prevColIndex, table);
             }
 
             setTimeout(() => {
@@ -349,6 +668,8 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
     }
 }
 
+// ========== ACTUALIZAR SEPARADOR ==========
+
 function actualizarSeparador(table) {
     if (!table || !table.rows.length) return;
 
@@ -367,13 +688,13 @@ function actualizarSeparador(table) {
         });
     }
 }
+
+// ========== CREAR FRACCIÓN HTML PARA RESULTADOS ==========
+
 function crearFraccionHTML(valor) {
     const str = fraccionToString(valor);
-
     if (!str.includes("/")) return str;
-
     const [num, den] = str.split("/");
-
     return `
         <span class="frac">
             <span class="top">${num}</span>
@@ -381,7 +702,9 @@ function crearFraccionHTML(valor) {
         </span>
     `;
 }
-// RESULTADOS 
+
+// ========== RESULTADOS ==========
+
 function calcularSistemasEcuaciones() {
     limpiarResultados();
 
@@ -390,20 +713,39 @@ function calcularSistemasEcuaciones() {
     const table = document.getElementById("inputTable");
 
     try {
-        const inputs = table.querySelectorAll('input');
+        // Convertir todos los inputs a spans antes de calcular
+        const allInputs = table.querySelectorAll('.cell-input');
+        allInputs.forEach(input => inputToSpan(input));
 
-        inputs.forEach(input => {
-            let v = input.value.trim();
-
+        // Corregir valores vacíos o parciales y simplificar
+        const spans = table.querySelectorAll('.cell-span');
+        spans.forEach(span => {
+            let v = span.getAttribute('data-value') || '';
             if (v === '') {
-                input.value = '0';
+                span.setAttribute('data-value', '0');
+                span.textContent = '0';
                 return;
             }
-
-            // caso: /5  →  1/5
-            if (/^\/\d+$/.test(v)) {
-                input.value = `1${v}`;
-                return;
+            if (/^\/\d+\.?\d*$/.test(v)) {
+                v = `1${v}`;
+            }
+            // Simplificar si es fracción
+            if (esFraccion(v)) {
+                const fraccion = Auxiliares.parsearFraccion(v);
+                const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+                const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+                span.setAttribute('data-value', valorSimplificado);
+                
+                if (denSimp === 1) {
+                    span.textContent = numSimp;
+                } else {
+                    span.innerHTML = `
+                        <span class="frac">
+                            <span class="top">${numSimp}</span>
+                            <span class="bottom">${denSimp}</span>
+                        </span>
+                    `;
+                }
             }
         });
 
@@ -461,20 +803,39 @@ function calcularInversa() {
     const table = document.getElementById("inputTable");
 
     try {
-        const inputs = table.querySelectorAll('input');
+        // Convertir todos los inputs a spans antes de calcular
+        const allInputs = table.querySelectorAll('.cell-input');
+        allInputs.forEach(input => inputToSpan(input));
 
-        inputs.forEach(input => {
-            let v = input.value.trim();
-
+        // Corregir valores vacíos o parciales y simplificar
+        const spans = table.querySelectorAll('.cell-span');
+        spans.forEach(span => {
+            let v = span.getAttribute('data-value') || '';
             if (v === '') {
-                input.value = '0';
+                span.setAttribute('data-value', '0');
+                span.textContent = '0';
                 return;
             }
-
-            // caso: /5  →  1/5
-            if (/^\/\d+$/.test(v)) {
-                input.value = `1${v}`;
-                return;
+            if (/^\/\d+\.?\d*$/.test(v)) {
+                v = `1${v}`;
+            }
+            // Simplificar si es fracción
+            if (esFraccion(v)) {
+                const fraccion = Auxiliares.parsearFraccion(v);
+                const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+                const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+                span.setAttribute('data-value', valorSimplificado);
+                
+                if (denSimp === 1) {
+                    span.textContent = numSimp;
+                } else {
+                    span.innerHTML = `
+                        <span class="frac">
+                            <span class="top">${numSimp}</span>
+                            <span class="bottom">${denSimp}</span>
+                        </span>
+                    `;
+                }
             }
         });
 
@@ -531,19 +892,39 @@ function calcularDeterminante() {
     const table = document.getElementById("inputTable");
 
     try {
-        const inputs = table.querySelectorAll('input');
+        // Convertir todos los inputs a spans antes de calcular
+        const allInputs = table.querySelectorAll('.cell-input');
+        allInputs.forEach(input => inputToSpan(input));
 
-        inputs.forEach(input => {
-            let v = input.value.trim();
-
+        // Corregir valores vacíos o parciales y simplificar
+        const spans = table.querySelectorAll('.cell-span');
+        spans.forEach(span => {
+            let v = span.getAttribute('data-value') || '';
             if (v === '') {
-                input.value = '0';
+                span.setAttribute('data-value', '0');
+                span.textContent = '0';
                 return;
             }
-
-            if (/^\/\d+$/.test(v)) {
-                input.value = `1${v}`;
-                return;
+            if (/^\/\d+\.?\d*$/.test(v)) {
+                v = `1${v}`;
+            }
+            // Simplificar si es fracción
+            if (esFraccion(v)) {
+                const fraccion = Auxiliares.parsearFraccion(v);
+                const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+                const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
+                span.setAttribute('data-value', valorSimplificado);
+                
+                if (denSimp === 1) {
+                    span.textContent = numSimp;
+                } else {
+                    span.innerHTML = `
+                        <span class="frac">
+                            <span class="top">${numSimp}</span>
+                            <span class="bottom">${denSimp}</span>
+                        </span>
+                    `;
+                }
             }
         });
 
@@ -561,13 +942,11 @@ function calcularDeterminante() {
         label.className = "result-label";
         label.innerHTML = "det(A) =";
 
-
         const container = document.createElement("div");
         container.className = "det-container";
 
         const content = document.createElement("div");
         content.className = "det-content";
-
 
         const step1 = document.createElement("div");
         step1.className = "det-step";

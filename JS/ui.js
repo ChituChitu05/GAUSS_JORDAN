@@ -62,6 +62,45 @@ export function createSpan(text = "", className = "") {
     if (className) span.className = className;
     return span;
 }
+// Agregar estas funciones antes de "const UI = {"
+
+export function createFractionHTML(value) {
+    const str = String(value).trim();
+    if (!str.includes("/")) return str;
+    
+    const [num, den] = str.split("/");
+    const container = document.createElement("span");
+    container.className = "frac";
+    
+    const top = document.createElement("span");
+    top.className = "top";
+    top.textContent = num;
+    
+    const bottom = document.createElement("span");
+    bottom.className = "bottom";
+    bottom.textContent = den;
+    
+    container.appendChild(top);
+    container.appendChild(bottom);
+    
+    return container;
+}
+
+export function createSpanCell(value = "", className = "cell-span") {
+    const span = document.createElement("span");
+    span.className = className;
+    
+    if (value && value.includes("/")) {
+        const fractionElement = createFractionHTML(value);
+        span.appendChild(fractionElement);
+    } else {
+        span.textContent = value || "";
+    }
+    
+    return span;
+}
+
+// Actualizar el objeto UI para incluir las nuevas funciones
 const UI = {
     createSection,
     createButton,
@@ -71,7 +110,9 @@ const UI = {
     createTable,
     createRow,
     createTd,
-    createSpan
+    createSpan,
+    createFractionHTML,    // Nueva
+    createSpanCell         // Nueva
 };
 
 export default UI;

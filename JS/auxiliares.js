@@ -110,7 +110,16 @@ export function parsearMatriz(table) {
     return Array.from(table.rows).map(row =>
         Array.from(row.cells).map(cell => {
             const input = cell.querySelector("input");
-            const valor = input ? input.value : cell.textContent.trim();
+            const span = cell.querySelector(".cell-span");
+            
+            let valor = "";
+            if (input) {
+                valor = input.value;
+            } else if (span) {
+                valor = span.getAttribute("data-value") || span.textContent.trim();
+            } else {
+                valor = cell.textContent.trim();
+            }
             
             try {
                 const frac = parsearFraccion(valor);
@@ -125,50 +134,96 @@ export function parsearMatriz(table) {
     );
 }
 
+// Detectar si un valor es una fracción
+export function esFraccion(valor) {
+    if (!valor || typeof valor !== 'string') return false;
+    const fractionPattern = /^-?\d+\.?\d*\/-?\d+\.?\d*$/;
+    return fractionPattern.test(valor.trim());
+}
+
+// Función auxiliar para actualizar atributos después de modificaciones
+function actualizarAtributosTabla(table) {
+    for (let i = 0; i < table.rows.length; i++) {
+        const row = table.rows[i];
+        for (let j = 0; j < row.cells.length; j++) {
+            const cell = row.cells[j];
+            cell.id = `cell${i}${j}`;
+            
+            const span = cell.querySelector('.cell-span');
+            const input = cell.querySelector('.cell-input');
+            
+            if (span) {
+                span.setAttribute('data-row', i);
+                span.setAttribute('data-col', j);
+            }
+            if (input) {
+                input.setAttribute('data-row', i);
+                input.setAttribute('data-col', j);
+            }
+        }
+    }
+}
+
 //Agregar fila
 export function agregarFila(table) {
     if (table.rows.length === 0) return;
 
     const newRow = table.insertRow(-1);
     const numCols = table.rows[0].cells.length;
-
-    let firstInput = null;
+    const rowIndex = newRow.rowIndex;
 
     for (let i = 0; i < numCols; i++) {
         const newCell = newRow.insertCell(i);
-        const input = document.createElement("input");
-        input.type = "text";
-
-        if (i === 0) firstInput = input;
-
-        newCell.appendChild(input);
+        const span = document.createElement("span");
+        span.className = "cell-span";
+        span.setAttribute("data-value", "");
+        span.setAttribute("data-row", rowIndex);
+        span.setAttribute("data-col", i);
+        span.tabIndex = 0;
+        
+        newCell.appendChild(span);
     }
 
-    firstInput.focus();
+    actualizarAtributosTabla(table);
+    
+    // Enfocar el primer span de la nueva fila
+    const firstSpan = newRow.cells[0]?.querySelector('.cell-span');
+    if (firstSpan) {
+        setTimeout(() => firstSpan.click(), 10);
+    }
 }
 
 //Agregar columna
 export function agregarColumna(table) {
     const numRows = table.rows.length;
-
-    let firstInput = null;
+    const colIndex = table.rows[0].cells.length;
 
     for (let i = 0; i < numRows; i++) {
         const newCell = table.rows[i].insertCell(-1);
-        const input = document.createElement("input");
-        input.type = "text";
-
-        if (i === 0) firstInput = input;
-
-        newCell.appendChild(input);
+        const span = document.createElement("span");
+        span.className = "cell-span";
+        span.setAttribute("data-value", "");
+        span.setAttribute("data-row", i);
+        span.setAttribute("data-col", colIndex);
+        span.tabIndex = 0;
+        
+        newCell.appendChild(span);
     }
 
-    firstInput.focus();
+    actualizarAtributosTabla(table);
+    
+    // Enfocar el primer span de la nueva columna
+    const firstSpan = table.rows[0]?.cells[colIndex]?.querySelector('.cell-span');
+    if (firstSpan) {
+        setTimeout(() => firstSpan.click(), 10);
+    }
 }
+
 //Eliminar fila
 export function eliminarFila(table, rowIndex) {
     if (table.rows[rowIndex]) {
         table.deleteRow(rowIndex);
+        actualizarAtributosTabla(table);
     }
 }
 
@@ -179,20 +234,39 @@ export function eliminarColumna(table, colIndex) {
             table.rows[i].deleteCell(colIndex);
         }
     }
+    actualizarAtributosTabla(table);
 }
 
 export function filaVacia(table, rowIndex) {
+    if (!table.rows[rowIndex]) return true;
+    
     return Array.from(table.rows[rowIndex].cells).every(cell => {
         const input = cell.querySelector("input");
-        return !input || input.value.trim() === "";
+        const span = cell.querySelector(".cell-span");
+        
+        if (input) return input.value.trim() === "";
+        if (span) {
+            const value = span.getAttribute("data-value") || "";
+            return value === "";
+        }
+        return true;
     });
 }
 
 export function columnaVacia(table, colIndex) {
     return Array.from(table.rows).every(row => {
         const cell = row.cells[colIndex];
+        if (!cell) return true;
+        
         const input = cell.querySelector("input");
-        return !input || input.value.trim() === "";
+        const span = cell.querySelector(".cell-span");
+        
+        if (input) return input.value.trim() === "";
+        if (span) {
+            const value = span.getAttribute("data-value") || "";
+            return value === "";
+        }
+        return true;
     });
 }
 
@@ -201,36 +275,36 @@ export function insertarFila(table, rowIndex) {
     const numCols = table.rows[0].cells.length;
     const newRow = table.insertRow(rowIndex);
 
-    let firstInput = null;
-
     for (let i = 0; i < numCols; i++) {
         const cell = newRow.insertCell(i);
-        const input = document.createElement("input");
-        input.type = "text";
-
-        if (i === 0) firstInput = input;
-
-        cell.appendChild(input);
+        const span = document.createElement("span");
+        span.className = "cell-span";
+        span.setAttribute("data-value", "");
+        span.setAttribute("data-row", rowIndex);
+        span.setAttribute("data-col", i);
+        span.tabIndex = 0;
+        
+        cell.appendChild(span);
     }
-
-    firstInput.focus();
+    
+    actualizarAtributosTabla(table);
 }
 
 //Insertar columna en posición
 export function insertarColumna(table, colIndex) {
-    let firstInput = null;
-
     for (let i = 0; i < table.rows.length; i++) {
         const cell = table.rows[i].insertCell(colIndex);
-        const input = document.createElement("input");
-        input.type = "text";
-
-        if (i === 0) firstInput = input;
-
-        cell.appendChild(input);
+        const span = document.createElement("span");
+        span.className = "cell-span";
+        span.setAttribute("data-value", "");
+        span.setAttribute("data-row", i);
+        span.setAttribute("data-col", colIndex);
+        span.tabIndex = 0;
+        
+        cell.appendChild(span);
     }
-
-    firstInput.focus();
+    
+    actualizarAtributosTabla(table);
 }
 
 export function normalizarSigno(frac) {
@@ -241,6 +315,7 @@ export function normalizarSigno(frac) {
 }
 
 const auxiliares = {
+    simplificar,
     parsearFraccion,
     multiplicarFracciones,
     sumarFraccionesObj,
@@ -257,7 +332,8 @@ const auxiliares = {
     columnaVacia,
     insertarFila,
     insertarColumna,
-    normalizarSigno
+    normalizarSigno,
+    esFraccion
 };
 
 export default auxiliares;
