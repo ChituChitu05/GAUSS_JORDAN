@@ -8,6 +8,7 @@ let clickHandler = null;
 let currentTable = null;
 let currentRow = 0;
 let currentCol = 0;
+let lastKeyTime = 0;
 
 export function configurarEventos(article, table, operation) {
     currentTable = table;
@@ -23,6 +24,15 @@ export function configurarEventos(article, table, operation) {
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
     article.addEventListener('click', clickHandler);
+    
+    // Prevenir el scroll por espacio en la página completa
+    window.addEventListener('keydown', function(e) {
+        if (e.key === ' ' && document.activeElement && 
+            (document.activeElement.classList.contains('cell-input') || 
+             document.activeElement.classList.contains('cell-span'))) {
+            e.preventDefault();
+        }
+    });
 }
 
 // ========== FUNCIONES DE NAVEGACIÓN ROBUSTAS ==========
@@ -66,11 +76,9 @@ function enfocarCelda(row, col, mantenerValor = false) {
     const elemento = obtenerElementoEditableEnCelda(cell);
     if (!elemento) return false;
     
-    // Guardar coordenadas actuales
     currentRow = row;
     currentCol = col;
     
-    // Si es span, convertirlo a input
     if (elemento.classList.contains('cell-span')) {
         const input = spanToInput(elemento);
         if (input) {
@@ -83,7 +91,6 @@ function enfocarCelda(row, col, mantenerValor = false) {
         return false;
     }
     
-    // Si ya es input, solo enfocar
     if (elemento.classList.contains('cell-input')) {
         elemento.focus();
         if (!mantenerValor) {
@@ -97,7 +104,6 @@ function enfocarCelda(row, col, mantenerValor = false) {
 
 function moverIzquierda() {
     if (currentCol > 0) {
-        // Guardar el valor actual antes de mover
         const cell = obtenerCelda(currentRow, currentCol);
         if (cell) {
             const input = cell.querySelector('.cell-input');
@@ -151,6 +157,26 @@ function moverAbajo() {
     }
 }
 
+function crearNuevaColumna(table, rowIndex, colIndex) {
+    Auxiliares.insertarColumna(table, colIndex + 1);
+    if (getCurrentOperation() === "axb") {
+        actualizarSeparadorGlobal(table);
+    }
+    setTimeout(() => {
+        enfocarCelda(rowIndex, colIndex + 1);
+    }, 10);
+}
+
+function crearNuevaFila(table, rowIndex, colIndex) {
+    Auxiliares.insertarFila(table, rowIndex + 1);
+    if (getCurrentOperation() === "axb") {
+        requestAnimationFrame(() => actualizarSeparadorGlobal(table));
+    }
+    setTimeout(() => {
+        enfocarCelda(rowIndex + 1, colIndex);
+    }, 10);
+}
+
 // ========== MANEJADORES DE EVENTOS ==========
 
 function manejarClick(e) {
@@ -158,7 +184,6 @@ function manejarClick(e) {
     const table = currentTable;
     if (!table) return;
 
-    // Cerrar todos los inputs excepto el clickeado
     const allInputs = table.querySelectorAll('.cell-input');
     allInputs.forEach(input => {
         const inputCell = input.closest('td');
@@ -168,7 +193,6 @@ function manejarClick(e) {
         }
     });
 
-    // Actualizar coordenadas
     if (target.classList.contains('cell-span') || target.classList.contains('cell-input')) {
         actualizarCoordenadasDesdeElemento(target);
     } else if (target.closest('.frac')) {
@@ -179,7 +203,6 @@ function manejarClick(e) {
         if (span) actualizarCoordenadasDesdeElemento(span);
     }
 
-    // Convertir span a input si es necesario
     if (target.classList.contains('cell-span')) {
         e.preventDefault();
         e.stopPropagation();
@@ -217,13 +240,11 @@ function manejarInput(e) {
     const input = e.target;
     if (input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;
     
-    // Actualizar coordenadas cuando se escribe en un input
     actualizarCoordenadasDesdeElemento(input);
 
     let valor = input.value;
     if (valor === "") return;
 
-    // Auto-correcciones de formato
     if (/^\.\d/.test(valor)) {
         input.value = '0' + valor;
         return;
@@ -313,27 +334,31 @@ function manejarKeydown(e) {
     
     const target = e.target;
 
-    // Si es span, actualizar coordenadas y manejar
+    // Prevenir comportamiento por defecto para teclas de navegación
+    const navigationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'Tab', 'Escape', 'Backspace'];
+    if (navigationKeys.includes(e.key)) {
+        // No prevenir para todos, solo para los que manejamos
+        if (e.key === ' ' || e.key === 'Enter' || e.key.startsWith('Arrow')) {
+            e.preventDefault();
+        }
+    }
+
     if (target.classList.contains('cell-span')) {
         actualizarCoordenadasDesdeElemento(target);
         manejarKeydownSpan(e, table, target);
         return;
     }
 
-    // Si es input, actualizar coordenadas y manejar
     if (target.tagName === 'INPUT' && target.classList.contains('cell-input')) {
         actualizarCoordenadasDesdeElemento(target);
         
         if (e.ctrlKey && e.key === 'Enter') {
-            e.preventDefault();
             const btn = document.getElementById("btnCalcular");
             if (btn) btn.click();
             return;
         }
 
-        // Tab - permitir salir
         if (e.key === 'Tab') {
-            e.preventDefault();
             const input = target;
             const cell = input.closest('td');
             const row = cell.parentElement;
@@ -353,40 +378,45 @@ function manejarKeydown(e) {
             return;
         }
 
-        // Escape
         if (e.key === 'Escape') {
-            e.preventDefault();
             inputToSpan(target);
             target.blur();
             return;
         }
 
-        // Flechas
         if (e.key === 'ArrowLeft') {
-            e.preventDefault();
             moverIzquierda();
             return;
         }
         
         if (e.key === 'ArrowRight') {
-            e.preventDefault();
             moverDerecha();
             return;
         }
         
         if (e.key === 'ArrowUp') {
-            e.preventDefault();
             moverArriba();
             return;
         }
         
         if (e.key === 'ArrowDown') {
-            e.preventDefault();
             moverAbajo();
             return;
         }
+        
+        if (e.key === ' ') {
+            const cell = target.closest('td');
+            const row = cell.parentElement;
+            crearNuevaColumna(table, row.rowIndex, cell.cellIndex);
+            return;
+        }
 
-        estructura(e, table, target);
+        if (e.key === 'Enter') {
+            estructuraEnter(table, target);
+            return;
+        }
+
+        estructuraBackspace(e, table, target);
         return;
     }
 }
@@ -400,27 +430,19 @@ function manejarKeydownSpan(e, table, span) {
 
     switch (e.key) {
         case 'Enter':
-            e.preventDefault();
             spanToInput(span);
             setTimeout(() => {
                 const input = cell.querySelector('.cell-input');
                 if (input) {
                     actualizarCoordenadasDesdeElemento(input);
-                    estructura({ key: 'Enter', preventDefault: () => {} }, table, input);
+                    estructuraEnter(table, input);
                 }
             }, 10);
             break;
 
         case ' ':
             e.preventDefault();
-            spanToInput(span);
-            setTimeout(() => {
-                const input = cell.querySelector('.cell-input');
-                if (input) {
-                    actualizarCoordenadasDesdeElemento(input);
-                    estructura({ key: ' ', preventDefault: () => {} }, table, input);
-                }
-            }, 10);
+            crearNuevaColumna(table, rowIndex, colIndex);
             break;
 
         case 'Backspace':
@@ -472,7 +494,17 @@ function manejarKeydownSpan(e, table, span) {
 
 // ========== ESTRUCTURA ==========
 
-function estructura(e, table, input) {
+function estructuraEnter(table, input) {
+    const cell = input.closest('td');
+    const row = cell.parentElement;
+    const rowIndex = row.rowIndex;
+    const colIndex = cell.cellIndex;
+    
+    inputToSpan(input);
+    crearNuevaFila(table, rowIndex, colIndex);
+}
+
+function estructuraBackspace(e, table, input) {
     const minRows = parseInt(table.dataset.minRows) || 1;
     const minCols = parseInt(table.dataset.minCols) || 1;
     const currentOp = getCurrentOperation();
@@ -481,68 +513,40 @@ function estructura(e, table, input) {
     const row = cell.parentElement;
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
-
-    if (e.key === 'Enter') {
+    
+    if (e.key === 'Backspace' && input.value === "") {
         e.preventDefault();
-        inputToSpan(input);
-        Auxiliares.insertarFila(table, rowIndex + 1);
-        if (currentOp === "axb") {
-            requestAnimationFrame(() => actualizarSeparadorGlobal(table));
+        const emptySpan = crearSpanCelda("", rowIndex, colIndex);
+        input.replaceWith(emptySpan);
+        actualizarCoordenadasDesdeElemento(emptySpan);
+
+        let prevRowIndex = rowIndex;
+        let prevColIndex = colIndex - 1;
+        if (colIndex > 0) {
+            prevColIndex = colIndex - 1;
+            prevRowIndex = rowIndex;
+        } else if (rowIndex > 0) {
+            prevRowIndex = rowIndex - 1;
+            prevColIndex = table.rows[rowIndex - 1].cells.length - 1;
         }
+        if (prevColIndex >= 0 && prevRowIndex >= 0) {
+            enfocarCelda(prevRowIndex, prevColIndex);
+        }
+
         setTimeout(() => {
-            enfocarCelda(rowIndex + 1, colIndex);
-        }, 10);
-        return;
-    }
-
-    if (e.key === ' ') {
-        e.preventDefault();
-        inputToSpan(input);
-        Auxiliares.insertarColumna(table, colIndex + 1);
-        if (currentOp === "axb") {
-            actualizarSeparadorGlobal(table);
-        }
-        setTimeout(() => {
-            enfocarCelda(rowIndex, colIndex + 1);
-        }, 10);
-        return;
-    }
-
-    if (e.key === 'Backspace') {
-        if (input.value === "") {
-            e.preventDefault();
-            const emptySpan = crearSpanCelda("", rowIndex, colIndex);
-            input.replaceWith(emptySpan);
-            actualizarCoordenadasDesdeElemento(emptySpan);
-
-            let prevRowIndex = rowIndex;
-            let prevColIndex = colIndex - 1;
-            if (colIndex > 0) {
-                prevColIndex = colIndex - 1;
-                prevRowIndex = rowIndex;
-            } else if (rowIndex > 0) {
-                prevRowIndex = rowIndex - 1;
-                prevColIndex = table.rows[rowIndex - 1].cells.length - 1;
-            }
-            if (prevColIndex >= 0 && prevRowIndex >= 0) {
-                enfocarCelda(prevRowIndex, prevColIndex);
-            }
-
-            setTimeout(() => {
-                if (table.rows.length > minRows && Auxiliares.filaVacia(table, rowIndex)) {
-                    Auxiliares.eliminarFila(table, rowIndex);
-                    if (currentOp === "axb") {
-                        actualizarSeparadorGlobal(table);
-                    }
-                    return;
+            if (table.rows.length > minRows && Auxiliares.filaVacia(table, rowIndex)) {
+                Auxiliares.eliminarFila(table, rowIndex);
+                if (currentOp === "axb") {
+                    actualizarSeparadorGlobal(table);
                 }
-                if (table.rows[0].cells.length > minCols && Auxiliares.columnaVacia(table, colIndex)) {
-                    Auxiliares.eliminarColumna(table, colIndex);
-                    if (currentOp === "axb") {
-                        actualizarSeparadorGlobal(table);
-                    }
+                return;
+            }
+            if (table.rows[0].cells.length > minCols && Auxiliares.columnaVacia(table, colIndex)) {
+                Auxiliares.eliminarColumna(table, colIndex);
+                if (currentOp === "axb") {
+                    actualizarSeparadorGlobal(table);
                 }
-            }, 0);
-        }
+            }
+        }, 0);
     }
 }
