@@ -1,9 +1,4 @@
-// celdas.js - Funciones para crear y convertir celdas (span <-> input)
 import Auxiliares from "./auxiliares.js";
-
-/**
- * Crea un span de celda con formato visual
- */
 export function crearSpanCelda(value, row, col) {
     const span = document.createElement("span");
     span.className = "cell-span";
@@ -97,9 +92,7 @@ export function inputToSpan(input) {
     return span;
 }
 
-/**
- * Enfoca una celda (convierte span a input si es necesario)
- */
+// Función para enfocar una celda específica
 export function focusCell(row, col, table) {
     if (row < 0 || col < 0 || row >= table.rows.length) return false;
     if (col >= table.rows[row].cells.length) return false;

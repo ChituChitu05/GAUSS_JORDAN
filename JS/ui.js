@@ -62,7 +62,6 @@ export function createSpan(text = "", className = "") {
     if (className) span.className = className;
     return span;
 }
-// Agregar estas funciones antes de "const UI = {"
 
 export function createFractionHTML(value) {
     const str = String(value).trim();
@@ -100,7 +99,6 @@ export function createSpanCell(value = "", className = "cell-span") {
     return span;
 }
 
-// Actualizar el objeto UI para incluir las nuevas funciones
 const UI = {
     createSection,
     createButton,
@@ -111,8 +109,8 @@ const UI = {
     createRow,
     createTd,
     createSpan,
-    createFractionHTML,    // Nueva
-    createSpanCell         // Nueva
+    createFractionHTML,
+    createSpanCell         
 };
 
 export default UI;

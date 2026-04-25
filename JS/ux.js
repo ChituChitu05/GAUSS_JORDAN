@@ -7,6 +7,42 @@ import { configurarEventos } from "./eventos.js";
 let currentOperation = "axb";
 let currentMatrixState = null;
 
+// EXPORTAR estas funciones para que eventos.js pueda usarlas
+export function actualizarSeparadorGlobal(table) {
+    if (!table || !table.rows.length) return;
+    eliminarSeparadorGlobal(table);
+    const sep = table.rows[0].cells.length - 2;
+    if (sep >= 0) {
+        requestAnimationFrame(() => {
+            for (let row of table.rows) {
+                const cell = row.cells[sep];
+                if (cell) {
+                    cell.style.borderRight = "2px solid var(--primary)";
+                    cell.classList.add("separator");
+                }
+            }
+        });
+    }
+}
+
+export function eliminarSeparadorGlobal(table) {
+    if (!table) return;
+    for (let row of table.rows) {
+        for (let cell of row.cells) {
+            cell.style.borderRight = "";
+            cell.classList.remove("separator");
+        }
+    }
+}
+
+export function getCurrentOperation() {
+    return currentOperation;
+}
+
+export function setCurrentOperation(op) {
+    currentOperation = op;
+}
+
 export function inicializarMatriz(article, modo) {
     currentOperation = modo;
     limpiar(article);
@@ -61,7 +97,8 @@ export function inicializarMatriz(article, modo) {
 
     configurarEventos(article, table, modo);
 
-    if (modo === "axb") actualizarSeparador(table);
+    if (modo === "axb") actualizarSeparadorGlobal(table);
+    else eliminarSeparadorGlobal(table);
 
     if (modo === "axb") {
         document.getElementById("btnCalcular").onclick = calcularSistemasEcuaciones;
@@ -97,33 +134,23 @@ export function cambiarModo(article, nuevoModo) {
         btn.onclick = calcularSistemasEcuaciones;
         table.dataset.minRows = "2";
         table.dataset.minCols = "3";
-        actualizarSeparador(table);
+        actualizarSeparadorGlobal(table);
     } else if (nuevoModo === "inversa") {
         btn.textContent = "Calcular Inversa";
         btn.onclick = calcularInversa;
         table.dataset.minRows = "1";
         table.dataset.minCols = "1";
-        eliminarSeparador(table);
+        eliminarSeparadorGlobal(table);
     } else if (nuevoModo === "determinante") {
         btn.textContent = "Calcular Determinante";
         btn.onclick = calcularDeterminante;
         table.dataset.minRows = "1";
         table.dataset.minCols = "1";
-        eliminarSeparador(table);
+        eliminarSeparadorGlobal(table);
     }
 }
 
 // ========== LIMPIEZA ==========
-
-function eliminarSeparador(table) {
-    if (!table) return;
-    for (let row of table.rows) {
-        for (let cell of row.cells) {
-            cell.style.borderRight = "";
-            cell.classList.remove("separator");
-        }
-    }
-}
 
 function limpiar(article) {
     while (article.firstChild) article.removeChild(article.firstChild);
@@ -140,23 +167,6 @@ function mostrarError(container, mensaje) {
     errorDiv.style.cssText = "padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px; margin-top: 20px;";
     errorDiv.innerHTML = `<strong>Error:</strong> ${mensaje}`;
     container.appendChild(errorDiv);
-}
-
-function actualizarSeparador(table) {
-    if (!table || !table.rows.length) return;
-    eliminarSeparador(table);
-    const sep = table.rows[0].cells.length - 2;
-    if (sep >= 0) {
-        requestAnimationFrame(() => {
-            for (let row of table.rows) {
-                const cell = row.cells[sep];
-                if (cell) {
-                    cell.style.borderRight = "2px solid var(--primary)";
-                    cell.classList.add("separator");
-                }
-            }
-        });
-    }
 }
 
 // ========== FRACCIÓN HTML ==========
@@ -293,7 +303,7 @@ function calcularDeterminante() {
         const tieneDecimalesEnEntrada = matriz.some(fila => fila.some(celda => celda._tieneDecimal));
 
         const factoresStr = resultado.historialFactores
-            .map(f => f === -1 ? "(-1)" : `(${Auxiliares.fraccionToString(f, tieneDecimalesEnEntrada)})`)
+            .map(f => f === -1 ? "(-1)" : `(${Auxiliares.fraccionToString(f)})`)
             .join("");
 
         const wrapper = document.createElement("div");

@@ -1,18 +1,12 @@
-// eventos.js - Configuración y manejo de eventos
 import Auxiliares from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan, focusCell } from "./celdas.js";
+import { actualizarSeparadorGlobal, eliminarSeparadorGlobal, getCurrentOperation } from "./ux.js";
 
 let keydownHandler = null;
 let inputHandler = null;
 let clickHandler = null;
-let currentOperation = "axb";
 
-/**
- * Configura todos los event listeners
- */
 export function configurarEventos(article, table, operation) {
-    currentOperation = operation;
-
     if (keydownHandler) article.removeEventListener('keydown', keydownHandler);
     if (inputHandler) article.removeEventListener('input', inputHandler);
     if (clickHandler) article.removeEventListener('click', clickHandler);
@@ -165,8 +159,7 @@ function manejarInput(e) {
         }
     }
 
-    // Validar formato general (ACEPTA: números, negativos, barra, punto decimal)
-    // Ejemplos válidos: 5, -3, 5/2, -3/4, 3/-4, -3/-4, 0.5, 3.5/2.7
+    // Validar formato general
     const regex = /^-?\d*\.?\d*(\/-?\d*\.?\d*)?$/;
     if (!regex.test(valor)) {
         input.value = valor.slice(0, -1);
@@ -200,7 +193,7 @@ function manejarKeydown(e, table) {
     const colIndex = cell.cellIndex;
     const value = input.value.trim();
 
-    // Tab
+    // Tab - permitir salir de la tabla
     if (e.key === 'Tab') {
         e.preventDefault();
         inputToSpan(input);
@@ -223,33 +216,44 @@ function manejarKeydown(e, table) {
         return;
     }
 
-    // Flechas
+    // Flechas - siempre se mueven al presionar
     if (e.key === 'ArrowLeft') {
-        if (input.selectionStart === 0 && input.selectionEnd === 0) {
-            e.preventDefault();
-            if (value) inputToSpan(input);
-            if (colIndex > 0) focusCell(rowIndex, colIndex - 1, table);
+        e.preventDefault();
+        if (value) inputToSpan(input);
+        if (colIndex > 0) {
+            focusCell(rowIndex, colIndex - 1, table);
         }
+        // Si está en la primera columna, no hace nada
         return;
     }
+    
     if (e.key === 'ArrowRight') {
-        if (input.selectionStart === input.value.length && input.selectionEnd === input.value.length) {
-            e.preventDefault();
-            if (value) inputToSpan(input);
-            if (colIndex < row.cells.length - 1) focusCell(rowIndex, colIndex + 1, table);
+        e.preventDefault();
+        if (value) inputToSpan(input);
+        if (colIndex < row.cells.length - 1) {
+            focusCell(rowIndex, colIndex + 1, table);
         }
+        // Si está en la última columna, no hace nada
         return;
     }
+    
     if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (value) inputToSpan(input);
-        if (rowIndex > 0) focusCell(rowIndex - 1, colIndex, table);
+        if (rowIndex > 0) {
+            const targetCol = Math.min(colIndex, table.rows[rowIndex - 1].cells.length - 1);
+            focusCell(rowIndex - 1, targetCol, table);
+        }
         return;
     }
+    
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (value) inputToSpan(input);
-        if (rowIndex < table.rows.length - 1) focusCell(rowIndex + 1, colIndex, table);
+        if (rowIndex < table.rows.length - 1) {
+            const targetCol = Math.min(colIndex, table.rows[rowIndex + 1].cells.length - 1);
+            focusCell(rowIndex + 1, targetCol, table);
+        }
         return;
     }
 
@@ -298,19 +302,32 @@ function manejarKeydownSpan(e, table, span) {
 
         case 'ArrowLeft':
             e.preventDefault();
-            if (colIndex > 0) focusCell(rowIndex, colIndex - 1, table);
+            if (colIndex > 0) {
+                focusCell(rowIndex, colIndex - 1, table);
+            }
             break;
+            
         case 'ArrowRight':
             e.preventDefault();
-            if (colIndex < row.cells.length - 1) focusCell(rowIndex, colIndex + 1, table);
+            if (colIndex < row.cells.length - 1) {
+                focusCell(rowIndex, colIndex + 1, table);
+            }
             break;
+            
         case 'ArrowUp':
             e.preventDefault();
-            if (rowIndex > 0) focusCell(rowIndex - 1, colIndex, table);
+            if (rowIndex > 0) {
+                const targetCol = Math.min(colIndex, table.rows[rowIndex - 1].cells.length - 1);
+                focusCell(rowIndex - 1, targetCol, table);
+            }
             break;
+            
         case 'ArrowDown':
             e.preventDefault();
-            if (rowIndex < table.rows.length - 1) focusCell(rowIndex + 1, colIndex, table);
+            if (rowIndex < table.rows.length - 1) {
+                const targetCol = Math.min(colIndex, table.rows[rowIndex + 1].cells.length - 1);
+                focusCell(rowIndex + 1, targetCol, table);
+            }
             break;
 
         default:
@@ -331,13 +348,14 @@ function manejarKeydownSpan(e, table, span) {
 function estructura(e, table, input, row, rowIndex, colIndex) {
     const minRows = parseInt(table.dataset.minRows) || 1;
     const minCols = parseInt(table.dataset.minCols) || 1;
+    const currentOp = getCurrentOperation();
 
     if (e.key === 'Enter') {
         e.preventDefault();
         if (input) inputToSpan(input);
         Auxiliares.insertarFila(table, rowIndex + 1);
-        if (currentOperation === "axb") {
-            requestAnimationFrame(() => actualizarSeparador(table));
+        if (currentOp === "axb") {
+            requestAnimationFrame(() => actualizarSeparadorGlobal(table));
         }
         setTimeout(() => {
             const newCell = table.rows[rowIndex + 1]?.cells[colIndex];
@@ -353,7 +371,9 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
         e.preventDefault();
         if (input) inputToSpan(input);
         Auxiliares.insertarColumna(table, colIndex + 1);
-        if (currentOperation === "axb") actualizarSeparador(table);
+        if (currentOp === "axb") {
+            actualizarSeparadorGlobal(table);
+        }
         setTimeout(() => {
             const newCell = table.rows[rowIndex]?.cells[colIndex + 1];
             if (newCell) {
@@ -386,36 +406,18 @@ function estructura(e, table, input, row, rowIndex, colIndex) {
             setTimeout(() => {
                 if (table.rows.length > minRows && Auxiliares.filaVacia(table, rowIndex)) {
                     Auxiliares.eliminarFila(table, rowIndex);
-                    if (currentOperation === "axb") actualizarSeparador(table);
+                    if (currentOp === "axb") {
+                        actualizarSeparadorGlobal(table);
+                    }
                     return;
                 }
                 if (table.rows[0].cells.length > minCols && Auxiliares.columnaVacia(table, colIndex)) {
                     Auxiliares.eliminarColumna(table, colIndex);
-                    if (currentOperation === "axb") actualizarSeparador(table);
+                    if (currentOp === "axb") {
+                        actualizarSeparadorGlobal(table);
+                    }
                 }
             }, 0);
         }
-    }
-}
-
-function actualizarSeparador(table) {
-    if (!table || !table.rows.length) return;
-    for (let row of table.rows) {
-        for (let cell of row.cells) {
-            cell.style.borderRight = "";
-            cell.classList.remove("separator");
-        }
-    }
-    const sep = table.rows[0].cells.length - 2;
-    if (sep >= 0) {
-        requestAnimationFrame(() => {
-            for (let row of table.rows) {
-                const cell = row.cells[sep];
-                if (cell) {
-                    cell.style.borderRight = "2px solid var(--primary)";
-                    cell.classList.add("separator");
-                }
-            }
-        });
     }
 }

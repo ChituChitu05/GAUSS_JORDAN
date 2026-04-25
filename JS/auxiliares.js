@@ -15,7 +15,7 @@ export function simplificar(num, den) {
         numSimp = -numSimp;
         denSimp = -denSimp;
     }
-    
+
     return [numSimp, denSimp];
 }
 
@@ -24,25 +24,25 @@ export function parsearFraccion(valor) {
     if (valor === "" || valor === null || valor === undefined) {
         return { num: 0, den: 1 };
     }
-    
+
     const str = String(valor).trim();
-    
+
     // Si no tiene "/", es entero
     if (!str.includes("/")) {
         const num = Number(str);
         if (isNaN(num)) return { num: 0, den: 1 };
         return { num, den: 1 };
     }
-    
+
     let [numStr, denStr] = str.split("/");
-    
+
     // Caso "6/" -> denominador 1
     if (denStr === "" || denStr === undefined) {
         const num = Number(numStr);
         if (isNaN(num)) return { num: 0, den: 1 };
         return { num, den: 1 };
     }
-    
+
     // Caso "/5" -> numerador 1
     if (numStr === "") {
         const den = Number(denStr);
@@ -50,13 +50,13 @@ export function parsearFraccion(valor) {
         if (isNaN(den)) return { num: 0, den: 1 };
         return { num: 1, den };
     }
-    
+
     const num = Number(numStr);
     const den = Number(denStr);
-    
+
     if (isNaN(num) || isNaN(den)) return { num: 0, den: 1 };
     if (den === 0) throw new Error("Denominador cero");
-    
+
     return { num, den };
 }
 
@@ -111,7 +111,7 @@ export function parsearMatriz(table) {
         Array.from(row.cells).map(cell => {
             const input = cell.querySelector("input");
             const span = cell.querySelector(".cell-span");
-            
+
             let valor = "";
             if (input) {
                 valor = input.value;
@@ -120,18 +120,18 @@ export function parsearMatriz(table) {
             } else {
                 valor = cell.textContent.trim();
             }
-            
+
             try {
                 const frac = parsearFraccion(valor);
                 const [num, den] = simplificar(frac.num, frac.den);
-                
+
                 // Guardar si el valor original tenía decimales
                 const tieneDecimal = valor.includes('.');
-                
-                return { 
-                    num, 
+
+                return {
+                    num,
                     den,
-                    _tieneDecimal: tieneDecimal  // Metadata para recordar formato
+                    _tieneDecimal: tieneDecimal 
                 };
             } catch (e) {
                 alert(`Error: ${e.message} en celda con valor "${valor}"`);
@@ -140,7 +140,6 @@ export function parsearMatriz(table) {
         })
     );
 }
-// Agregar esta función antes del objeto auxiliares
 export function formatearResultado(frac, tieneDecimal) {
     if (frac.den === 1) {
         // Es entero
@@ -149,16 +148,15 @@ export function formatearResultado(frac, tieneDecimal) {
         }
         return `${frac.num}`;
     }
-    
+
     if (frac.num === 0) return "0";
-    
+
     if (tieneDecimal) {
         // Mantener formato decimal
         const valorDecimal = frac.num / frac.den;
-        // Evitar notación científica y redondeos extraños
         return parseFloat(valorDecimal.toFixed(10)).toString();
     }
-    
+
     // Formato fracción normal
     return `${frac.num}/${frac.den}`;
 }
@@ -182,10 +180,10 @@ function actualizarAtributosTabla(table) {
         for (let j = 0; j < row.cells.length; j++) {
             const cell = row.cells[j];
             cell.id = `cell${i}${j}`;
-            
+
             const span = cell.querySelector('.cell-span');
             const input = cell.querySelector('.cell-input');
-            
+
             if (span) {
                 span.setAttribute('data-row', i);
                 span.setAttribute('data-col', j);
@@ -214,12 +212,12 @@ export function agregarFila(table) {
         span.setAttribute("data-row", rowIndex);
         span.setAttribute("data-col", i);
         span.tabIndex = 0;
-        
+
         newCell.appendChild(span);
     }
 
     actualizarAtributosTabla(table);
-    
+
     // Enfocar el primer span de la nueva fila
     const firstSpan = newRow.cells[0]?.querySelector('.cell-span');
     if (firstSpan) {
@@ -240,12 +238,12 @@ export function agregarColumna(table) {
         span.setAttribute("data-row", i);
         span.setAttribute("data-col", colIndex);
         span.tabIndex = 0;
-        
+
         newCell.appendChild(span);
     }
 
     actualizarAtributosTabla(table);
-    
+
     // Enfocar el primer span de la nueva columna
     const firstSpan = table.rows[0]?.cells[colIndex]?.querySelector('.cell-span');
     if (firstSpan) {
@@ -273,11 +271,11 @@ export function eliminarColumna(table, colIndex) {
 
 export function filaVacia(table, rowIndex) {
     if (!table.rows[rowIndex]) return true;
-    
+
     return Array.from(table.rows[rowIndex].cells).every(cell => {
         const input = cell.querySelector("input");
         const span = cell.querySelector(".cell-span");
-        
+
         if (input) return input.value.trim() === "";
         if (span) {
             const value = span.getAttribute("data-value") || "";
@@ -291,10 +289,10 @@ export function columnaVacia(table, colIndex) {
     return Array.from(table.rows).every(row => {
         const cell = row.cells[colIndex];
         if (!cell) return true;
-        
+
         const input = cell.querySelector("input");
         const span = cell.querySelector(".cell-span");
-        
+
         if (input) return input.value.trim() === "";
         if (span) {
             const value = span.getAttribute("data-value") || "";
@@ -317,10 +315,10 @@ export function insertarFila(table, rowIndex) {
         span.setAttribute("data-row", rowIndex);
         span.setAttribute("data-col", i);
         span.tabIndex = 0;
-        
+
         cell.appendChild(span);
     }
-    
+
     actualizarAtributosTabla(table);
 }
 
@@ -334,10 +332,10 @@ export function insertarColumna(table, colIndex) {
         span.setAttribute("data-row", i);
         span.setAttribute("data-col", colIndex);
         span.tabIndex = 0;
-        
+
         cell.appendChild(span);
     }
-    
+
     actualizarAtributosTabla(table);
 }
 

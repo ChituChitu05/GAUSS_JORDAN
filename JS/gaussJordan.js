@@ -30,7 +30,7 @@ export function hacerPivoteUno(matriz, filaActual, valorPivote) {
         }
     }
     
-    return valorPivote; // Retornar el valor del pivote original (el factor por el que se multiplicó el determinante)
+    return valorPivote;
 }
 
 export function hacerCerosDebajo(matriz, filaPivote, columnaPivote) {
