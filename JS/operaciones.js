@@ -1,8 +1,9 @@
 import { multiplicarFracciones, sumarFraccionesObj, restarFracciones, normalizarSigno } from "./auxiliares.js";
 
-// Intercambiar filas 
 export function swapFilas(m, fil_i, fil_j) {
+    if (fil_i === fil_j) return false;
     [m[fil_i], m[fil_j]] = [m[fil_j], m[fil_i]];
+    return true;
 }
 
 export function multiplicarFila(m, fil_i, k) {

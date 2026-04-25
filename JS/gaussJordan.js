@@ -1,19 +1,18 @@
-// gaussJordan.js
 import { swapFilas, multiplicarFila, sumarFilas, restarFilas } from './operaciones.js';
 import { esCero, dividirFracciones, normalizarSigno, multiplicarFracciones, restarFracciones} from './auxiliares.js';
 
 export function buscarPivote(matriz, filaActual, columnaActual) {
     if (!esCero(matriz[filaActual][columnaActual])) {
-        return true;
+        return { encontrado: true, huboSwap: false };
     }
 
     for (let fila = filaActual + 1; fila < matriz.length; ++fila) {
         if (!esCero(matriz[fila][columnaActual])) {
             swapFilas(matriz, filaActual, fila);
-            return true;
+            return { encontrado: true, huboSwap: true };
         }
     }
-    return false;
+    return { encontrado: false, huboSwap: false };
 }
 
 export function hacerPivoteUno(matriz, filaActual, valorPivote) {
@@ -30,6 +29,8 @@ export function hacerPivoteUno(matriz, filaActual, valorPivote) {
             matriz[filaActual][filaActual] = { num: 1, den: 1 };
         }
     }
+    
+    return valorPivote; // Retornar el valor del pivote original (el factor por el que se multiplicó el determinante)
 }
 
 export function hacerCerosDebajo(matriz, filaPivote, columnaPivote) {
