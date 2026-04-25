@@ -36,7 +36,7 @@ function aplicarGaussJordanDeterminante(matriz) {
     let factoresNormalizacion = [];
     let filaPivote = 0;
 
-    // Copia profunda de la matriz
+    // Crear una copia de la matriz para no modificar la original
     const copia = matriz.map(fila => fila.map(v => ({ num: v.num, den: v.den })));
 
     for (let col = 0; col < n && filaPivote < n; col++) {
@@ -79,7 +79,7 @@ function aplicarGaussJordanDeterminante(matriz) {
         historialFactores.push(-1);
     }
     
-    // Factores de normalización (los pivotes)
+    // Factores de normalización (pivotes originales)
     for (const factor of factoresNormalizacion) {
         historialFactores.push(factor);
     }

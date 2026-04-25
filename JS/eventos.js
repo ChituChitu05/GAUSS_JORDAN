@@ -334,10 +334,8 @@ function manejarKeydown(e) {
     
     const target = e.target;
 
-    // Prevenir comportamiento por defecto para teclas de navegación
     const navigationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'Tab', 'Escape', 'Backspace'];
     if (navigationKeys.includes(e.key)) {
-        // No prevenir para todos, solo para los que manejamos
         if (e.key === ' ' || e.key === 'Enter' || e.key.startsWith('Arrow')) {
             e.preventDefault();
         }
