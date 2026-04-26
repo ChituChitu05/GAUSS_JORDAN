@@ -8,7 +8,7 @@ describe('Test de Garantia de Algoritmo Gauss-Jordan', () => {
  // --- BLOQUE 1: INTEGRIDAD ARITMÉTICA Y NORMALIZACIÓN ---
     describe('Aritmética', () => {
         
-        test('Validación de Normalización de Signos: El signo debe residir estrictamente en el numerador', () => {
+        test('Validación de Normalización de Signos', () => {
             const [n, d] = Auxiliares.simplificar(5, -10);
             expect(n).toBe(-1);
             expect(d).toBe(2);
@@ -19,6 +19,34 @@ describe('Test de Garantia de Algoritmo Gauss-Jordan', () => {
             const [n, d] = Auxiliares.simplificar(-7, -7);
             expect(n).toBe(1);
             expect(d).toBe(1);
+        });
+
+        test('Simplificacion de signos en cualquier posicion.', () => {
+            // Caso 1: Negativo abajo -> Sube al numerador
+            const c1 = Auxiliares.simplificar(3, -4);
+            expect(c1[0]).toBe(-3); expect(c1[1]).toBe(4);
+
+            // Caso 2: Ambos negativos -> Se cancelan (Positivo)
+            const c2 = Auxiliares.simplificar(-5, -2);
+            expect(c2[0]).toBe(5); expect(c2[1]).toBe(2);
+
+            // Caso 3: Cero con signo negativo -> Normaliza a 0 positivo
+            const c3 = Auxiliares.simplificar(-0, 5);
+            expect(c3[0]).toBe(0); expect(c3[1]).toBe(1);
+        });
+
+        test('Precisión de Fracciones con Decimales Infinitesimales.', () => {
+            // Probamos con 0.000001 (1x10^-6) para asegurar que no se pierda por redondeo
+            const f1 = { num: 0.000001, den: 1 }; 
+            const f2 = { num: 0.000002, den: 1 };
+            
+            const numSumado = (f1.num * f2.den) + (f2.num * f1.den); 
+            const denComun = f1.den * f2.den;
+            
+            const [n, d] = Auxiliares.simplificar(numSumado, denComun);
+            // El resultado debe ser exactamente 3/1,000,000
+            expect(n).toBe(3);
+            expect(d).toBe(1000000);
         });
 
         test('Precisión de Fracciones.', () => {

@@ -9,7 +9,28 @@ export function simplificar(num, den) {
     if (num === 0) return [0, 1];
     if (den === 0) throw new Error("División por cero en simplificación");
 
-    const common = mcd(num, den); //COMMON -> MCD
+    const obtenerPrecision = (n) => {
+        const s = n.toString();
+        if (!s.includes('.')) return 0;
+        if (s.includes('e')) {
+            const exp = parseInt(s.split('-')[1]);
+            return exp || 0;
+        }
+        return s.split('.')[1].length;
+    };
+
+    const precisionNum = obtenerPrecision(num);
+    const precisionDen = obtenerPrecision(den);
+    const maxPrecision = Math.max(precisionNum, precisionDen);
+    
+    if (maxPrecision > 0) {
+        const factor = Math.pow(10, maxPrecision);
+        num = Math.round(num * factor);
+        den = Math.round(den * factor);
+    }
+
+    // A partir de aquí, num y den son ENTEROS puros garantizados
+    const common = mcd(num, den);
     let n = num / common;
     let d = den / common;
 
