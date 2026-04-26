@@ -72,6 +72,9 @@ export function inputToSpan(input) {
     const value = input.value.trim();
 
     let finalValue = value;
+    if (finalValue === "/" || finalValue === "") {
+        finalValue = "0";
+    }
     if (value && Auxiliares.esFraccion(value)) {
         const fraccion = Auxiliares.parsearFraccion(value);
         const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
