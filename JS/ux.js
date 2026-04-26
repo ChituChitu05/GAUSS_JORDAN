@@ -391,10 +391,7 @@ function calcularDeterminante() {
         const value = document.createElement("span");
         value.className = "det-result-value";
         
-        // Aplicamos la misma lógica para el resultado final
-        const resFinal = tieneDecimalesEnEntrada 
-            ? Auxiliares.formatearResultado(resultado.determinante, true)
-            : crearFraccionHTML(resultado.determinante, false);
+        const resFinal = tieneDecimalesEnEntrada ? Auxiliares.formatearResultado(resultado.determinante, true) : crearFraccionHTML(resultado.determinante, false);
             
         value.innerHTML = (typeof resFinal === 'object') ? resFinal.outerHTML : resFinal;
 
