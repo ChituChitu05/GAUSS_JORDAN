@@ -1,22 +1,24 @@
-// MCD 
+//MCD
 function mcd(a, b) {
-    a = a < 0 ? -a : a;
-    b = b < 0 ? -b : b;
+    a = a > 0 ? a : -a;
+    b = b > 0 ? b : -b;
     return b === 0 ? a : mcd(b, a % b);
 }
 
-// Simplificar fracción
 export function simplificar(num, den) {
-    const divisor = mcd(num, den);
-    let numSimp = num / divisor;
-    let denSimp = den / divisor;
+    if (num === 0) return [0, 1];
+    if (den === 0) throw new Error("División por cero en simplificación");
 
-    if (denSimp < 0) {
-        numSimp = -numSimp;
-        denSimp = -denSimp;
+    const common = mcd(num, den); //COMMON -> MCD
+    let n = num / common;
+    let d = den / common;
+
+    if (d < 0) {
+        n = -n;
+        d = -d;
     }
 
-    return [numSimp, denSimp];
+    return [n, d];
 }
 
 // Convertir string "a/b", "a/", "/b", "a" a {num, den}
@@ -54,8 +56,9 @@ export function parsearFraccion(valor) {
     const num = Number(numStr);
     const den = Number(denStr);
 
-    if (isNaN(num) || isNaN(den)) return { num: 0, den: 1 };
-    if (den === 0) throw new Error("Denominador cero");
+    if (isNaN(num) || isNaN(den) || den === 0) {
+        return { num: 0, den: 1 };
+    }
 
     return { num, den };
 }
@@ -131,7 +134,7 @@ export function parsearMatriz(table) {
                 return {
                     num,
                     den,
-                    _tieneDecimal: tieneDecimal 
+                    _tieneDecimal: tieneDecimal
                 };
             } catch (e) {
                 alert(`Error: ${e.message} en celda con valor "${valor}"`);
