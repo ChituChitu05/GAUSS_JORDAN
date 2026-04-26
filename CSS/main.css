@@ -769,3 +769,11 @@ body.light .diagonal-cell {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
 }
+
+.cell-input, .cell-span {
+    display: inline-block;
+    min-width: 5ch; 
+    text-align: center;
+    box-sizing: border-box;
+    transition: width 0.1s ease; 
+}

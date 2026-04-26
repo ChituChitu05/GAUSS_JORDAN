@@ -2,7 +2,7 @@ import UI, { createSection } from "./ui.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 import { crearSpanCelda, inputToSpan } from "./celdas.js";
-import { configurarEventos } from "./eventos.js";
+import { configurarEventos,ajustarAnchoColumna } from "./eventos.js";
 
 let currentOperation = "axb";
 let currentMatrixState = null;
@@ -100,15 +100,33 @@ export function inicializarMatriz(article, modo) {
     if (modo === "axb") actualizarSeparadorGlobal(table);
     else eliminarSeparadorGlobal(table);
 
+    const btnCalcular = document.getElementById("btnCalcular");
+
     if (modo === "axb") {
-        document.getElementById("btnCalcular").onclick = calcularSistemasEcuaciones;
+        btnCalcular.onclick = () => {
+            ajustarTodaLaTabla(table); 
+            calcularSistemasEcuaciones();
+        };
     } else if (modo === "inversa") {
-        document.getElementById("btnCalcular").onclick = calcularInversa;
+        btnCalcular.onclick = () => {
+            ajustarTodaLaTabla(table); 
+            calcularInversa();
+        };
     } else if (modo === "determinante") {
-        document.getElementById("btnCalcular").onclick = calcularDeterminante;
+        btnCalcular.onclick = () => {
+            ajustarTodaLaTabla(table); 
+            calcularDeterminante();
+        };
     }
 }
 
+function ajustarTodaLaTabla(table) {
+    if (!table || !table.rows.length) return;
+    const numCols = table.rows[0].cells.length;
+    for (let j = 0; j < numCols; j++) {
+        ajustarAnchoColumna(table, j);
+    }
+}
 export function cambiarModo(article, nuevoModo) {
     const table = document.getElementById("inputTable");
 
@@ -269,7 +287,7 @@ function calcularInversa() {
             fila.forEach(valor => {
                 const cell = UI.createTd();
                 const valorFormateado = Auxiliares.formatearResultado(valor, tieneDecimalesEnEntrada);
-                cell[tieneDecimalesEnEntrada ? 'textContent' : 'innerHTML'] = 
+                cell[tieneDecimalesEnEntrada ? 'textContent' : 'innerHTML'] =
                     tieneDecimalesEnEntrada ? valorFormateado : crearFraccionHTML(valor, false);
                 row.appendChild(cell);
             });

@@ -164,24 +164,20 @@ export function parsearMatriz(table) {
         })
     );
 }
-export function formatearResultado(frac, tieneDecimal) {
-    if (frac.den === 1) {
-        // Es entero
-        if (tieneDecimal && !Number.isInteger(frac.num)) {
-            return parseFloat(frac.num.toFixed(10)).toString();
-        }
-        return `${frac.num}`;
-    }
 
+export function formatearResultado(frac, tieneDecimal) {
+    const valorDecimal = frac.num / frac.den;
+    
     if (frac.num === 0) return "0";
+    
+    if (!tieneDecimal && Number.isInteger(valorDecimal)) return `${valorDecimal}`;
 
     if (tieneDecimal) {
-        // Mantener formato decimal
-        const valorDecimal = frac.num / frac.den;
-        return parseFloat(valorDecimal.toFixed(10)).toString();
+        // toPrecision(12) mantiene cifras significativas sin importar el tamaño
+        // y Number(...).toString() elimina los ceros sobrantes al final
+        return Number(valorDecimal.toPrecision(12)).toString();
     }
 
-    // Formato fracción normal
     return `${frac.num}/${frac.den}`;
 }
 

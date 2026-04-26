@@ -40,9 +40,6 @@ export function crearSpanCelda(value, row, col) {
     return span;
 }
 
-/**
- * Convierte un span a input para edición
- */
 export function spanToInput(span) {
     if (!span || !span.classList.contains('cell-span')) return null;
 
