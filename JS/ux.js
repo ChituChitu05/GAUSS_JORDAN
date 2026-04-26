@@ -320,27 +320,47 @@ function calcularDeterminante() {
         const resultado = calcularDet(matriz);
         const tieneDecimalesEnEntrada = matriz.some(fila => fila.some(celda => celda._tieneDecimal));
 
-        const factoresStr = resultado.historialFactores
-            .map(f => f === -1 ? "(-1)" : `(${Auxiliares.fraccionToString(f)})`)
-            .join("");
-
         const wrapper = document.createElement("div");
         wrapper.className = "result-wrapper";
         const label = document.createElement("div");
         label.className = "result-label";
         label.innerHTML = "det(A) =";
+        
         const container = document.createElement("div");
         container.className = "det-container";
         const content = document.createElement("div");
         content.className = "det-content";
         const step1 = document.createElement("div");
         step1.className = "det-step";
-        const factores = document.createElement("span");
-        factores.className = "det-factores";
-        factores.innerHTML = factoresStr;
+
+        const factoresContainer = document.createElement("span");
+        factoresContainer.className = "det-factores";
+        factoresContainer.style.display = "inline-flex";
+        factoresContainer.style.alignItems = "center";
+        factoresContainer.style.gap = "2px";
+
+        resultado.historialFactores.forEach(f => {
+            const spanFactor = document.createElement("span");
+            spanFactor.className = "factor-item";
+            spanFactor.style.display = "inline-flex";
+            spanFactor.style.alignItems = "center";
+            
+            if (f === -1) {
+                spanFactor.textContent = "(-1)";
+            } else {
+                const contenidoFraccion = crearFraccionHTML(f, tieneDecimalesEnEntrada);
+                
+                const htmlFinal = (typeof contenidoFraccion === 'object') ? contenidoFraccion.outerHTML : contenidoFraccion;
+
+                spanFactor.innerHTML = `(${htmlFinal})`;
+            }
+            factoresContainer.appendChild(spanFactor);
+        });
+
         const mult = document.createElement("span");
         mult.className = "det-mult";
         mult.textContent = " ";
+        
         const matrixWrapper = document.createElement("div");
         matrixWrapper.className = "det-matrix-wrapper";
         const tableMatrix = UI.createTable();
@@ -362,15 +382,21 @@ function calcularDeterminante() {
         });
 
         matrixWrapper.appendChild(tableMatrix);
-        step1.append(factores, mult, matrixWrapper);
+        step1.append(factoresContainer, mult, matrixWrapper);
+        
         const equal = document.createElement("span");
         equal.className = "det-equal";
         equal.textContent = "=";
+        
         const value = document.createElement("span");
         value.className = "det-result-value";
-        value.innerHTML = tieneDecimalesEnEntrada
+        
+        // Aplicamos la misma lógica para el resultado final
+        const resFinal = tieneDecimalesEnEntrada 
             ? Auxiliares.formatearResultado(resultado.determinante, true)
             : crearFraccionHTML(resultado.determinante, false);
+            
+        value.innerHTML = (typeof resFinal === 'object') ? resFinal.outerHTML : resFinal;
 
         content.append(step1, equal, value);
         container.appendChild(content);
@@ -382,8 +408,6 @@ function calcularDeterminante() {
         article.appendChild(result);
     }
 }
-
-// ========== AUXILIAR ==========
 
 function corregirSpans(table) {
     const spans = table.querySelectorAll('.cell-span');
