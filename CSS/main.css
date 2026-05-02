@@ -6,7 +6,6 @@
     font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
 }
 
-
 :root {
     --primary:      #FF3B5C;
     --primary-dark: #D92B4B;
@@ -28,13 +27,12 @@
     --accent-glow: rgba(255, 59, 92, 0.25);
     --success-glow: rgba(0, 200, 160, 0.25);
     
-    /* Nuevas variables para spans */
     --cell-bg: #1A2030;
     --cell-hover: #1E2A42;
     --cell-focus: rgba(255, 59, 92, 0.15);
     --input-focus: rgba(255, 59, 92, 0.2);
 }
- 
+
 body.light {
     --primary:      #6C63FF;
     --primary-dark: #4F46E5;
@@ -56,7 +54,6 @@ body.light {
     --accent-glow: rgba(108, 99, 255, 0.15);
     --success-glow: rgba(0, 184, 148, 0.15);
     
-    /* Nuevas variables para spans en modo claro */
     --cell-bg: #F8FAFF;
     --cell-hover: #EEF2FF;
     --cell-focus: rgba(108, 99, 255, 0.1);
@@ -67,6 +64,7 @@ body {
     background: var(--bg-page);
     color: var(--text-primary);
     min-height: 100vh;
+    overflow-x: auto;
 
     display: grid;
     grid-template-columns: 260px 1fr;
@@ -130,7 +128,7 @@ button {
     color: white;
 }
 
-/* ===== ARTICLE ===== */
+/* ===== ARTICLE - Permite scroll horizontal ===== */
 #article {
     grid-area: article;
     padding: 2rem;
@@ -142,31 +140,18 @@ button {
     min-width: 0;
 }
 
-.article-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: fit-content;
-    min-width: 100%;
-}
-
-/* ===== SECTIONS ===== */
+/* ===== SECTIONS - CRECEN CON EL CONTENIDO ===== */
 section {
     background: var(--bg-surface);
     border-radius: 16px;
     padding: 2rem;
     margin-bottom: 2rem;
     border: 1px solid var(--border);
-
-    /* La sección se expande según su contenido */
     width: fit-content;
     min-width: fit-content;
     max-width: none;
-    
-    /* Centrado horizontal */
     margin-left: auto;
     margin-right: auto;
-
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
 }
 
@@ -178,16 +163,16 @@ section:hover {
     transform: translateY(-2px);
     transition: 0.2s;
 }
+
 section h2 {
     width: 100%;
     text-align: center;
     white-space: nowrap;
-
     padding-bottom: 8px;
     margin-bottom: 1.5rem;
-
     border-bottom: 2px solid;
 }
+
 @media (max-width: 768px) {
     section h2 {
         white-space: normal;
@@ -204,36 +189,32 @@ section h2 {
     border-bottom-color: var(--success);
 }
 
+/* ===== WRAPPERS ===== */
 #wrapperA,
 .result-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-#wrapperA {
-    flex-wrap: nowrap; 
+    flex-wrap: nowrap;
+    width: fit-content;
+    min-width: fit-content;
 }
 
 .result-wrapper {
     background: var(--bg-surface);
     border-radius: 12px;
     padding: 4px 8px;
-    width: fit-content;
 }
 
-/* ===== LABEL ===== */
+/* ===== LABELS ===== */
 #wrapperA > label,
 .result-label {
     font-size: 2rem;
     font-weight: 700;
     color: var(--primary);
-
     padding: 0.5rem 0.8rem;
     white-space: nowrap;
-
     display: flex;
     align-items: center;
 }
@@ -247,10 +228,12 @@ section h2 {
 .result-matrix-container,
 .det-container {
     position: relative;
-    padding: 1rem 1.5rem;
+    padding: 1rem 2rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: fit-content;
+    min-width: fit-content;
 }
 
 #tableMain,
@@ -260,6 +243,7 @@ section h2 {
     overflow: visible;
 }
 
+/* Brackets */
 #tableMain::before,
 #tableMain::after,
 .result-matrix-container::before,
@@ -289,11 +273,35 @@ section h2 {
     border-radius: 0 8px 8px 0;
 }
 
-#inputTable {
-    border-spacing: 8px;
+/* Result section uses success color */
+.result-matrix-container::before {
+    border-left: 3px solid var(--success);
+    border-top: 3px solid var(--success);
+    border-bottom: 3px solid var(--success);
 }
 
-/* ===== ESTILOS PARA INPUTS Y SPANS DE CELDA ===== */
+.result-matrix-container::after {
+    border-right: 3px solid var(--success);
+    border-top: 3px solid var(--success);
+    border-bottom: 3px solid var(--success);
+}
+
+/* ===== TABLES ===== */
+#inputTable {
+    border-spacing: 8px;
+    width: auto;
+    min-width: auto;
+}
+
+.result-table {
+    width: auto;
+    min-width: auto;
+    table-layout: auto;
+    border-spacing: 12px 10px;
+    margin: 0 auto;
+}
+
+/* ===== CELL STYLES ===== */
 #inputTable td {
     padding: 0;
     min-width: 75px;
@@ -302,7 +310,6 @@ section h2 {
     vertical-align: middle;
 }
 
-/* Estilos base compartidos por inputs y spans */
 #inputTable .cell-input,
 #inputTable .cell-span {
     width: 75px;
@@ -321,23 +328,12 @@ section h2 {
     outline: none;
 }
 
-/* Estilos específicos para inputs */
-#inputTable .cell-input {
-    background: var(--cell-bg);
-}
-
 #inputTable .cell-input:focus {
     border-color: var(--primary);
     background: var(--input-focus);
     box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-#inputTable .cell-input::selection {
-    background: var(--primary);
-    color: white;
-}
-
-/* Estilos específicos para spans */
 #inputTable .cell-span {
     cursor: pointer;
     user-select: none;
@@ -354,121 +350,13 @@ section h2 {
     box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-/* Span vacío */
 #inputTable .cell-span[data-value=""] {
     color: transparent;
 }
 
-#inputTable .cell-span[data-value=""]:hover {
-    background: var(--cell-hover);
-}
-
-/* Fracciones dentro de spans */
-#inputTable .cell-span .frac {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.2;
-    font-size: 0.9em;
-    min-width: 45px;
-    color: var(--text-primary);
-}
-
-#inputTable .cell-span .frac .top {
-    border-bottom: 1px solid var(--text-primary);
-    padding-bottom: 2px;
-}
-
-#inputTable .cell-span .frac .bottom {
-    padding-top: 2px;
-}
-
-/* Ajustes responsive para inputs y spans */
-@media (max-width: 768px) {
-    #inputTable td {
-        min-width: 55px;
-        height: 45px;
-    }
-    
-    #inputTable .cell-input,
-    #inputTable .cell-span {
-        width: 55px;
-        height: 45px;
-        font-size: 1rem;
-    }
-    
-    #inputTable {
-        border-spacing: 4px;
-    }
-    
-    #inputTable .cell-span .frac {
-        min-width: 35px;
-        font-size: 0.8em;
-    }
-}
-
-@media (min-width: 1200px) {
-    #inputTable td {
-        min-width: 85px;
-        height: 60px;
-    }
-    
-    #inputTable .cell-input,
-    #inputTable .cell-span {
-        width: 85px;
-        height: 60px;
-        font-size: 1.5rem;
-    }
-    
-    #inputTable {
-        border-spacing: 10px;
-    }
-    
-    #inputTable .cell-span .frac {
-        min-width: 55px;
-        font-size: 1em;
-    }
-}
-
-#mainSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.btnCalcular {
-    margin-top: 1rem;
-    padding: 10px 30px;
-    border-radius: 25px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.btnCalcular:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--accent-glow);
-}
-
-/* ===== RESULT TABLE ===== */
-.result-table {
-    width: auto;
-    min-width: auto;
-    table-layout: auto;
-    border-spacing: 12px 10px;
-    margin: 0 auto;
-}
-
-.result-table td {
-    padding: 8px 16px;
-    text-align: center;
-    font-size: clamp(14px, 1.5vw, 18px);
-    white-space: nowrap;
-}
-
-.frac {
+/* Fractions inside spans */
+#inputTable .cell-span .frac,
+.result-table .frac {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -478,13 +366,57 @@ section h2 {
     color: var(--text-primary);
 }
 
-.frac .top {
+#inputTable .cell-span .frac .top,
+.result-table .frac .top {
     border-bottom: 1px solid var(--text-primary);
     padding-bottom: 2px;
 }
 
-.frac .bottom {
+#inputTable .cell-span .frac .bottom,
+.result-table .frac .bottom {
     padding-top: 2px;
+}
+
+/* Result table cells */
+.result-table td {
+    padding: 8px 16px;
+    text-align: center;
+    font-size: clamp(14px, 1.5vw, 18px);
+    white-space: nowrap;
+}
+
+.result-table td.separator-col {
+    border-right: 2px solid var(--success);
+}
+
+/* Diagonal cell for determinant */
+.diagonal-cell {
+    background: rgba(0, 200, 160, 0.1);
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+body.light .diagonal-cell {
+    background: rgba(0, 184, 148, 0.1);
+}
+
+/* ===== BUTTON ===== */
+.btnCalcular {
+    margin-top: 1rem;
+    padding: 10px 30px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    width: fit-content;
+    align-self: center;
+}
+
+.btnCalcular:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 /* ===== DETERMINANTE ===== */
@@ -492,7 +424,7 @@ section h2 {
     display: flex;
     align-items: center;
     gap: 20px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: center;
 }
 
@@ -500,7 +432,7 @@ section h2 {
     display: flex;
     align-items: center;
     gap: 15px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: center;
 }
 
@@ -531,173 +463,17 @@ section h2 {
     border-radius: 8px;
 }
 
-/* ===== RESPONSIVE ===== */
-
-@media (max-width: 1024px) {
-    .det-content {
-        flex-wrap: wrap;
-    }
-}
-@media (max-width: 768px) {
-    body {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-            "header"
-            "aside"
-            "article";
-    }
-
-    #aside {
-        position: relative;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        height: auto;
-        width: 100%;
-        min-width: auto;
-    }
-
-    #wrapperA > label,
-    .result-label {
-        font-size: 1.5rem;
-    }
-    
-    #wrapperA {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    /* Ajustes de secciones en móvil */
-    section {
-        max-width: 100%;
-        width: auto;
-        min-width: auto;
-        padding: 1rem;
-    }
-    
-    .result-wrapper {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .result-label {
-        white-space: normal;
-        text-align: center;
-    }
-    
-    .result-table {
-        border-spacing: 6px 5px;
-    }
-    
-    .result-table td {
-        padding: 6px 10px;
-        font-size: clamp(12px, 2.5vw, 16px);
-    }
-    
-    /* Ajustes de determinante en móvil */
-    .det-content {
-        flex-direction: column;
-        gap: 16px;
-    }
-    
-    .det-step {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .det-result-value {
-        white-space: normal;
-        word-break: break-word;
-        text-align: center;
-    }
-    
-    .frac {
-        min-width: 45px;
-    }
-    
-    /* Corchetes se ajustan */
-    .result-matrix-container {
-        display: inline-flex;
-    }
-}
-
-/* Pantallas muy pequeñas (móviles) */
-@media (max-width: 480px) {
-    #article {
-        padding: 1rem;
-    }
-    
-    section {
-        padding: 0.75rem;
-    }
-    
-    .result-table td {
-        padding: 4px 6px;
-        font-size: clamp(10px, 2vw, 14px);
-    }
-    
-    .result-table {
-        border-spacing: 4px 3px;
-    }
-    
-    .frac {
-        min-width: 40px;
-        font-size: 0.8em;
-    }
-    
-    .det-matrix .result-table td {
-        padding: 4px 8px;
-    }
-    
-    #tableMain::before,
-    #tableMain::after,
-    .result-matrix-container::before,
-    .result-matrix-container::after {
-        width: 2px;
-    }
-}
-@media (min-width: 1200px) {
-    .result-table {
-        border-spacing: 16px 12px;
-    }
-    
-    .result-table td {
-        padding: 10px 20px;
-        font-size: 18px;
-    }
-    
-    .frac {
-        min-width: 65px;
-        font-size: 1em;
-    }
-    
-    #inputTable .cell-input,
-    #inputTable .cell-span {
-        width: 85px;
-        height: 60px;
-        font-size: 1.5rem;
-    }
-    
-    #inputTable {
-        border-spacing: 10px;
-    }
-}
-
+/* ===== THEME TOGGLE ===== */
 #themeToggle {
     margin-top: 2rem;
     width: 100%;
     padding: 0.9rem 1rem;
-
     border-radius: 14px;
-
     font-weight: 700;
     letter-spacing: 1px;
-
     background: linear-gradient(135deg, var(--success), #059669);
     color: white;
-
     box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
-
     transition: all 0.2s ease;
 }
 
@@ -710,48 +486,7 @@ section h2 {
     transform: scale(0.96);
 }
 
-.result-table td.separator-col {
-    border-right: 2px solid var(--success);
-}
-
-/* ===== ESTILOS PARA FRACCIONES EN RESULTADOS ===== */
-.result-table .frac {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.2;
-    font-size: 0.9em;
-    min-width: 55px;
-    color: var(--text-primary);
-}
-
-.result-table .frac .top {
-    border-bottom: 1px solid var(--text-primary);
-    padding-bottom: 2px;
-}
-
-.result-table .frac .bottom {
-    padding-top: 2px;
-}
-
-/* ===== DIAGONAL CELL EN DETERMINANTE ===== */
-.diagonal-cell {
-    background: rgba(0, 200, 160, 0.1);
-    border-radius: 4px;
-    font-weight: 600;
-}
-
-body.light .diagonal-cell {
-    background: rgba(0, 184, 148, 0.1);
-}
-
-/* ===== TRANSICIONES SUAVES PARA CAMBIO INPUT/SPAN ===== */
-#inputTable .cell-input,
-#inputTable .cell-span {
-    transition: all 0.15s ease-in-out;
-}
-
-/* ===== SCROLLBAR PERSONALIZADA ===== */
+/* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -770,10 +505,197 @@ body.light .diagonal-cell {
     background: var(--primary);
 }
 
-.cell-input, .cell-span {
-    display: inline-block;
-    min-width: 5ch; 
-    text-align: center;
-    box-sizing: border-box;
-    transition: width 0.1s ease; 
+/* ===== RESPONSIVE - MÓVIL (MANTIENE CRECIMIENTO) ===== */
+@media (max-width: 768px) {
+    body {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "header"
+            "aside"
+            "article";
+        overflow-x: auto;
+    }
+
+    #aside {
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        height: auto;
+        width: 100%;
+        min-width: auto;
+    }
+
+    #article {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+
+    /* CRITICAL: Sections keep fit-content on mobile too */
+    section {
+        padding: 1rem;
+        width: fit-content;
+        min-width: fit-content;
+        max-width: none;
+        margin: 0 auto 1rem auto;
+    }
+
+    #wrapperA {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    #wrapperA > label,
+    .result-label {
+        font-size: 1.5rem;
+    }
+
+    /* Keep cells large but slightly smaller for touch */
+    #inputTable {
+        border-spacing: 6px;
+    }
+
+    #inputTable td {
+        min-width: 65px;
+        height: 50px;
+    }
+
+    #inputTable .cell-input,
+    #inputTable .cell-span {
+        width: 65px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    #tableMain,
+    .result-matrix-container {
+        padding: 0.75rem 1.5rem;
+    }
+
+    .result-table {
+        border-spacing: 8px 6px;
+    }
+
+    .result-table td {
+        padding: 6px 12px;
+        font-size: clamp(12px, 2.5vw, 15px);
+    }
+
+    .result-wrapper {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .result-label {
+        white-space: normal;
+        text-align: center;
+    }
+
+    .det-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .det-step {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .det-result-value {
+        white-space: normal;
+        word-break: break-word;
+        text-align: center;
+    }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+    #article {
+        padding: 0.75rem;
+    }
+
+    section {
+        padding: 0.75rem;
+        border-radius: 12px;
+    }
+
+    #inputTable {
+        border-spacing: 4px;
+    }
+
+    #inputTable td {
+        min-width: 55px;
+        height: 45px;
+    }
+
+    #inputTable .cell-input,
+    #inputTable .cell-span {
+        width: 55px;
+        height: 45px;
+        font-size: 1rem;
+    }
+
+    #inputTable .cell-span .frac {
+        min-width: 40px;
+        font-size: 0.75em;
+    }
+
+    #tableMain,
+    .result-matrix-container {
+        padding: 0.5rem 1rem;
+    }
+
+    #tableMain::before,
+    #tableMain::after,
+    .result-matrix-container::before,
+    .result-matrix-container::after {
+        width: 2px;
+    }
+
+    .result-table {
+        border-spacing: 5px 4px;
+    }
+
+    .result-table td {
+        padding: 4px 8px;
+        font-size: clamp(10px, 2vw, 13px);
+    }
+
+    .btnCalcular {
+        padding: 8px 20px;
+        font-size: 0.9rem;
+    }
+
+    #wrapperA > label,
+    .result-label {
+        font-size: 1.2rem;
+    }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+    #inputTable td {
+        min-width: 85px;
+        height: 60px;
+    }
+
+    #inputTable .cell-input,
+    #inputTable .cell-span {
+        width: 85px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+
+    #inputTable {
+        border-spacing: 10px;
+    }
+
+    .result-table {
+        border-spacing: 16px 12px;
+    }
+
+    .result-table td {
+        padding: 10px 20px;
+        font-size: 18px;
+    }
 }
