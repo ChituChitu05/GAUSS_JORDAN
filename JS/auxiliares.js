@@ -148,8 +148,6 @@ export function parsearMatriz(table) {
             try {
                 const frac = parsearFraccion(valor);
                 const [num, den] = simplificar(frac.num, frac.den);
-
-                // Guardar si el valor original tenía decimales
                 const tieneDecimal = valor.includes('.');
 
                 return {
@@ -173,8 +171,7 @@ export function formatearResultado(frac, tieneDecimal) {
     if (!tieneDecimal && Number.isInteger(valorDecimal)) return `${valorDecimal}`;
 
     if (tieneDecimal) {
-        // toPrecision(12) mantiene cifras significativas sin importar el tamaño
-        // y Number(...).toString() elimina los ceros sobrantes al final
+
         return Number(valorDecimal.toPrecision(12)).toString();
     }
 

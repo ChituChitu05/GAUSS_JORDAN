@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gauss-Jodan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Gauss-Jordan</title>
     <link rel="stylesheet" href="./CSS/main.css">
     <link rel="icon" href="./img/los-pollos-hermanos-logo-png_seeklogo-502644.png?v=2">
 </head>
 <body>
     <header id="hearder">
         <h1>GAUSS JORDAN</h1>
+        <button id="helpBtn" class="help-btn">?</button>
     </header>
     <aside id="aside">
         <ul>
@@ -20,6 +21,34 @@
         <button id="themeToggle">TEMA</button>
     </aside>
     <article id="article"></article>
+    
+    <!-- Modal de ayuda -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Guía de Controles</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>Controles</h3>
+                    <ul>
+                        <li><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> - Mover entre celdas</li>
+                        <li><kbd>Tab</kbd> - Mover a la siguiente celda</li>
+                        <li><kbd>Enter</kbd> - Crear nueva fila</li>
+                        <li><kbd>Espacio</kbd> - Crear nueva columna</li>
+                        <li><kbd>Backspace</kbd> - Eliminar contenido (vacía la celda)</li>
+                        <li><kbd>Esc</kbd> - Cancelar edición</li>
+                        <li><kbd>Ctrl + Enter</kbd> - Calcular resultado</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close-modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+    
     <script type="module" src="./JS/main.js"></script>
 </body>
 </html>

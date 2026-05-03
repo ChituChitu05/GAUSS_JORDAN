@@ -128,7 +128,6 @@ button {
     color: white;
 }
 
-/* ===== ARTICLE - Permite scroll horizontal ===== */
 #article {
     grid-area: article;
     padding: 2rem;
@@ -140,7 +139,6 @@ button {
     min-width: 0;
 }
 
-/* ===== SECTIONS - CRECEN CON EL CONTENIDO ===== */
 section {
     background: var(--bg-surface);
     border-radius: 16px;
@@ -189,7 +187,6 @@ section h2 {
     border-bottom-color: var(--success);
 }
 
-/* ===== WRAPPERS ===== */
 #wrapperA,
 .result-wrapper {
     display: flex;
@@ -207,7 +204,6 @@ section h2 {
     padding: 4px 8px;
 }
 
-/* ===== LABELS ===== */
 #wrapperA > label,
 .result-label {
     font-size: 2rem;
@@ -223,7 +219,6 @@ section h2 {
     color: var(--success);
 }
 
-/* ===== MATRIX CONTAINER ===== */
 #tableMain,
 .result-matrix-container,
 .det-container {
@@ -243,7 +238,6 @@ section h2 {
     overflow: visible;
 }
 
-/* Brackets */
 #tableMain::before,
 #tableMain::after,
 .result-matrix-container::before,
@@ -273,7 +267,6 @@ section h2 {
     border-radius: 0 8px 8px 0;
 }
 
-/* Result section uses success color */
 .result-matrix-container::before {
     border-left: 3px solid var(--success);
     border-top: 3px solid var(--success);
@@ -286,7 +279,6 @@ section h2 {
     border-bottom: 3px solid var(--success);
 }
 
-/* ===== TABLES ===== */
 #inputTable {
     border-spacing: 8px;
     width: auto;
@@ -301,7 +293,6 @@ section h2 {
     margin: 0 auto;
 }
 
-/* ===== CELL STYLES ===== */
 #inputTable td {
     padding: 0;
     min-width: 75px;
@@ -354,7 +345,6 @@ section h2 {
     color: transparent;
 }
 
-/* Fractions inside spans */
 #inputTable .cell-span .frac,
 .result-table .frac {
     display: inline-flex;
@@ -377,7 +367,6 @@ section h2 {
     padding-top: 2px;
 }
 
-/* Result table cells */
 .result-table td {
     padding: 8px 16px;
     text-align: center;
@@ -389,7 +378,6 @@ section h2 {
     border-right: 2px solid var(--success);
 }
 
-/* Diagonal cell for determinant */
 .diagonal-cell {
     background: rgba(0, 200, 160, 0.1);
     border-radius: 4px;
@@ -400,7 +388,7 @@ body.light .diagonal-cell {
     background: rgba(0, 184, 148, 0.1);
 }
 
-/* ===== BUTTON ===== */
+/* ===== BUTTON CALCULAR ===== */
 .btnCalcular {
     margin-top: 1rem;
     padding: 10px 30px;
@@ -411,12 +399,188 @@ body.light .diagonal-cell {
     cursor: pointer;
     transition: 0.2s;
     width: fit-content;
-    align-self: center;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .btnCalcular:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+/* ===== BOTÓN DE AYUDA ===== */
+.help-btn {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.help-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    background: var(--primary-dark);
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+/* ===== MODAL DE AYUDA ===== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-content {
+    background: var(--bg-surface);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-header);
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.modal-close:hover {
+    background: var(--cell-hover);
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.help-section h3 {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+    color: var(--success);
+}
+
+.help-section ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.help-section li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.help-section li:last-child {
+    border-bottom: none;
+}
+
+kbd {
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--primary);
+    display: inline-block;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+}
+
+.btn-close-modal {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-close-modal:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
 }
 
 /* ===== DETERMINANTE ===== */
@@ -505,7 +669,47 @@ body.light .diagonal-cell {
     background: var(--primary);
 }
 
-/* ===== RESPONSIVE - MÓVIL (MANTIENE CRECIMIENTO) ===== */
+/* ===== RESULT SECTION - CRECE CON EL CONTENIDO ===== */
+#resultSection {
+    width: fit-content;
+    min-width: fit-content;
+    max-width: none;
+    overflow-x: auto;
+}
+
+#resultSection .result-wrapper {
+    width: fit-content;
+    min-width: fit-content;
+    max-width: none;
+}
+
+#resultSection .result-matrix-container {
+    width: fit-content;
+    min-width: fit-content;
+    max-width: none;
+    overflow-x: auto;
+}
+
+#resultSection .result-table {
+    width: fit-content;
+    min-width: fit-content;
+    max-width: none;
+}
+
+#resultSection .det-container {
+    width: fit-content;
+    min-width: fit-content;
+    max-width: none;
+    overflow-x: auto;
+}
+
+#resultSection .det-content {
+    width: fit-content;
+    min-width: fit-content;
+    max-width: none;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     body {
         grid-template-columns: 1fr;
@@ -530,7 +734,6 @@ body.light .diagonal-cell {
         overflow-x: auto;
     }
 
-    /* CRITICAL: Sections keep fit-content on mobile too */
     section {
         padding: 1rem;
         width: fit-content;
@@ -549,7 +752,6 @@ body.light .diagonal-cell {
         font-size: 1.5rem;
     }
 
-    /* Keep cells large but slightly smaller for touch */
     #inputTable {
         border-spacing: 6px;
     }
@@ -581,9 +783,8 @@ body.light .diagonal-cell {
     }
 
     .result-wrapper {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
     }
 
     .result-label {
@@ -605,6 +806,21 @@ body.light .diagonal-cell {
         white-space: normal;
         word-break: break-word;
         text-align: center;
+    }
+
+    .help-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1.3rem;
+        right: 12px;
+    }
+    
+    #resultSection {
+        overflow-x: auto;
+    }
+    
+    .result-matrix-container {
+        overflow-x: auto;
     }
 }
 
@@ -669,6 +885,17 @@ body.light .diagonal-cell {
     #wrapperA > label,
     .result-label {
         font-size: 1.2rem;
+    }
+
+    .help-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1.1rem;
+        right: 10px;
+    }
+    
+    .result-wrapper {
+        flex-direction: column !important;
     }
 }
 
