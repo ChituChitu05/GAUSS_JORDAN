@@ -1,4 +1,5 @@
 import { inicializarMatriz, cambiarModo } from "./ux.js";
+import { initDragAndDrop, initTableSync } from "./dragDrop.js";
 
 const article = document.getElementById("article");
 const btnAXB = document.getElementById("AXB");
@@ -18,8 +19,8 @@ function openModal() {
 function closeModal() {
     modal.classList.remove("show");
 }
-//jaja estoy borracho cuando escribo esto, si se rompe fui yo xdd uwu
-// Eventos  modal
+
+// Eventos modal
 if (helpBtn) {
     helpBtn.addEventListener("click", openModal);
 }
@@ -48,9 +49,14 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+// SOLO UN DOMContentLoaded - combina todo aquí
 document.addEventListener("DOMContentLoaded", () => {
     inicializarMatriz(article, "axb");
     btnAXB.classList.add("seleccionado");
+    
+    // Inicializar drag and drop y sincronización de tabla
+    initDragAndDrop();
+    initTableSync();
 });
 
 btnAXB.addEventListener('click', () => {

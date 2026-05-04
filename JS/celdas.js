@@ -1,4 +1,5 @@
 import Auxiliares from "./auxiliares.js";
+import { syncTableToFileData } from "./dragDrop.js";
 export function crearSpanCelda(value, row, col) {
     const span = document.createElement("span");
     span.className = "cell-span";
@@ -57,7 +58,9 @@ export function spanToInput(span) {
     span.replaceWith(input);
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-
+    setTimeout(() => {
+        syncTableToFileData();
+    }, 50);
     return input;
 }
 

@@ -1,10 +1,12 @@
 import Auxiliares from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
 import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux.js";
+import { syncTableToFileData } from "./dragDrop.js";
 
 let keydownHandler = null;
 let inputHandler = null;
 let clickHandler = null;
+let pasteHandler = null;
 let currentTable = null;
 let currentRow = 0;
 let currentCol = 0;
@@ -16,14 +18,17 @@ export function configurarEventos(article, table, operation) {
     if (keydownHandler) article.removeEventListener('keydown', keydownHandler);
     if (inputHandler) article.removeEventListener('input', inputHandler);
     if (clickHandler) article.removeEventListener('click', clickHandler);
+    if (pasteHandler) article.removeEventListener('paste', pasteHandler);
 
     keydownHandler = (e) => manejarKeydown(e);
     inputHandler = manejarInput;
     clickHandler = (e) => manejarClick(e);
+    pasteHandler = (e) => manejarPegado(e);
 
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
     article.addEventListener('click', clickHandler);
+    article.addEventListener('paste', pasteHandler);
 
     // Prevenir el scroll por espacio en la página completa
     window.addEventListener('keydown', function (e) {
@@ -183,7 +188,112 @@ function crearNuevaFila(table, rowIndex, colIndex) {
     }, 10);
 }
 
+// ========== VALIDACIÓN DE ENTRADA ==========
+
+function esEntradaValida(valor) {
+    if (valor === '') return true;
+    if (valor === '-') return true; // Permitir escribir el signo negativo
+    
+    // Detectar letras (incluyendo acentuadas)
+    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) return false;
+    
+    // Detectar cualquier carácter no permitido
+    if (/[^0-9\-\/\.]/.test(valor)) return false;
+    
+    // Detectar más de una barra diagonal
+    const slashCount = (valor.match(/\//g) || []).length;
+    if (slashCount > 1) return false;
+    
+    // Detectar dos puntos consecutivos
+    if (/\.\./.test(valor)) return false;
+    
+    // Detectar dos puntos en la misma parte (antes o después de la barra)
+    if (valor.includes('/')) {
+        const parts = valor.split('/');
+        if (parts.length > 2) return false;
+        
+        const left = parts[0];
+        const right = parts[1] !== undefined ? parts[1] : '';
+        
+        // Numerador: no puede tener más de un punto
+        if ((left.match(/\./g) || []).length > 1) return false;
+        
+        // Denominador: no puede tener más de un punto
+        if ((right.match(/\./g) || []).length > 1) return false;
+        
+        // Patrones válidos para numerador 
+        if (left !== '' && left !== '-' && !/^-?\d*\.?\d*$/.test(left)) return false;
+        
+        // Patrones válidos para denominador 
+        if (right !== '' && right !== '-' && !/^-?\d*\.?\d*$/.test(right)) return false;
+        
+        // Símbolo justo antes de la barra 
+        if (left !== '' && left !== '-' && /[^0-9\.]\//.test(valor) && !/\/-/.test(valor)) {
+            // Permitir si es un punto seguido de barra 
+            if (!/\.\//.test(valor)) return false;
+        }
+    } else {
+        // Sin barra: validar formato de número
+        if (valor !== '-' && !/^-?\d*\.?\d*$/.test(valor)) return false;
+        
+        // No puede tener más de un punto
+        if ((valor.match(/\./g) || []).length > 1) return false;
+    }
+    
+    return true;
+}
+
 // ========== MANEJADORES DE EVENTOS ==========
+
+function manejarPegado(e) {
+    const target = e.target;
+
+    // Solo procesar pegado en inputs de celda
+    if (!target.classList.contains('cell-input')) return;
+
+    e.preventDefault();
+
+    // Obtener texto pegado
+    const clipboardData = e.clipboardData || window.clipboardData;
+    let textoPegado = clipboardData.getData('text/plain');
+
+    if (!textoPegado) return;
+
+    // Limpiar el texto pegado: eliminar todo lo que no sea un carácter válido de matriz
+    textoPegado = textoPegado.trim();
+
+    // Eliminar todas las letras y símbolos inválidos
+    // Solo mantener: dígitos, signo menos, barra diagonal, punto, espacios, tabs, saltos de línea, comas, punto y coma
+    textoPegado = textoPegado.replace(/[^0-9\-\/\.\s\,\;\n\r\t]/g, '');
+
+    // Si no queda nada válido, no pegar
+    if (!textoPegado) return;
+
+    // Obtener posición actual del cursor
+    const inicio = target.selectionStart;
+    const fin = target.selectionEnd;
+    const valorActual = target.value;
+
+    // Insertar texto limpio en la posición del cursor
+    const nuevoValor = valorActual.substring(0, inicio) + textoPegado + valorActual.substring(fin);
+
+    // Validar el nuevo valor
+    if (!esEntradaValida(nuevoValor)) {
+        return;
+    }
+
+    // Aplicar el valor limpio
+    target.value = nuevoValor;
+    target.setSelectionRange(inicio + textoPegado.length, inicio + textoPegado.length);
+
+    // Disparar evento input para ajuste de ancho y validación
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Sincronizar con archivo si existe
+    setTimeout(() => {
+        syncTableToFileData();
+    }, 100);
+}
 
 function manejarClick(e) {
     const target = e.target;
@@ -250,20 +360,61 @@ function manejarInput(e) {
     actualizarCoordenadasDesdeElemento(input);
 
     let valor = input.value;
-    if (valor === "") return;
+    
+    // Bloquear cualquier letra inmediatamente
+    const tieneLetras = /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor);
+    if (tieneLetras) {
+        // Eliminar TODAS las letras
+        valor = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
+        input.value = valor;
+        
+        // Si después de eliminar letras el valor queda vacío o inválido, limpiar
+        if (valor === '' || !esEntradaValida(valor)) {
+            input.value = '';
+            input.style.width = "5ch";
+            syncTableToFileData();
+            return;
+        }
+    }
+    
+    // Bloquear símbolos inválidos (cualquier cosa que no sea dígito, menos, barra o punto)
+    const simbolosInvalidos = /[^0-9\-\/\.]/g;
+    if (simbolosInvalidos.test(valor)) {
+        valor = valor.replace(simbolosInvalidos, '');
+        input.value = valor;
+    }
+    
+    // Bloquear doble barra diagonal o más
+    if ((valor.match(/\//g) || []).length > 1) {
+        // Quedarse solo con la primera barra y eliminar el resto
+        const primeraBarra = valor.indexOf('/');
+        valor = valor.substring(0, primeraBarra + 1) + valor.substring(primeraBarra + 1).replace(/\//g, '');
+        input.value = valor;
+        syncTableToFileData();
+        return;
+    }
+    
+    if (valor === "") {
+        syncTableToFileData();
+        return;
+    }
 
+    // Convertir .5 a 0.5
     if (/^\.\d/.test(valor)) {
         input.value = '0' + valor;
+        syncTableToFileData();
         return;
     }
     if (/^-\.\d/.test(valor)) {
         input.value = '-0' + valor.substring(1);
+        syncTableToFileData();
         return;
     }
     if (/\/(\.\d)/.test(valor)) {
         const partes = valor.split('/');
         if (partes[1] && partes[1].startsWith('.')) {
             input.value = partes[0] + '/0.' + partes[1].substring(1);
+            syncTableToFileData();
             return;
         }
     }
@@ -271,50 +422,70 @@ function manejarInput(e) {
         const partes = valor.split('/');
         if (partes[1] && partes[1].startsWith('-.')) {
             input.value = partes[0] + '/-0.' + partes[1].substring(2);
+            syncTableToFileData();
             return;
         }
     }
 
+    // Bloquear múltiples puntos en una misma parte
     if (valor.includes('./')) {
         input.value = valor.slice(0, -1);
+        syncTableToFileData();
         return;
     }
 
     const partes = valor.split('/');
 
+    // Bloquear más de una barra diagonal (doble verificación)
     if (partes.length > 2) {
-        input.value = valor.slice(0, -1);
+        input.value = partes[0] + '/' + partes[1];
+        syncTableToFileData();
         return;
     }
 
+    // Verificar puntos por cada parte de la fracción
     if (partes.length === 2) {
         const izquierda = partes[0];
         const derecha = partes[1];
         if ((izquierda.match(/\./g) || []).length > 1) {
             input.value = valor.slice(0, -1);
+            syncTableToFileData();
             return;
         }
         if ((derecha.match(/\./g) || []).length > 1) {
             input.value = valor.slice(0, -1);
+            syncTableToFileData();
+            return;
+        }
+        
+        // Bloquear símbolos justo antes de la barra (excepto dígitos y punto)
+        if (izquierda.length > 0 && /[^0-9\.]\//.test(valor) && !/\/-/.test(valor)) {
+            // Si lo que está antes de la barra no es un dígito ni un punto, eliminar el último carácter
+            input.value = valor.slice(0, -2) + valor.slice(-1);
+            syncTableToFileData();
             return;
         }
     } else {
         if ((valor.match(/\./g) || []).length > 1) {
             input.value = valor.slice(0, -1);
+            syncTableToFileData();
             return;
         }
     }
 
+    // Verificar signos negativos
     const negativos = (valor.match(/-/g) || []).length;
 
     if (negativos > 2) {
         input.value = valor.slice(0, -1);
+        syncTableToFileData();
         return;
     }
 
     if (negativos === 2) {
         if (!/^-\d*\.?\d*\/-\d*\.?\d*$/.test(valor)) {
             input.value = valor.slice(0, -1);
+            syncTableToFileData();
             return;
         }
     }
@@ -324,16 +495,25 @@ function manejarInput(e) {
         const esNegativoEnDenominador = /\/-/.test(valor);
         if (!esNegativoAlInicio && !esNegativoEnDenominador) {
             input.value = valor.slice(0, -1);
+            syncTableToFileData();
             return;
         }
     }
 
+    // Validación final con expresión regular
     const regex = /^-?\d*\.?\d*(\/-?\d*\.?\d*)?$/;
     if (!regex.test(valor)) {
         input.value = valor.slice(0, -1);
+        syncTableToFileData();
         return;
     }
+    
     input.style.width = (input.value.length + 1) + "ch";
+    
+    // Sincronizar después de entrada válida
+    setTimeout(() => {
+        syncTableToFileData();
+    }, 100);
 }
 
 function manejarKeydown(e) {
@@ -368,6 +548,9 @@ function manejarKeydown(e) {
             for (let j = 0; j < numCols; j++) {
                 ajustarAnchoColumna(currentTable, j);
             }
+
+            // Sincronizar después de calcular
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
@@ -389,6 +572,9 @@ function manejarKeydown(e) {
                 const btn = document.getElementById("btnCalcular");
                 if (btn) btn.focus();
             }
+
+            // Sincronizar después de navegación
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
@@ -396,26 +582,31 @@ function manejarKeydown(e) {
             inputToSpan(target);
             ajustarAnchoColumna(currentTable, currentCol);
             target.blur();
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
         if (e.key === 'ArrowLeft') {
             moverIzquierda();
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
         if (e.key === 'ArrowRight') {
             moverDerecha();
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
         if (e.key === 'ArrowUp') {
             moverArriba();
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
         if (e.key === 'ArrowDown') {
             moverAbajo();
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
@@ -425,11 +616,13 @@ function manejarKeydown(e) {
             inputToSpan(target);
             ajustarAnchoColumna(currentTable, currentCol);
             crearNuevaColumna(table, row.rowIndex, cell.cellIndex);
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
         if (e.key === 'Enter') {
             estructuraEnter(table, target);
+            setTimeout(() => syncTableToFileData(), 100);
             return;
         }
 
@@ -473,6 +666,7 @@ function manejarKeydownSpan(e, table, span) {
                 const prevRow = table.rows[rowIndex - 1];
                 enfocarCelda(rowIndex - 1, prevRow.cells.length - 1);
             }
+            setTimeout(() => syncTableToFileData(), 100);
             break;
 
         case 'ArrowLeft':
@@ -498,6 +692,10 @@ function manejarKeydownSpan(e, table, span) {
         default:
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== ' ') {
                 e.preventDefault();
+                // Verificar que la tecla no sea una letra
+                if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(e.key)) {
+                    return; // Ignorar letras completamente
+                }
                 const input = spanToInput(span);
                 if (input) {
                     actualizarCoordenadasDesdeElemento(input);
@@ -557,6 +755,7 @@ function estructuraBackspace(e, table, input) {
                 if (currentOp === "axb") {
                     actualizarSeparadorGlobal(table);
                 }
+                syncTableToFileData();
                 return;
             }
             if (table.rows[0].cells.length > minCols && Auxiliares.columnaVacia(table, colIndex)) {
@@ -565,6 +764,7 @@ function estructuraBackspace(e, table, input) {
                     actualizarSeparadorGlobal(table);
                 }
             }
+            syncTableToFileData();
         }, 0);
     }
 }
