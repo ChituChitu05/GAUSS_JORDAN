@@ -87,7 +87,7 @@ function buildAside() {
     aside.appendChild(ul);
     
     // Toggle tema
-    const themeBtn = UI.createButton("themeToggle", "TEMA");
+    const themeBtn = UI.createButton("themeToggle", "MODO CLARO");
     themeBtn.addEventListener("click", () => {
         document.body.classList.toggle("light");
         themeBtn.textContent = document.body.classList.contains("light") ? "MODO OSCURO" : "MODO CLARO";
