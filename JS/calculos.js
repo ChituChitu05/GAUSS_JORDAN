@@ -102,6 +102,216 @@ function aplicarGaussJordanDeterminante(matriz) {
     };
 }
 
+// Los vectores van como columna.
+
+function clonarMatriz(matriz) {
+    return matriz.map(fila => fila.map(v => ({ num: v.num, den: v.den })));
+}
+
+function columnaDeMatriz(matriz, col) {
+    return matriz.map(fila => ({ num: fila[col].num, den: fila[col].den }));
+}
+
+function crearCanonico(dimension, indice) {
+    return Array.from({ length: dimension }, (_, i) => ({ num: i === indice ? 1 : 0, den: 1 }));
+}
+
+function juntarColumnas(columnas) {
+    if (columnas.length === 0) return [];
+
+    const filas = columnas[0].length;
+
+    return Array.from({ length: filas }, (_, i) =>
+        columnas.map(col => ({ num: col[i].num, den: col[i].den }))
+    );
+}
+
+function filaCeroHastaColumna(fila, columnasCoeficientes) {
+    for (let col = 0; col < columnasCoeficientes; col++) {
+        if (!esCero(fila[col])) return false;
+    }
+
+    return true;
+}
+
+function obtenerColumnasNoPivote(totalColumnas, columnasPivote) {
+    const pivotes = new Set(columnasPivote);
+    const columnasNoPivote = [];
+
+    for (let col = 0; col < totalColumnas; col++) {
+        if (!pivotes.has(col)) columnasNoPivote.push(col);
+    }
+
+    return columnasNoPivote;
+}
+
+// Gauss-Jordan guardando las columnas donde si huay pivote.
+export function aplicarGaussJordanConPivotes(matriz, columnasAProcesar = matriz[0]?.length || 0) {
+    const copia = clonarMatriz(matriz);
+    const filas = copia.length;
+    let filaPivote = 0;
+    const columnasPivote = [];
+
+    for (let col = 0; col < columnasAProcesar && filaPivote < filas; col++) {
+        const { encontrado } = gaussJordan.buscarPivote(copia, filaPivote, col);
+
+        if (!encontrado) continue;
+
+        columnasPivote.push(col);
+
+        gaussJordan.hacerPivoteUno(copia, filaPivote, copia[filaPivote][col]);
+        gaussJordan.hacerCerosArriba(copia, filaPivote, col);
+        gaussJordan.hacerCerosDebajo(copia, filaPivote, col);
+
+        filaPivote++;
+    }
+
+    return {
+        matrizReducida: copia,
+        columnasPivote,
+        rango: columnasPivote.length
+    };
+}
+
+// Li o Ld.
+export function clasificarLIoLD(matrizVectores) {
+    if (!matrizVectores.length || !matrizVectores[0].length) {
+        throw new Error("Debes mandar una matriz con vectores como columnas");
+    }
+
+    const totalVectores = matrizVectores[0].length;
+
+    const { matrizReducida, columnasPivote, rango } =
+        aplicarGaussJordanConPivotes(matrizVectores, totalVectores);
+
+    const columnasSinPivote = obtenerColumnasNoPivote(totalVectores, columnasPivote);
+    const esLI = rango === totalVectores;
+
+    return {
+        tipo: esLI ? "LI" : "LD",
+        esLI,
+        esLD: !esLI,
+        matrizReducida,
+        rango,
+        columnasPivote,
+        columnasSinPivote,
+        columnasPivoteHumanas: columnasPivote.map(c => c + 1),
+        columnasSinPivoteHumanas: columnasSinPivote.map(c => c + 1),
+        mensaje: esLI
+            ? "El conjunto es LI: todas las columnas tienen pivote."
+            : "El conjunto es LD: al menos una columna no tiene pivote."
+    };
+}
+
+//vector pertenece al espacio generado por S.
+export function perteneceAS(matrizGeneradores, vectorB) {
+    if (!matrizGeneradores.length || !matrizGeneradores[0].length) {
+        throw new Error("Debes mandar los generadores como columnas de una matriz");
+    }
+
+    if (matrizGeneradores.length !== vectorB.length) {
+        throw new Error("El vector debe tener la misma dimensión que los generadores");
+    }
+
+    const columnasA = matrizGeneradores[0].length;
+
+    const aumentada = matrizGeneradores.map((fila, i) => [
+        ...fila.map(v => ({ num: v.num, den: v.den })),
+        { num: vectorB[i].num, den: vectorB[i].den }
+    ]);
+
+    const { matrizReducida, columnasPivote, rango } =
+        aplicarGaussJordanConPivotes(aumentada, columnasA);
+
+    const esInconsistente = matrizReducida.some(fila =>
+        filaCeroHastaColumna(fila, columnasA) && !esCero(fila[columnasA])
+    );
+
+    return {
+        pertenece: !esInconsistente,
+        matrizReducida,
+        columnasPivote,
+        rango,
+        mensaje: !esInconsistente
+            ? "Sí pertenece a S: AX = B tiene solución."
+            : "No pertenece a S: AX = B es inconsistente."
+    };
+}
+
+// Quita las columnas que no tienen pivote y regresa una base.
+export function hallarBase(matrizVectores) {
+    if (!matrizVectores.length || !matrizVectores[0].length) {
+        throw new Error("Debes mandar una matriz con vectores como columnas");
+    }
+
+    const totalVectores = matrizVectores[0].length;
+
+    const { matrizReducida, columnasPivote, rango } =
+        aplicarGaussJordanConPivotes(matrizVectores, totalVectores);
+
+    const columnasQuitadas = obtenerColumnasNoPivote(totalVectores, columnasPivote);
+    const base = columnasPivote.map(col => columnaDeMatriz(matrizVectores, col));
+
+    return {
+        base,
+        matrizReducida,
+        rango,
+        columnasPivote,
+        columnasQuitadas,
+        columnasPivoteHumanas: columnasPivote.map(c => c + 1),
+        columnasQuitadasHumanas: columnasQuitadas.map(c => c + 1),
+        mensaje: columnasQuitadas.length === 0
+            ? "No se quitó ninguna columna."
+            : `Se quitaron las columnas ${columnasQuitadas.map(c => c + 1).join(", ")}.`
+    };
+}
+
+//Completa una base agregando vectores.
+export function completarBase(matrizVectores) {
+    if (!matrizVectores.length) {
+        throw new Error("Debes mandar al menos una fila para conocer la dimensión");
+    }
+
+    const dimension = matrizVectores.length;
+    const totalOriginales = matrizVectores[0]?.length || 0;
+
+    // limpiamos los vectores que ya sobran
+    const baseActual = totalOriginales > 0 ? hallarBase(matrizVectores).base : [];
+    const canonicos = Array.from({ length: dimension }, (_, i) => crearCanonico(dimension, i));
+
+    // Probamos la base actual 
+    const matrizPrueba = juntarColumnas([...baseActual, ...canonicos]);
+
+    const { matrizReducida, columnasPivote, rango } =
+        aplicarGaussJordanConPivotes(matrizPrueba, matrizPrueba[0].length);
+
+    const columnasQuitadas = obtenerColumnasNoPivote(matrizPrueba[0].length, columnasPivote);
+
+    const indicesCanonicosAgregados = columnasPivote
+        .filter(col => col >= baseActual.length)
+        .map(col => col - baseActual.length);
+
+    const vectoresAgregados = indicesCanonicosAgregados.map(i => canonicos[i]);
+    const baseCompleta = [...baseActual, ...vectoresAgregados];
+
+    return {
+        baseCompleta,
+        baseActual,
+        vectoresAgregados,
+        indicesCanonicosAgregados,
+        canonicosAgregadosHumanos: indicesCanonicosAgregados.map(i => `e${i + 1}`),
+        matrizReducida,
+        rango,
+        columnasPivote,
+        columnasQuitadas,
+        columnasPivoteHumanas: columnasPivote.map(c => c + 1),
+        columnasQuitadasHumanas: columnasQuitadas.map(c => c + 1),
+        mensaje: vectoresAgregados.length === 0
+            ? "La base ya estaba completa."
+            : `Se agregaron los canónicos ${indicesCanonicosAgregados.map(i => `e${i + 1}`).join(", ")}.`
+    };
+}
+
 export function resolverAXB(matriz) {
     const copia = matriz.map(fila => [...fila]);
     return aplicarGaussJordan(copia, true);
