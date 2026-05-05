@@ -1,7 +1,8 @@
 import UI from "./ui.js";
 import { crearSpanCelda } from "./celdas.js";
 import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
-
+import Auxiliares from "./auxiliares.js";
+import { clasificarLIoLD, perteneceAS, hallarBase, completarBase } from "./calculos.js";
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
 let tablaVectores = null;
@@ -57,8 +58,31 @@ export function inicializarEV(article, modo) {
     btnCalcular.onclick = () => {
         guardarVectoresDesdeTabla();
         sincronizarMatrizDesdeVectores();
-        const nombreOp = getNombreOperacion(modo);
-        mostrarResultadoPlaceholder(nombreOp);
+
+        const esPertenecer = currentOperation === "pertenecer";
+        const matriz = Auxiliares.parsearVectoresAMatriz(vectoresHorizontales, !esPertenecer);
+
+        let resultado;
+
+        switch (currentOperation) {
+            case "li":
+                resultado = calcularLI_LD(matriz);
+                break;
+            case "pertenecer":
+                // En pertenecer, la última columna ES el vector B
+                resultado = calcularPertenencia(matriz);
+                break;
+            case "base":
+                resultado = calcularBase(matriz);
+                break;
+            case "completar":
+                resultado = calcularCompletarBase(matriz);
+                break;
+        }
+
+        console.table(matriz);
+        console.log("Operación:", currentOperation);
+        console.log("Resultado:", resultado);
     };
     resultSection.appendChild(btnCalcular);
 
@@ -230,19 +254,19 @@ function enfocarCelda(r, c) {
 function guardarVectoresDesdeTabla() {
     const filas = tablaVectores.querySelectorAll("tr");
     const nuevosDatos = [];
-    
+
     filas.forEach((fila) => {
         const celdas = fila.querySelectorAll(".cell-span, .cell-input");
-        if (celdas.length === 0) return; 
-        
+        if (celdas.length === 0) return;
+
         if (fila.querySelector(".btn-agregar-vector")) return;
-        
+
         const vector = Array.from(celdas).map(el =>
             el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
         );
         nuevosDatos.push(vector);
     });
-    
+
     if (nuevosDatos.length > 0) {
         vectoresHorizontales = nuevosDatos;
     }
@@ -292,4 +316,25 @@ function mostrarResultadoPlaceholder(nombreOp) {
 
 function limpiar(article) {
     while (article.firstChild) article.removeChild(article.firstChild);
+}
+function calcularLI_LD(matriz) {
+    return clasificarLIoLD(matriz);
+}
+
+function calcularPertenencia(matriz) {
+    const numVectores = vectoresHorizontales.length;
+    const numComponentes = matriz.length;
+
+    const matrizGeneradores = matriz.map(fila => fila.slice(0, numVectores - 1));
+    const vectorB = matriz.map(fila => fila[numVectores - 1]);
+    
+    return perteneceAS(matrizGeneradores, vectorB);
+}
+
+function calcularBase(matriz) {
+    return hallarBase(matriz);
+}
+
+function calcularCompletarBase(matriz) {
+    return completarBase(matriz);
 }

@@ -363,7 +363,34 @@ export function normalizarSigno(frac) {
     }
     return { num: frac.num, den: frac.den };
 }
+// Convertir vectores horizontales (strings) a matriz de fracciones (vectores como columnas)
+export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
+    if (!vectores.length || !vectores[0].length) {
+        throw new Error("Debe haber al menos un vector con una componente");
+    }
 
+    const numComponentes = vectores[0].length;
+    const numVectores = vectores.length;
+    const matriz = [];
+
+    for (let i = 0; i < numComponentes; i++) {
+        const fila = [];
+
+        for (let j = 0; j < numVectores; j++) {
+            const valor = vectores[j][i] || "0";
+            fila.push(parsearFraccion(valor));
+        }
+
+        // Agregar columna de ceros si se requiere
+        if (agregarColumnaCeros) {
+            fila.push({ num: 0, den: 1 });
+        }
+
+        matriz.push(fila);
+    }
+
+    return matriz;
+}
 const auxiliares = {
     simplificar,
     parsearFraccion,
@@ -385,7 +412,8 @@ const auxiliares = {
     normalizarSigno,
     esFraccion,
     tieneDecimales,
-    formatearResultado
+    formatearResultado,
+    parsearVectoresAMatriz
 };
 
 export default auxiliares;

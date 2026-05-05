@@ -173,27 +173,19 @@ export function clasificarLIoLD(matrizVectores) {
         throw new Error("Debes mandar una matriz con vectores como columnas");
     }
 
-    const totalVectores = matrizVectores[0].length;
+    const totalVectores = matrizVectores[0].length - 1;
 
     const { matrizReducida, columnasPivote, rango } =
         aplicarGaussJordanConPivotes(matrizVectores, totalVectores);
 
-    const columnasSinPivote = obtenerColumnasNoPivote(totalVectores, columnasPivote);
     const esLI = rango === totalVectores;
 
     return {
-        tipo: esLI ? "LI" : "LD",
         esLI,
-        esLD: !esLI,
-        matrizReducida,
         rango,
+        totalVectores,
         columnasPivote,
-        columnasSinPivote,
-        columnasPivoteHumanas: columnasPivote.map(c => c + 1),
-        columnasSinPivoteHumanas: columnasSinPivote.map(c => c + 1),
-        mensaje: esLI
-            ? "El conjunto es LI: todas las columnas tienen pivote."
-            : "El conjunto es LD: al menos una columna no tiene pivote."
+        matrizReducida
     };
 }
 
@@ -202,13 +194,11 @@ export function perteneceAS(matrizGeneradores, vectorB) {
     if (!matrizGeneradores.length || !matrizGeneradores[0].length) {
         throw new Error("Debes mandar los generadores como columnas de una matriz");
     }
-
     if (matrizGeneradores.length !== vectorB.length) {
         throw new Error("El vector debe tener la misma dimensión que los generadores");
     }
 
     const columnasA = matrizGeneradores[0].length;
-
     const aumentada = matrizGeneradores.map((fila, i) => [
         ...fila.map(v => ({ num: v.num, den: v.den })),
         { num: vectorB[i].num, den: vectorB[i].den }
@@ -217,18 +207,15 @@ export function perteneceAS(matrizGeneradores, vectorB) {
     const { matrizReducida, columnasPivote, rango } =
         aplicarGaussJordanConPivotes(aumentada, columnasA);
 
-    const esInconsistente = matrizReducida.some(fila =>
+    const inconsistente = matrizReducida.some(fila =>
         filaCeroHastaColumna(fila, columnasA) && !esCero(fila[columnasA])
     );
 
     return {
-        pertenece: !esInconsistente,
-        matrizReducida,
-        columnasPivote,
+        pertenece: !inconsistente,
         rango,
-        mensaje: !esInconsistente
-            ? "Sí pertenece a S: AX = B tiene solución."
-            : "No pertenece a S: AX = B es inconsistente."
+        columnasPivote,
+        matrizReducida
     };
 }
 
@@ -238,25 +225,19 @@ export function hallarBase(matrizVectores) {
         throw new Error("Debes mandar una matriz con vectores como columnas");
     }
 
-    const totalVectores = matrizVectores[0].length;
+    const totalVectores = matrizVectores[0].length - 1;
 
     const { matrizReducida, columnasPivote, rango } =
         aplicarGaussJordanConPivotes(matrizVectores, totalVectores);
 
-    const columnasQuitadas = obtenerColumnasNoPivote(totalVectores, columnasPivote);
     const base = columnasPivote.map(col => columnaDeMatriz(matrizVectores, col));
 
     return {
         base,
-        matrizReducida,
         rango,
         columnasPivote,
-        columnasQuitadas,
-        columnasPivoteHumanas: columnasPivote.map(c => c + 1),
-        columnasQuitadasHumanas: columnasQuitadas.map(c => c + 1),
-        mensaje: columnasQuitadas.length === 0
-            ? "No se quitó ninguna columna."
-            : `Se quitaron las columnas ${columnasQuitadas.map(c => c + 1).join(", ")}.`
+        columnasEliminadas: obtenerColumnasNoPivote(totalVectores, columnasPivote),
+        matrizReducida
     };
 }
 
@@ -267,42 +248,22 @@ export function completarBase(matrizVectores) {
     }
 
     const dimension = matrizVectores.length;
-    const totalOriginales = matrizVectores[0]?.length || 0;
-
-    // limpiamos los vectores que ya sobran
+    const totalOriginales = matrizVectores[0]?.length - 1 || 0;
     const baseActual = totalOriginales > 0 ? hallarBase(matrizVectores).base : [];
     const canonicos = Array.from({ length: dimension }, (_, i) => crearCanonico(dimension, i));
-
-    // Probamos la base actual 
     const matrizPrueba = juntarColumnas([...baseActual, ...canonicos]);
 
-    const { matrizReducida, columnasPivote, rango } =
+    const { columnasPivote, rango } =
         aplicarGaussJordanConPivotes(matrizPrueba, matrizPrueba[0].length);
 
-    const columnasQuitadas = obtenerColumnasNoPivote(matrizPrueba[0].length, columnasPivote);
-
-    const indicesCanonicosAgregados = columnasPivote
+    const canonicosAgregados = columnasPivote
         .filter(col => col >= baseActual.length)
         .map(col => col - baseActual.length);
 
-    const vectoresAgregados = indicesCanonicosAgregados.map(i => canonicos[i]);
-    const baseCompleta = [...baseActual, ...vectoresAgregados];
-
     return {
-        baseCompleta,
-        baseActual,
-        vectoresAgregados,
-        indicesCanonicosAgregados,
-        canonicosAgregadosHumanos: indicesCanonicosAgregados.map(i => `e${i + 1}`),
-        matrizReducida,
+        baseCompleta: [...baseActual, ...canonicosAgregados.map(i => canonicos[i])],
         rango,
-        columnasPivote,
-        columnasQuitadas,
-        columnasPivoteHumanas: columnasPivote.map(c => c + 1),
-        columnasQuitadasHumanas: columnasQuitadas.map(c => c + 1),
-        mensaje: vectoresAgregados.length === 0
-            ? "La base ya estaba completa."
-            : `Se agregaron los canónicos ${indicesCanonicosAgregados.map(i => `e${i + 1}`).join(", ")}.`
+        canonicosAgregados
     };
 }
 //aqui terminan las funciones generales para clasificación, pertenencia, base y completar base. Ahora vienen las específicas para cada tipo de cálculo (AXB, inversa, determinante).
