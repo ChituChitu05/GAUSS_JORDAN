@@ -14,6 +14,8 @@ export function configurarEventosEV(article, table, cbs = {}) {
 
     currentArticle.addEventListener('keydown', manejarKeydown);
     currentArticle.addEventListener('click', manejarClick);
+    currentArticle.addEventListener('input', manejarInput);
+    currentArticle.addEventListener('focusout', manejarFocusout);
     window.addEventListener('keydown', prevenirScrollEspacio);
 }
 
@@ -21,6 +23,8 @@ export function desconfigurarEventosEV() {
     if (currentArticle) {
         currentArticle.removeEventListener('keydown', manejarKeydown);
         currentArticle.removeEventListener('click', manejarClick);
+        currentArticle.removeEventListener('input', manejarInput);
+        currentArticle.removeEventListener('focusout', manejarFocusout);
     }
     window.removeEventListener('keydown', prevenirScrollEspacio);
 }
@@ -39,11 +43,10 @@ function manejarKeydown(e) {
 
     actualizarCoordenadasDesdeElemento(target);
 
-    // Navegación con flechas
     if (e.key.startsWith('Arrow')) {
         e.preventDefault();
-        if (isInput) inputToSpan(target);
-        manejarFlechas(e.key);
+        const movido = manejarFlechas(e.key);
+        if (movido && isInput) inputToSpan(target);
         return;
     }
 
@@ -71,21 +74,23 @@ function manejarFlechas(key) {
     if (key === 'ArrowLeft') nextCol--;
     if (key === 'ArrowRight') nextCol++;
 
+    // Validar límites
+    const numFilasVectores = currentTable.rows.length - 1; // -1 por fila del botón
+    const numCols = (currentTable.rows[0]?.cells.length - 1) || 0; // -1 por label
+
+    if (nextRow < 0 || nextRow >= numFilasVectores) return false;
+    if (nextCol < 0 || nextCol >= numCols) return false;
+
     enfocarCelda(nextRow, nextCol);
+    return true;
 }
 
 function enfocarCelda(r, c) {
     if (!currentTable) return;
-    
-    // Validar límites de filas (evitando la fila del botón)
-    const numFilasVectores = currentTable.rows.length - 1;
-    if (r < 0 || r >= numFilasVectores) return;
-
     const row = currentTable.rows[r];
-    // +1 porque la celda 0 es la etiqueta "v1 ="
+    if (!row) return;
     const cell = row.cells[c + 1]; 
     if (!cell) return;
-
     const span = cell.querySelector('.cell-span');
     if (span) span.click();
 }
@@ -95,7 +100,6 @@ function actualizarCoordenadasDesdeElemento(elemento) {
     const tr = td?.closest('tr');
     if (tr && td) {
         currentRow = tr.rowIndex;
-        // La columna real para nuestra lógica es el índice de celda menos la etiqueta
         currentCol = td.cellIndex - 1; 
         if (callbacks.onFocusUpdate) callbacks.onFocusUpdate(currentRow, currentCol);
     }
@@ -107,4 +111,32 @@ function manejarClick(e) {
         actualizarCoordenadasDesdeElemento(target);
         spanToInput(target);
     }
+}
+
+function manejarInput(e) {
+    const input = e.target;
+    if (!input.classList.contains('cell-input')) return;
+    
+    let valor = input.value;
+    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) {
+        valor = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
+        input.value = valor;
+    }
+    if (/[^0-9\-\/\.]/.test(valor)) {
+        valor = valor.replace(/[^0-9\-\/\.]/g, '');
+        input.value = valor;
+    }
+    
+    input.style.width = (input.value.length + 1) + "ch";
+    
+    if (callbacks.onSync) callbacks.onSync();
+}
+
+function manejarFocusout(e) {
+    const input = e.target;
+    if (!input.classList.contains('cell-input')) return;
+    
+    inputToSpan(input);
+    
+    if (callbacks.onSync) callbacks.onSync();
 }

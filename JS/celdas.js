@@ -75,24 +75,37 @@ export function inputToSpan(input) {
 
     let finalValue = value;
 
-    // CORRECCIÓN: Se eliminó el rellenado forzado de "0"[cite: 6]
     if (finalValue === "/") {
         finalValue = "";
     }
 
-    if (value && Auxiliares.esFraccion(value)) {
-        const fraccion = Auxiliares.parsearFraccion(value);
-        const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+    if (value && value.includes('/')) {
+        const [numStr, denStr] = value.split('/');
+        const num = parseFloat(numStr);
+        const den = parseFloat(denStr);
+        
+        if (!isNaN(num) && !isNaN(den) && den === 1) {
+            finalValue = `${num}`;
+        } else if (Auxiliares.esFraccion(value)) {
+            const fraccion = Auxiliares.parsearFraccion(value);
+            const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
 
-        if (denSimp === 1) {
-            finalValue = `${numSimp}`;
-        } else if (!Auxiliares.tieneDecimales(value)) {
-            finalValue = `${numSimp}/${denSimp}`;
+            if (denSimp === 1) {
+                finalValue = `${numSimp}`;
+            } else if (!Auxiliares.tieneDecimales(value)) {
+                finalValue = `${numSimp}/${denSimp}`;
+            }
         }
     }
 
     const span = crearSpanCelda(finalValue, row, col);
-    input.replaceWith(span);
+    
+    try {
+        input.replaceWith(span);
+    } catch (error) {
+        // El input ya fue reemplazado por otro evento, ignorar
+        return null;
+    }
 
     return span;
 }

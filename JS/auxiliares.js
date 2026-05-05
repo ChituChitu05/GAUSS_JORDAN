@@ -183,6 +183,7 @@ export function formatearResultado(frac, tieneDecimal) {
 export function esFraccion(valor) {
     if (!valor || typeof valor !== 'string') return false;
     const fractionPattern = /^-?\d+\.?\d*\/-?\d+\.?\d*$/;
+    
     return fractionPattern.test(valor.trim());
 }
 export function tieneDecimales(valor) {
