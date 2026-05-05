@@ -1090,3 +1090,35 @@ kbd {
     background: var(--primary);
     color: white;
 }
+/* ===== BOTÓN AGREGAR VECTOR ===== */
+.btn-agregar-vector {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    margin-top: 0.4rem;
+    background: transparent;
+    border: 2px dashed #6B7280;
+    border-radius: 10px;
+    color: #9CA3AF;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.btn-agregar-vector:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(255, 59, 92, 0.05);
+}
+
+body.light .btn-agregar-vector {
+    border-color: #9CA3AF;
+    color: #6B7280;
+}
+
+body.light .btn-agregar-vector:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(108, 99, 255, 0.05);
+}

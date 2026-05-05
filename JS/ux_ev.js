@@ -6,6 +6,13 @@ let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]]; 
 let tablaVectores = null;
 let currentRow = 0;
+let currentCol = 0; 
+
+// Esta es la función que faltaba exportar
+export function cambiarOperacionEV(article, modo) {
+    currentOperation = modo;
+    inicializarEV(article, modo);
+}
 
 export function inicializarEV(article, modo) {
     desconfigurarEventosEV();
@@ -24,50 +31,32 @@ export function inicializarEV(article, modo) {
     mainSection.appendChild(wrapperVectores);
     article.appendChild(mainSection);
 
-    // Configuración de callbacks para eventos_ev.js[cite: 4]
     configurarEventosEV(article, tablaVectores, {
-        onSync: () => {
-            guardarVectoresDesdeTabla();
-        },
+        onSync: () => { guardarVectoresDesdeTabla(); },
         onEnter: () => {
             guardarVectoresDesdeTabla();
-            agregarNuevoVector();
+            agregarNuevoVector(currentRow + 1);
         },
-        onSpace: () => {
+        onSpace: (r, c) => {
             guardarVectoresDesdeTabla();
-            agregarComponenteATodos();
+            agregarComponenteATodos(c);
+        },
+        onFocusUpdate: (r, c) => { 
+            currentRow = r; 
+            currentCol = c; 
         }
     });
-}
-
-/**
- * Exportación requerida por main.js[cite: 6]
- */
-export function cambiarOperacionEV(article, nuevoModo) {
-    guardarVectoresDesdeTabla();
-    currentOperation = nuevoModo;
-    inicializarEV(article, nuevoModo);
-}
-
-/**
- * Exportación requerida por eventos_ev.js[cite: 4]
- */
-export function setCurrentRow(row) {
-    currentRow = row;
 }
 
 function construirFilasVectores() {
     if (!tablaVectores) return;
     tablaVectores.innerHTML = "";
-
     const numComponentes = vectoresHorizontales[0]?.length || 2;
 
     vectoresHorizontales.forEach((vector, i) => {
         const row = document.createElement("tr");
-        
-        // Etiqueta v_n[cite: 3]
         const labelCell = document.createElement("td");
-        labelCell.innerHTML = `<span style="color:var(--text-secondary); font-weight:600;">v${i + 1} =</span>`;
+        labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600;">v${i + 1} =</span>`;
         labelCell.style.pointerEvents = "none";
         row.appendChild(labelCell);
 
@@ -79,51 +68,61 @@ function construirFilasVectores() {
         }
         tablaVectores.appendChild(row);
     });
+
+    const rowBtn = document.createElement("tr");
+    const cellBtn = document.createElement("td");
+    cellBtn.colSpan = numComponentes + 1;
+    const btnAgregar = document.createElement("button");
+    btnAgregar.textContent = "+ Agregar Vector";
+    btnAgregar.className = "btn-agregar-vector";
+    btnAgregar.onclick = () => {
+        guardarVectoresDesdeTabla();
+        agregarNuevoVector(vectoresHorizontales.length);
+    };
+    cellBtn.appendChild(btnAgregar);
+    rowBtn.appendChild(cellBtn);
+    tablaVectores.appendChild(rowBtn);
 }
 
-function agregarComponenteATodos() {
-    vectoresHorizontales.forEach(v => v.push(""));
+function agregarComponenteATodos(indiceCol) {
+    const r = currentRow;
+    const c = indiceCol;
+    vectoresHorizontales.forEach(v => v.splice(c + 1, 0, ""));
     construirFilasVectores();
-    
-    setTimeout(() => {
-        const nuevaCol = vectoresHorizontales[0].length; 
-        enfocarCelda(currentRow, nuevaCol);
-    }, 10);
+    setTimeout(() => enfocarCelda(r, c + 1), 10);
 }
 
-function agregarNuevoVector() {
-    const numComp = vectoresHorizontales[0].length;
-    vectoresHorizontales.push(Array(numComp).fill(""));
+function agregarNuevoVector(indiceFila) {
+    const numComp = vectoresHorizontales[0]?.length || 2;
+    vectoresHorizontales.splice(indiceFila, 0, Array(numComp).fill(""));
     construirFilasVectores();
-    
-    setTimeout(() => {
-        const nuevaFila = vectoresHorizontales.length - 1;
-        enfocarCelda(nuevaFila, 1); 
-    }, 10);
-}
-
-function guardarVectoresDesdeTabla() {
-    if (!tablaVectores) return;
-    const nuevosVectores = [];
-    Array.from(tablaVectores.rows).forEach(row => {
-        const vector = [];
-        for (let j = 1; j < row.cells.length; j++) {
-            const el = row.cells[j].querySelector('.cell-input') || row.cells[j].querySelector('.cell-span');
-            const val = el.tagName === 'INPUT' ? el.value : (el.getAttribute('data-value') || "");
-            vector.push(val);
-        }
-        nuevosVectores.push(vector);
-    });
-    vectoresHorizontales = nuevosVectores;
+    setTimeout(() => enfocarCelda(indiceFila, 0), 10);
 }
 
 function enfocarCelda(r, c) {
+    if (!tablaVectores) return;
     const row = tablaVectores.rows[r];
     if (!row) return;
-    const cell = row.cells[c];
+    const cell = row.cells[c + 1];
     if (!cell) return;
     const span = cell.querySelector('.cell-span');
     if (span) span.click();
+}
+
+function guardarVectoresDesdeTabla() {
+    const filas = tablaVectores.querySelectorAll("tr");
+    const nuevosDatos = [];
+    filas.forEach((fila, i) => {
+        if (i === vectoresHorizontales.length) return;
+        const celdas = fila.querySelectorAll(".cell-span, .cell-input");
+        if (celdas.length > 0) {
+            const vector = Array.from(celdas).map(el => 
+                el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
+            );
+            nuevosDatos.push(vector);
+        }
+    });
+    vectoresHorizontales = nuevosDatos;
 }
 
 function limpiar(article) {

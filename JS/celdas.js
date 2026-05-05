@@ -1,5 +1,6 @@
 import Auxiliares from "./auxiliares.js";
 import { syncTableToFileData } from "./dragDrop.js";
+
 export function crearSpanCelda(value, row, col) {
     const span = document.createElement("span");
     span.className = "cell-span";
@@ -34,6 +35,7 @@ export function crearSpanCelda(value, row, col) {
             `;
         }
     } else {
+        // Mantiene el valor vacío si no hay entrada[cite: 6]
         span.setAttribute('data-value', value || "");
         span.textContent = value || "";
     }
@@ -64,9 +66,6 @@ export function spanToInput(span) {
     return input;
 }
 
-/**
- * Convierte un input a span (simplificando si es posible)
- */
 export function inputToSpan(input) {
     if (!input || input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return null;
 
@@ -75,9 +74,12 @@ export function inputToSpan(input) {
     const value = input.value.trim();
 
     let finalValue = value;
-    if (finalValue === "/" || finalValue === "") {
-        finalValue = "0";
+
+    // CORRECCIÓN: Se eliminó el rellenado forzado de "0"[cite: 6]
+    if (finalValue === "/") {
+        finalValue = "";
     }
+
     if (value && Auxiliares.esFraccion(value)) {
         const fraccion = Auxiliares.parsearFraccion(value);
         const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
@@ -95,7 +97,6 @@ export function inputToSpan(input) {
     return span;
 }
 
-// Función para enfocar una celda específica
 export function focusCell(row, col, table) {
     if (row < 0 || col < 0 || row >= table.rows.length) return false;
     if (col >= table.rows[row].cells.length) return false;
