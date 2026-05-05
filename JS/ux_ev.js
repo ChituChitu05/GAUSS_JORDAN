@@ -9,6 +9,7 @@ let currentRow = 0;
 let currentCol = 0;
 
 export function cambiarOperacionEV(article, modo) {
+    guardarVectoresDesdeTabla();
     currentOperation = modo;
     inicializarEV(article, modo);
 }
@@ -18,7 +19,6 @@ export function inicializarEV(article, modo) {
     currentOperation = modo;
     limpiar(article);
 
-    // Sección 1: Ingreso de vectores
     const mainSection = UI.createSection("mainSection", "INGRESO DE VECTORES");
     const wrapperVectores = UI.createDiv("wrapperVectores");
 
@@ -31,7 +31,6 @@ export function inicializarEV(article, modo) {
     mainSection.appendChild(wrapperVectores);
     article.appendChild(mainSection);
 
-    // Sección 2: Matriz (vectores como columnas)
     const resultSection = UI.createSection("resultSection", "MATRIZ (VECTORES COMO COLUMNAS)");
     const wrapperMatriz = document.createElement("div");
     wrapperMatriz.className = "result-wrapper";
@@ -53,7 +52,6 @@ export function inicializarEV(article, modo) {
     wrapperMatriz.appendChild(matrixContainer);
     resultSection.appendChild(wrapperMatriz);
 
-    // Botón calcular
     const btnText = getBotonTexto(modo);
     const btnCalcular = UI.createButton("btnCalcularEV", btnText, "btnCalcular");
     btnCalcular.onclick = () => {
@@ -92,11 +90,28 @@ function construirFilasVectores() {
     if (!tablaVectores) return;
     tablaVectores.innerHTML = "";
     const numComponentes = vectoresHorizontales[0]?.length || 2;
+    const numVectores = vectoresHorizontales.length;
+    const esPertenecer = currentOperation === "pertenecer";
 
     vectoresHorizontales.forEach((vector, i) => {
+        const esUltimo = (i === numVectores - 1);
+        const esVectorB = esPertenecer && esUltimo;
+
+        // Línea separadora antes del vector B
+        if (esVectorB) {
+            const rowSep = document.createElement("tr");
+            const cellSep = document.createElement("td");
+            cellSep.colSpan = numComponentes + 1;
+            cellSep.style.borderTop = "2px solid var(--primary)";
+            cellSep.style.padding = "0";
+            rowSep.appendChild(cellSep);
+            tablaVectores.appendChild(rowSep);
+        }
+
         const row = document.createElement("tr");
         const labelCell = document.createElement("td");
-        labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600;">v${i + 1} =</span>`;
+        const label = esVectorB ? "B =" : `v${i + 1} =`;
+        labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600;">${label}</span>`;
         labelCell.style.pointerEvents = "none";
         row.appendChild(labelCell);
 
@@ -132,7 +147,8 @@ function construirMatrizColumnas(table) {
 
     const numVectores = vectoresHorizontales.length;
     const numComponentes = vectoresHorizontales[0]?.length || 2;
-    const columnasTotales = numVectores + 1;
+    const esPertenecer = currentOperation === "pertenecer";
+    const columnasTotales = esPertenecer ? numVectores : numVectores + 1;
 
     for (let i = 0; i < numComponentes; i++) {
         const row = document.createElement("tr");
@@ -149,7 +165,7 @@ function construirMatrizColumnas(table) {
                     cell.textContent = valor === "" ? "0" : valor;
                 }
             } else {
-                cell.textContent = currentOperation === "pertenecer" ? "?" : "0";
+                cell.textContent = "0";
             }
 
             row.appendChild(cell);
@@ -164,8 +180,9 @@ function construirMatrizColumnas(table) {
 function actualizarSeparadorMatriz(table) {
     if (!table || !table.rows.length) return;
 
+    const esPertenecer = currentOperation === "pertenecer";
     const numVectores = vectoresHorizontales.length;
-    const sep = numVectores - 1;
+    const sep = esPertenecer ? numVectores - 2 : numVectores - 1;
 
     for (let row of table.rows) {
         for (let cell of row.cells) {
@@ -213,17 +230,22 @@ function enfocarCelda(r, c) {
 function guardarVectoresDesdeTabla() {
     const filas = tablaVectores.querySelectorAll("tr");
     const nuevosDatos = [];
-    filas.forEach((fila, i) => {
-        if (i === vectoresHorizontales.length) return;
+    
+    filas.forEach((fila) => {
         const celdas = fila.querySelectorAll(".cell-span, .cell-input");
-        if (celdas.length > 0) {
-            const vector = Array.from(celdas).map(el =>
-                el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
-            );
-            nuevosDatos.push(vector);
-        }
+        if (celdas.length === 0) return; 
+        
+        if (fila.querySelector(".btn-agregar-vector")) return;
+        
+        const vector = Array.from(celdas).map(el =>
+            el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
+        );
+        nuevosDatos.push(vector);
     });
-    vectoresHorizontales = nuevosDatos;
+    
+    if (nuevosDatos.length > 0) {
+        vectoresHorizontales = nuevosDatos;
+    }
 }
 
 function sincronizarMatrizDesdeVectores() {

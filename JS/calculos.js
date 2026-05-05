@@ -95,6 +95,7 @@ function aplicarGaussJordanDeterminante(matriz) {
     };
 }
 
+//funciones específicas para cada tipo de cálculo (LI/LD, pertenencia, base, completar base, AXB, inversa, determinante)
 // Los vectores van como columna.
 
 function clonarMatriz(matriz) {
@@ -304,7 +305,7 @@ export function completarBase(matrizVectores) {
             : `Se agregaron los canónicos ${indicesCanonicosAgregados.map(i => `e${i + 1}`).join(", ")}.`
     };
 }
-
+//aqui terminan las funciones generales para clasificación, pertenencia, base y completar base. Ahora vienen las específicas para cada tipo de cálculo (AXB, inversa, determinante).
 export function resolverAXB(matriz) {
     const copia = matriz.map(fila => [...fila]);
     return aplicarGaussJordan(copia, true);
