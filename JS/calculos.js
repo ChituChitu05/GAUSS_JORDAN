@@ -1,11 +1,4 @@
-import {
-    esCero,
-    multiplicarFracciones,
-    dividirFracciones,
-    restarFracciones,
-    normalizarSigno,
-    fraccionToString
-} from "./auxiliares.js";
+import {esCero, multiplicarFracciones,dividirFracciones,restarFracciones,normalizarSigno,fraccionToString} from "./auxiliares.js";
 import { swapFilas } from "./operaciones.js";
 import gaussJordan from "./gaussJordan.js";
 

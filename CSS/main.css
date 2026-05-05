@@ -1057,3 +1057,35 @@ kbd {
     transform: none;
     box-shadow: none;
 }
+/* ===== GRUPO DE NAVEGACIÓN EN ASIDE ===== */
+.nav-group {
+    display: flex;
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.nav-group .nav-btn {
+    flex: 1;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    border-radius: 0;
+}
+
+.nav-group .nav-btn:hover {
+    background: var(--cell-hover);
+    color: var(--text-primary);
+}
+
+.nav-group .nav-btn.seleccionado {
+    background: var(--primary);
+    color: white;
+}

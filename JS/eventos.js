@@ -1,6 +1,6 @@
 import Auxiliares from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
-import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux.js";
+import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux_matrices.js";
 import { syncTableToFileData } from "./dragDrop.js";
 
 let keydownHandler = null;
