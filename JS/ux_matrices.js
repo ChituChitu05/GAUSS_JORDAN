@@ -2,7 +2,7 @@ import UI, { createSection } from "./ui.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 import { crearSpanCelda, inputToSpan } from "./celdas.js";
-import { configurarEventos,ajustarAnchoColumna } from "./eventos.js";
+import { configurarEventos,ajustarAnchoColumna } from "./eventos_matri.js";
 
 let currentOperation = "axb";
 let currentMatrixState = null;

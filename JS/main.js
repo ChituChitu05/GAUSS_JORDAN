@@ -2,6 +2,8 @@ import { inicializarMatriz, cambiarModo } from "./ux_matrices.js";
 import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js";
 import { initDragAndDrop, initTableSync } from "./dragDrop.js";
 import UI from "./ui.js";
+import { desconfigurarEventosEV } from "./eventos_ev.js";
+
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
@@ -104,6 +106,8 @@ function updateSelection(activeId) {
 function switchModule(module) {
     if (currentModule === module) return;
     currentModule = module;
+    
+    desconfigurarEventosEV();
     
     if (module === "matrices") {
         buildAside();
