@@ -5,7 +5,7 @@ let currentArticle = null;
 let currentRow = 0;
 let currentCol = 0;
 let callbacks = {};
-let isProcessingBackspace = false; // Flag para evitar conflictos
+let isProcessingBackspace = false;
 
 export function configurarEventosEV(article, table, cbs = {}) {
     desconfigurarEventosEV();
@@ -116,7 +116,6 @@ function manejarKeydown(e) {
 function estructuraBackspace(e, table, input) {
     if (input.value !== "") return;
     
-    // Activar flag para evitar que focusout procese este input
     isProcessingBackspace = true;
     
     try {
@@ -129,7 +128,6 @@ function estructuraBackspace(e, table, input) {
         const rowIndex = row.rowIndex;
         const colIndex = cell.cellIndex;
         
-        // Obtener dimensiones actuales
         const celdasReales = Array.from(table.querySelectorAll('tr'))
             .filter(tr => tr.querySelectorAll('.cell-span, .cell-input').length > 0);
         const numFilasReales = celdasReales.length;
@@ -137,7 +135,6 @@ function estructuraBackspace(e, table, input) {
         const minRows = 2;
         const minCols = 2;
         
-        // Verificar si la fila está vacía (excluyendo col 0 que es etiqueta)
         let filaVacia = true;
         for (let c = 1; c < row.cells.length; c++) {
             const celda = row.cells[c];
@@ -153,7 +150,6 @@ function estructuraBackspace(e, table, input) {
             }
         }
         
-        // Verificar si la columna está vacía
         let columnaVacia = true;
         for (let r = 0; r < table.rows.length; r++) {
             const celda = table.rows[r].cells[colIndex];
@@ -169,18 +165,14 @@ function estructuraBackspace(e, table, input) {
             }
         }
         
-        // Crear span vacío (sin intentar reemplazar todavía)
         const emptySpan = crearSpanCelda("", rowIndex, colIndex);
         
-        // Reemplazar el input con el span de forma segura
         if (input.parentNode) {
             input.parentNode.replaceChild(emptySpan, input);
         } else {
-            // Si ya no tiene padre, salir
             return;
         }
         
-        // Función para reenfocar después de operaciones DOM
         const reenfocar = (nuevaFila, nuevaCol) => {
             setTimeout(() => {
                 if (callbacks.onSync) callbacks.onSync();
@@ -191,7 +183,6 @@ function estructuraBackspace(e, table, input) {
             }, 30);
         };
         
-        // Eliminar fila si está vacía y hay más del mínimo
         if (filaVacia && numFilasReales > minRows) {
             try {
                 row.remove();
@@ -205,7 +196,6 @@ function estructuraBackspace(e, table, input) {
             return;
         }
         
-        // Eliminar columna si está vacía y hay más del mínimo
         if (columnaVacia && numColsReales > minCols) {
             try {
                 for (let r = 0; r < table.rows.length; r++) {
@@ -222,7 +212,6 @@ function estructuraBackspace(e, table, input) {
             return;
         }
         
-        // Si no se eliminó nada, mover foco a celda anterior
         let prevRow = rowIndex;
         let prevCol = colIndex - 2;
         
@@ -322,7 +311,6 @@ function manejarFocusout(e) {
     const input = e.target;
     if (!input.classList.contains('cell-input')) return;
     
-    // Si estamos procesando Backspace, ignorar focusout
     if (isProcessingBackspace) return;
     
     inputToSpan(input);
