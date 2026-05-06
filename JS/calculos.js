@@ -95,7 +95,6 @@ function aplicarGaussJordanDeterminante(matriz) {
     };
 }
 
-//funciones específicas para cada tipo de cálculo (LI/LD, pertenencia, base, completar base, AXB, inversa, determinante)
 // Los vectores van como columna.
 
 function clonarMatriz(matriz) {
@@ -242,6 +241,7 @@ export function hallarBase(matrizVectores) {
 }
 
 //Completa una base agregando vectores.
+
 export function completarBase(matrizVectores) {
     if (!matrizVectores.length) {
         throw new Error("Debes mandar al menos una fila para conocer la dimensión");
@@ -260,13 +260,25 @@ export function completarBase(matrizVectores) {
         .filter(col => col >= baseActual.length)
         .map(col => col - baseActual.length);
 
+    // Construir la base completa
+    const baseCompleta = [...baseActual];
+    const canonicosUsados = [];
+    
+    for (let i = 0; i < canonicosAgregados.length; i++) {
+        const idx = canonicosAgregados[i];
+        baseCompleta.push(canonicos[idx]);
+        canonicosUsados.push(idx);
+    }
+
     return {
-        baseCompleta: [...baseActual, ...canonicosAgregados.map(i => canonicos[i])],
+        baseCompleta: baseCompleta,
+        baseOriginal: baseActual,
         rango,
-        canonicosAgregados
+        canonicosAgregados: canonicosUsados,
+        dimension
     };
 }
-//aqui terminan las funciones generales para clasificación, pertenencia, base y completar base. Ahora vienen las específicas para cada tipo de cálculo (AXB, inversa, determinante).
+//aqui terminan las funciones generales para clasificación, pertenencia, base y . Ahora vienen las específicas para cada tipo de cálculo (AXB, inversa, determinante).
 export function resolverAXB(matriz) {
     const copia = matriz.map(fila => [...fila]);
     return aplicarGaussJordan(copia, true);

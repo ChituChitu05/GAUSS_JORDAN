@@ -405,6 +405,25 @@ function getNombreOperacion(modo) {
     return nombres[modo] || "RESULTADO";
 }
 
+function calcularPertenencia(matriz) {
+    const numVectores = vectoresHorizontales.length;
+    const matrizGeneradores = matriz.map(fila => fila.slice(0, numVectores - 1));
+    const vectorB = matriz.map(fila => fila[numVectores - 1]);
+    return perteneceAS(matrizGeneradores, vectorB);
+}
+
+function limpiar(article) {
+    while (article.firstChild) article.removeChild(article.firstChild);
+}
+
+function crearVectorCanonicoTexto(dimension, indice) {
+    const componentes = [];
+    for (let i = 0; i < dimension; i++) {
+        componentes.push(i === indice ? "1" : "0");
+    }
+    return `(${componentes.join(", ")})`;
+}
+
 function mostrarResultadoEV(resultado, operacion) {
     const prev = document.getElementById("resultadoEVSection");
     if (prev) prev.remove();
@@ -566,31 +585,81 @@ function mostrarResultadoEV(resultado, operacion) {
         }
     }
 
-    if (operacion === "completar" && resultado.canonicosAgregados?.length > 0) {
-        const p = document.createElement("p");
-        p.textContent = `Canónicos agregados: ${resultado.canonicosAgregados.map(i => `e${i + 1}`).join(", ")}`;
-        p.style.cssText = `
-            color: var(--text-secondary);
-            margin: 0;
-            padding: 0.5rem 1rem;
-            background: rgba(0, 200, 160, 0.1);
-            border-radius: 6px;
-            font-weight: 500;
+
+    if (operacion === "completar" && resultado.baseCompleta && resultado.baseCompleta.length > 0) {
+        const baseCompletaContainer = document.createElement("div");
+        baseCompletaContainer.className = "base-completa-container";
+
+        const title = document.createElement("p");
+        title.className = "base-completa-title";
+        title.textContent = resultado.canonicosAgregados?.length === 0 
+            ? "CONJUNTO ORIGINAL (YA ERA BASE)"
+            : "NUEVO CONJUNTO (BASE COMPLETADA)";
+        baseCompletaContainer.appendChild(title);
+
+        const conjuntoDiv = document.createElement("div");
+        conjuntoDiv.className = "base-completa-conjunto";
+
+        const wLabel = document.createElement("span");
+        wLabel.className = "base-completa-label";
+        wLabel.textContent = "W = {";
+        conjuntoDiv.appendChild(wLabel);
+
+        resultado.baseCompleta.forEach((vector, idx) => {
+            const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+            const esCanonico = resultado.canonicosAgregados?.includes(idx - (resultado.baseOriginal || []).length);
+            
+            const vectorSpan = document.createElement("span");
+            vectorSpan.className = `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`;
+            vectorSpan.textContent = `(${vectorStr})`;
+            
+            conjuntoDiv.appendChild(vectorSpan);
+            
+            if (idx < resultado.baseCompleta.length - 1) {
+                const comma = document.createElement("span");
+                comma.className = "base-completa-comma";
+                comma.textContent = ",";
+                conjuntoDiv.appendChild(comma);
+            }
+        });
+
+        const closeBrace = document.createElement("span");
+        closeBrace.className = "base-completa-brace";
+        closeBrace.textContent = "}";
+        conjuntoDiv.appendChild(closeBrace);
+
+        baseCompletaContainer.appendChild(conjuntoDiv);
+        
+        if (resultado.canonicosAgregados?.length > 0) {
+            const infoBox = document.createElement("div");
+            infoBox.className = "base-completa-info";
+            infoBox.innerHTML = `
+                <span class="base-completa-info-text"> Se agregaron los canónicos:</span>
+                <span class="base-completa-info-canonicos">
+                    ${resultado.canonicosAgregados.map(i => `e${i + 1} = ${crearVectorCanonicoTexto(resultado.dimension, i)}`).join(", ")}
+                </span>
+            `;
+            baseCompletaContainer.appendChild(infoBox);
+        }
+        
+        content.appendChild(baseCompletaContainer);
+    } else if (operacion === "completar" && resultado.canonicosAgregados?.length === 0) {
+        const infoBox = document.createElement("div");
+        infoBox.className = "base-completa-mensaje";
+        infoBox.innerHTML = `
+            <span class="base-completa-mensaje-text"> El conjunto original ya constituye una base completa</span>
         `;
-        content.appendChild(p);
+        content.appendChild(infoBox);
+    } else if (operacion === "completar" && resultado.canonicosAgregados?.length === 0) {
+        const infoBox = document.createElement("div");
+        infoBox.className = "base-completa-mensaje";
+        infoBox.innerHTML = `
+            <span class="base-completa-mensaje-text">✓ El conjunto original ya constituye una base completa</span>
+        `;
+        content.appendChild(infoBox);
     }
 
     section.appendChild(content);
     document.getElementById("article").appendChild(section);
 }
 
-function calcularPertenencia(matriz) {
-    const numVectores = vectoresHorizontales.length;
-    const matrizGeneradores = matriz.map(fila => fila.slice(0, numVectores - 1));
-    const vectorB = matriz.map(fila => fila[numVectores - 1]);
-    return perteneceAS(matrizGeneradores, vectorB);
-}
-
-function limpiar(article) {
-    while (article.firstChild) article.removeChild(article.firstChild);
-}
