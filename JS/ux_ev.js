@@ -370,38 +370,26 @@ function mostrarResultadoEV(resultado, operacion) {
     content.style.display = "flex";
     content.style.flexDirection = "column";
     content.style.alignItems = "center";
-    content.style.gap = "1rem";
+    content.style.gap = "1.5rem";
 
-    const mensaje = document.createElement("h3");
-    mensaje.style.textAlign = "center";
-
-    switch (operacion) {
-        case "li":
-            mensaje.textContent = resultado.esLI ? "🔵 Linealmente Independiente" : "🔴 Linealmente Dependiente";
-            mensaje.style.color = resultado.esLI ? "var(--success)" : "var(--error)";
-            break;
-        case "pertenecer":
-            mensaje.textContent = resultado.pertenece ? "✅ El vector SÍ pertenece a S" : "❌ El vector NO pertenece a S";
-            mensaje.style.color = resultado.pertenece ? "var(--success)" : "var(--error)";
-            break;
-        case "base":
-            mensaje.textContent = resultado.columnasEliminadas?.length === 0
-                ? "✅ El conjunto ya era una base"
-                : `✅ Base encontrada: ${resultado.base.length} vectores`;
-            mensaje.style.color = "var(--success)";
-            break;
-        case "completar":
-            mensaje.textContent = resultado.canonicosAgregados?.length === 0
-                ? "✅ La base ya estaba completa"
-                : `✅ Base completada con ${resultado.canonicosAgregados.length} canónicos`;
-            mensaje.style.color = "var(--success)";
-            break;
-    }
-    content.appendChild(mensaje);
-
+    // Agregar el label V = antes de la matriz
     if (resultado.matrizReducida) {
+        const wrapperMatriz = document.createElement("div");
+        wrapperMatriz.className = "result-wrapper";
+        wrapperMatriz.style.marginBottom = "1rem";
+
+        const label = document.createElement("div");
+        label.className = "result-label";
+        label.textContent = "V =";
+        label.style.fontSize = "2rem";
+        label.style.fontWeight = "700";
+        label.style.color = "var(--primary)";
+        label.style.padding = "0.5rem 0.8rem";
+        label.style.whiteSpace = "nowrap";
+
         const matrixContainer = document.createElement("div");
         matrixContainer.className = "result-matrix-container";
+
         const tabla = document.createElement("table");
         tabla.className = "result-table";
 
@@ -420,6 +408,7 @@ function mostrarResultadoEV(resultado, operacion) {
                 }
                 if (j === numCols - 2 && numCols > 2) {
                     td.style.borderRight = "2px solid var(--primary)";
+                    td.classList.add("separator-col");
                 }
                 tr.appendChild(td);
             });
@@ -427,28 +416,91 @@ function mostrarResultadoEV(resultado, operacion) {
         });
 
         matrixContainer.appendChild(tabla);
-        content.appendChild(matrixContainer);
+        wrapperMatriz.appendChild(label);
+        wrapperMatriz.appendChild(matrixContainer);
+        content.appendChild(wrapperMatriz);
     }
+
+    // Mensaje de resultado con estilo más destacado
+    const mensajeDiv = document.createElement("div");
+    mensajeDiv.style.cssText = `
+        text-align: center;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        letter-spacing: 0.5px;
+        width: 100%;
+    `;
+
+    switch (operacion) {
+        case "li":
+            mensajeDiv.textContent = resultado.esLI ? "LINEALMENTE INDEPENDIENTE" : "LINEALMENTE DEPENDIENTE";
+            mensajeDiv.style.backgroundColor = resultado.esLI ? "rgba(0, 200, 160, 0.15)" : "rgba(255, 59, 92, 0.15)";
+            mensajeDiv.style.color = resultado.esLI ? "var(--success)" : "var(--error)";
+            mensajeDiv.style.borderLeft = `4px solid ${resultado.esLI ? "var(--success)" : "var(--error)"}`;
+            break;
+        case "pertenecer":
+            mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL ESPACIO GENERADO" : "EL VECTOR NO PERTENECE AL ESPACIO GENERADO";
+            mensajeDiv.style.backgroundColor = resultado.pertenece ? "rgba(0, 200, 160, 0.15)" : "rgba(255, 59, 92, 0.15)";
+            mensajeDiv.style.color = resultado.pertenece ? "var(--success)" : "var(--error)";
+            mensajeDiv.style.borderLeft = `4px solid ${resultado.pertenece ? "var(--success)" : "var(--error)"}`;
+            break;
+        case "base":
+            mensajeDiv.textContent = resultado.columnasEliminadas?.length === 0
+                ? "EL CONJUNTO YA ES UNA BASE"
+                : `BASE ENCONTRADA: ${resultado.base.length} VECTORES`;
+            mensajeDiv.style.backgroundColor = "rgba(0, 200, 160, 0.15)";
+            mensajeDiv.style.color = "var(--success)";
+            mensajeDiv.style.borderLeft = "4px solid var(--success)";
+            break;
+        case "completar":
+            mensajeDiv.textContent = resultado.canonicosAgregados?.length === 0
+                ? "LA BASE YA ESTÁ COMPLETA"
+                : `BASE COMPLETADA CON ${resultado.canonicosAgregados.length} CANÓNICOS`;
+            mensajeDiv.style.backgroundColor = "rgba(0, 200, 160, 0.15)";
+            mensajeDiv.style.color = "var(--success)";
+            mensajeDiv.style.borderLeft = "4px solid var(--success)";
+            break;
+    }
+    content.appendChild(mensajeDiv);
 
     if (operacion === "base") {
         if (resultado.columnasEliminadas?.length > 0) {
             const p = document.createElement("p");
-            p.textContent = `🗑️ Vectores eliminados: ${resultado.columnasEliminadas.map(c => c + 1).join(", ")}`;
+            p.textContent = `Vectores eliminados: ${resultado.columnasEliminadas.map(c => c + 1).join(", ")}`;
             p.style.color = "var(--text-secondary)";
+            p.style.margin = "0";
+            p.style.padding = "0.5rem";
+            p.style.backgroundColor = "rgba(255, 59, 92, 0.1)";
+            p.style.borderRadius = "6px";
             content.appendChild(p);
         }
 
         if (resultado.base && resultado.base.length > 0) {
             const baseContainer = document.createElement("div");
-            baseContainer.style.display = "flex";
-            baseContainer.style.flexDirection = "column";
-            baseContainer.style.gap = "0.3rem";
-            baseContainer.style.alignItems = "center";
+            baseContainer.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: center;
+                margin-top: 0.5rem;
+                padding: 1rem;
+                background: var(--bg-surface);
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                width: 100%;
+            `;
 
             const baseTitle = document.createElement("p");
-            baseTitle.textContent = "📐 Vectores de la base:";
-            baseTitle.style.color = "var(--text-secondary)";
-            baseTitle.style.fontWeight = "600";
+            baseTitle.textContent = "VECTORES DE LA BASE";
+            baseTitle.style.cssText = `
+                color: var(--primary);
+                font-weight: 700;
+                margin: 0;
+                font-size: 0.9rem;
+                letter-spacing: 1px;
+            `;
             baseContainer.appendChild(baseTitle);
 
             resultado.base.forEach((vector, idx) => {
@@ -457,6 +509,8 @@ function mostrarResultadoEV(resultado, operacion) {
                 p.textContent = `v${resultado.columnasPivote ? resultado.columnasPivote[idx] + 1 : idx + 1} = (${vectorStr})`;
                 p.style.color = "var(--text-primary)";
                 p.style.margin = "0";
+                p.style.fontFamily = "monospace";
+                p.style.fontSize = "0.95rem";
                 baseContainer.appendChild(p);
             });
 
@@ -466,8 +520,15 @@ function mostrarResultadoEV(resultado, operacion) {
 
     if (operacion === "completar" && resultado.canonicosAgregados?.length > 0) {
         const p = document.createElement("p");
-        p.textContent = `📐 Canónicos agregados: ${resultado.canonicosAgregados.map(i => `e${i + 1}`).join(", ")}`;
-        p.style.color = "var(--text-secondary)";
+        p.textContent = `Canónicos agregados: ${resultado.canonicosAgregados.map(i => `e${i + 1}`).join(", ")}`;
+        p.style.cssText = `
+            color: var(--text-secondary);
+            margin: 0;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 200, 160, 0.1);
+            border-radius: 6px;
+            font-weight: 500;
+        `;
         content.appendChild(p);
     }
 
