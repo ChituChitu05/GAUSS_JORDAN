@@ -10,14 +10,20 @@ let vectoresHorizontales = [["", ""], ["", ""]];
 let tablaVectores = null;
 let currentRow = 0;
 let currentCol = 0;
+// Variable para guardar el estado entre operaciones
+let savedVectoresState = null;
 
 export function cambiarOperacionEV(article, modo) {
+    // Guardar vectores actuales antes de cambiar
     guardarVectoresDesdeTabla();
+    if (vectoresHorizontales && vectoresHorizontales.length > 0) {
+        savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
+    }
     currentOperation = modo;
-    inicializarEV(article, modo);
+    inicializarEV(article, modo, true); // Pasar flag de restauración
 }
 
-export function inicializarEV(article, modo) {
+export function inicializarEV(article, modo, preserveState = false) {
     desconfigurarEventosEV();
     currentOperation = modo;
 
@@ -36,6 +42,9 @@ export function inicializarEV(article, modo) {
 
         // vectores ya es un array de vectores horizontales (cada fila = un vector)
         vectoresHorizontales = JSON.parse(JSON.stringify(vectores));
+        
+        // Guardar el estado para futuras operaciones
+        savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
 
         // Reconstruir la tabla
         construirFilasVectores();
@@ -66,12 +75,44 @@ export function inicializarEV(article, modo) {
     tablaVectores = UI.createTable("inputTable");
     tablaVectores.style.borderSpacing = "6px";
 
-    // Inicializar vectores según modo
-    if (modo === "pertenecer") {
-        vectoresHorizontales = [["", ""], ["", ""], ["", ""]];
+    // Restaurar vectores guardados si existen y se solicita preservar estado
+    if (preserveState && savedVectoresState && savedVectoresState.length > 0) {
+        vectoresHorizontales = JSON.parse(JSON.stringify(savedVectoresState));
+        
+        // Validar que la estructura sea correcta según el modo
+        const esPertenecer = modo === "pertenecer";
+        
+        if (esPertenecer) {
+            // En modo pertenecer, NO agregar vectores extra - usar exactamente los guardados
+            // Solo asegurar que todas las filas tengan la misma longitud
+            const numComp = vectoresHorizontales[0]?.length || 2;
+            for (let i = 0; i < vectoresHorizontales.length; i++) {
+                while (vectoresHorizontales[i].length < numComp) {
+                    vectoresHorizontales[i].push("");
+                }
+            }
+        } else {
+            // En otros modos, asegurar al menos 2 vectores
+            const numComp = vectoresHorizontales[0]?.length || 2;
+            while (vectoresHorizontales.length < 2) {
+                vectoresHorizontales.push(Array(numComp).fill(""));
+            }
+            // Asegurar que todas las filas tengan la misma longitud
+            for (let i = 0; i < vectoresHorizontales.length; i++) {
+                while (vectoresHorizontales[i].length < numComp) {
+                    vectoresHorizontales[i].push("");
+                }
+            }
+        }
     } else {
-        vectoresHorizontales = [["", ""], ["", ""]];
+        // Inicializar vectores según modo por defecto (solo primera carga)
+        if (modo === "pertenecer") {
+            vectoresHorizontales = [["", ""], ["", ""], ["", ""]];
+        } else {
+            vectoresHorizontales = [["", ""], ["", ""]];
+        }
     }
+
 
     construirFilasVectores();
 
@@ -135,16 +176,28 @@ export function inicializarEV(article, modo) {
     configurarEventosEV(article, tablaVectores, {
         onSync: () => {
             guardarVectoresDesdeTabla();
+            // Guardar estado después de sincronizar
+            if (vectoresHorizontales && vectoresHorizontales.length > 0) {
+                savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
+            }
             sincronizarMatrizDesdeVectores();
         },
         onEnter: () => {
             guardarVectoresDesdeTabla();
             agregarNuevoVector(currentRow);
+            // Guardar estado después de agregar
+            if (vectoresHorizontales && vectoresHorizontales.length > 0) {
+                savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
+            }
             sincronizarMatrizDesdeVectores();
         },
         onSpace: (r, c) => {
             guardarVectoresDesdeTabla();
             agregarComponenteATodos(c);
+            // Guardar estado después de agregar componente
+            if (vectoresHorizontales && vectoresHorizontales.length > 0) {
+                savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
+            }
             sincronizarMatrizDesdeVectores();
         },
         onBackspace: (rowIndex, colIndex, tipo) => {
@@ -181,6 +234,10 @@ export function inicializarEV(article, modo) {
 
             // Sincronizar y reconstruir la interfaz
             verificarEliminarFilasColumnas();
+            // Guardar estado después de eliminar
+            if (vectoresHorizontales && vectoresHorizontales.length > 0) {
+                savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
+            }
             sincronizarMatrizDesdeVectores();
 
             // Reubicar el foco después de la reconstrucción del DOM
@@ -261,7 +318,7 @@ function construirFilasVectores() {
     cellBtn.appendChild(btnAgregar);
     rowBtn.appendChild(cellBtn);
     tablaVectores.appendChild(rowBtn);
-    
+
     setTimeout(() => {
         if (tablaVectores) {
             for (let j = 1; j <= numComponentes; j++) {
@@ -270,6 +327,7 @@ function construirFilasVectores() {
         }
     }, 50);
 }
+
 function construirMatrizColumnas(table) {
     if (!table) return;
     table.innerHTML = "";
@@ -277,16 +335,16 @@ function construirMatrizColumnas(table) {
     let numVectores = vectoresHorizontales.length;
     const numComponentes = vectoresHorizontales[0]?.length || 2;
     const esPertenecer = currentOperation === "pertenecer";
-    
+
     // Para operaciones que no son "pertenecer", agregar una columna de ceros al final (vector B = 0)
     let columnasAMostrar = numVectores;
     let mostrarColumnaCeros = false;
-    
+
     if (!esPertenecer) {
         mostrarColumnaCeros = true;
         columnasAMostrar = numVectores + 1;
     }
-    
+
     // El separador va ANTES de la última columna (que es B)
     const columnaSeparador = esPertenecer ? numVectores - 2 : numVectores - 1;
 
@@ -296,33 +354,34 @@ function construirMatrizColumnas(table) {
         for (let j = 0; j < columnasAMostrar; j++) {
             const cell = document.createElement("td");
             let valor;
-            
+
             if (!esPertenecer && j === numVectores) {
                 // Esta es la columna extra de ceros
                 valor = "0";
             } else {
                 valor = vectoresHorizontales[j][i] || "";
             }
-            
+
             if (valor && valor.includes('/')) {
                 const [num, den] = valor.split('/');
                 cell.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
             } else {
                 cell.textContent = valor === "" ? "0" : valor;
             }
-            
+
             // Aplicar separador vertical ANTES de la última columna
             if (j === columnaSeparador) {
                 cell.style.borderRight = "2px solid var(--primary)";
                 cell.classList.add("separator-col");
             }
-            
+
             row.appendChild(cell);
         }
 
         table.appendChild(row);
     }
 }
+
 function agregarComponenteATodos(indiceCol) {
     const r = currentRow;
     const c = indiceCol;
@@ -394,9 +453,14 @@ function guardarVectoresDesdeTabla() {
         // Verificar si es una fila de vector (primera celda tiene v o B)
         const primeraCelda = fila.cells[0];
         if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
-            const vector = Array.from(celdas).map(el =>
-                el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
-            );
+            const vector = Array.from(celdas).map(el => {
+                let valor = el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "");
+                // Convertir celdas vacías a "0"
+                if (valor === "" || valor === null || valor === undefined) {
+                    return "0";
+                }
+                return valor;
+            });
             nuevosDatos.push(vector);
         }
     });
@@ -624,40 +688,87 @@ function mostrarResultadoEV(resultado, operacion) {
             baseContainer.style.cssText = `
                 display: flex;
                 flex-direction: column;
-                gap: 0.75rem;
+                gap: 1rem;
                 align-items: center;
                 margin-top: 0.5rem;
-                padding: 1rem;
+                padding: 1.5rem;
                 background: var(--bg-surface);
-                border-radius: 8px;
-                border: 1px solid var(--border);
+                border-radius: 12px;
+                border: 2px solid var(--success);
                 width: 100%;
             `;
 
             const baseTitle = document.createElement("p");
-            baseTitle.textContent = "VECTORES DE LA BASE";
+            baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
             baseTitle.style.cssText = `
-                color: var(--primary);
+                color: var(--success);
                 font-weight: 700;
                 margin: 0;
-                font-size: 0.9rem;
+                font-size: 1rem;
                 letter-spacing: 1px;
             `;
             baseContainer.appendChild(baseTitle);
 
+            // Formato W = {(v1), (v2), ...}
+            const conjuntoDiv = document.createElement("div");
+            conjuntoDiv.style.cssText = `
+                display: flex;
+                align-items: baseline;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                font-size: 1.1rem;
+                padding: 1rem;
+                background: var(--bg-page);
+                border-radius: 8px;
+                width: 100%;
+            `;
+
+            const wLabel = document.createElement("span");
+            wLabel.style.cssText = `
+                font-weight: 700;
+                color: var(--primary);
+                margin-right: 0.5rem;
+            `;
+            wLabel.textContent = "W = {";
+            conjuntoDiv.appendChild(wLabel);
+
             resultado.base.forEach((vector, idx) => {
                 const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
-                const p = document.createElement("p");
-                p.textContent = `v${resultado.columnasPivote ? resultado.columnasPivote[idx] + 1 : idx + 1} = (${vectorStr})`;
-                p.style.cssText = `
-                    color: var(--text-primary);
-                    margin: 0;
+
+                const vectorSpan = document.createElement("span");
+                vectorSpan.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
                     font-family: monospace;
-                    font-size: 0.95rem;
+                    font-size: 1rem;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 6px;
+                    background: rgba(0, 200, 160, 0.1);
                 `;
-                baseContainer.appendChild(p);
+                vectorSpan.textContent = `(${vectorStr})`;
+
+                conjuntoDiv.appendChild(vectorSpan);
+
+                if (idx < resultado.base.length - 1) {
+                    const comma = document.createElement("span");
+                    comma.style.cssText = `margin-right: 0.5rem;`;
+                    comma.textContent = ",";
+                    conjuntoDiv.appendChild(comma);
+                }
             });
 
+            const closeBrace = document.createElement("span");
+            closeBrace.style.cssText = `
+                font-weight: 700;
+                color: var(--primary);
+                margin-left: 0.5rem;
+            `;
+            closeBrace.textContent = "}";
+            conjuntoDiv.appendChild(closeBrace);
+
+            baseContainer.appendChild(conjuntoDiv);
             content.appendChild(baseContainer);
         }
     }

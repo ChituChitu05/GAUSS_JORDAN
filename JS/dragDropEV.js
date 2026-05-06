@@ -243,6 +243,7 @@ export function initDragAndDropEV() {
                     onMatrixLoadCallback(vectores, file.name);
                 }
                 
+                // Solo actualizar el indicador existente, no crear uno nuevo
                 updateEVFileIndicator(file.name, !hasErrors);
                 
                 // Marcar errores después de que la tabla se construya
