@@ -3,6 +3,7 @@ import { crearSpanCelda } from "./celdas.js";
 import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
 import Auxiliares from "./auxiliares.js";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase } from "./calculos.js";
+
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
 let tablaVectores = null;
@@ -66,23 +67,20 @@ export function inicializarEV(article, modo) {
 
         switch (currentOperation) {
             case "li":
-                resultado = calcularLI_LD(matriz);
+                resultado = clasificarLIoLD(matriz);
                 break;
             case "pertenecer":
-                // En pertenecer, la última columna ES el vector B
                 resultado = calcularPertenencia(matriz);
                 break;
             case "base":
-                resultado = calcularBase(matriz);
+                resultado = hallarBase(matriz);
                 break;
             case "completar":
-                resultado = calcularCompletarBase(matriz);
+                resultado = completarBase(matriz);
                 break;
         }
 
-        console.table(matriz);
-        console.log("Operación:", currentOperation);
-        console.log("Resultado:", resultado);
+        mostrarResultadoEV(resultado, currentOperation);
     };
     resultSection.appendChild(btnCalcular);
 
@@ -103,6 +101,40 @@ export function inicializarEV(article, modo) {
             agregarComponenteATodos(c);
             sincronizarMatrizDesdeVectores();
         },
+        onBackspace: (rowIndex, colIndex, tipo) => {
+            guardarVectoresDesdeTabla(); //
+
+            // ELIMINACIÓN ACTIVA SEGÚN EL TIPO ENVIADO POR EL EVENTO
+            if (tipo === 'fila' || tipo === 'ambos') {
+                if (vectoresHorizontales.length > 2) {
+                    vectoresHorizontales.splice(rowIndex, 1);
+                }
+            }
+
+            if (tipo === 'columna' || tipo === 'ambos') {
+                if (vectoresHorizontales[0]?.length > 2) {
+                    vectoresHorizontales.forEach(v => v.splice(colIndex, 1));
+                }
+            }
+
+            // Sincronizar y reconstruir la interfaz
+            verificarEliminarFilasColumnas(); //
+            sincronizarMatrizDesdeVectores(); //[cite: 5]
+
+            // Reubicar el foco después de la reconstrucción del DOM
+            setTimeout(() => {
+                const maxFila = Math.max(0, vectoresHorizontales.length - 1);
+                const maxCol = Math.max(0, (vectoresHorizontales[0]?.length || 2) - 1);
+
+                let newRow = tipo === 'fila' || tipo === 'ambos' ? rowIndex - 1 : rowIndex;
+                let newCol = tipo === 'columna' || tipo === 'ambos' ? colIndex - 1 : colIndex;
+
+                newRow = Math.max(0, Math.min(newRow, maxFila));
+                newCol = Math.max(0, Math.min(newCol, maxCol));
+
+                enfocarCelda(newRow, newCol); //[cite: 5]
+            }, 30);
+        },
         onFocusUpdate: (r, c) => {
             currentRow = r;
             currentCol = c;
@@ -121,7 +153,6 @@ function construirFilasVectores() {
         const esUltimo = (i === numVectores - 1);
         const esVectorB = esPertenecer && esUltimo;
 
-        // Línea separadora antes del vector B
         if (esVectorB) {
             const rowSep = document.createElement("tr");
             const cellSep = document.createElement("td");
@@ -148,7 +179,6 @@ function construirFilasVectores() {
         tablaVectores.appendChild(row);
     });
 
-    // Botón "Agregar Vector"
     const rowBtn = document.createElement("tr");
     const cellBtn = document.createElement("td");
     cellBtn.colSpan = numComponentes + 1;
@@ -258,7 +288,6 @@ function guardarVectoresDesdeTabla() {
     filas.forEach((fila) => {
         const celdas = fila.querySelectorAll(".cell-span, .cell-input");
         if (celdas.length === 0) return;
-
         if (fila.querySelector(".btn-agregar-vector")) return;
 
         const vector = Array.from(celdas).map(el =>
@@ -270,6 +299,41 @@ function guardarVectoresDesdeTabla() {
     if (nuevosDatos.length > 0) {
         vectoresHorizontales = nuevosDatos;
     }
+}
+function verificarEliminarFilasColumnas() {
+    // Borrar filas que solo tengan celdas vacías o espacios
+    vectoresHorizontales = vectoresHorizontales.filter(fila => 
+        fila.some(celda => {
+            const v = String(celda || "").trim();
+            return v !== "" && v !== "0"; 
+        })
+    );
+
+    // Seguridad: Mínimo 2 vectores (filas) siempre
+    while (vectoresHorizontales.length < 2) {
+        const c = vectoresHorizontales[0]?.length || 2;
+        vectoresHorizontales.push(new Array(c).fill(""));
+    }
+
+    // Borrar columnas vacías
+    if (vectoresHorizontales.length > 0) {
+        const totalCols = vectoresHorizontales[0].length;
+        let colsAKeep = [];
+
+        for (let j = 0; j < totalCols; j++) {
+            let tieneData = vectoresHorizontales.some(f => {
+                const v = String(f[j] || "").trim();
+                return v !== "" && v !== "0";
+            });
+            if (tieneData || totalCols <= 2) colsAKeep.push(j);
+        }
+
+        vectoresHorizontales = vectoresHorizontales.map(f => 
+            colsAKeep.map(idx => f[idx])
+        );
+    }
+
+    construirFilasVectores(); // Redibujar el HTML
 }
 
 function sincronizarMatrizDesdeVectores() {
@@ -297,44 +361,127 @@ function getNombreOperacion(modo) {
     return nombres[modo] || "OPERACIÓN";
 }
 
-function mostrarResultadoPlaceholder(nombreOp) {
+function mostrarResultadoEV(resultado, operacion) {
     const prev = document.getElementById("resultadoEVSection");
     if (prev) prev.remove();
 
-    const section = UI.createSection("resultadoEVSection", `RESULTADO: ${nombreOp}`);
-    const h1 = document.createElement("h1");
-    h1.style.textAlign = "center";
-    h1.style.color = "var(--text-primary)";
-    h1.style.padding = "1rem";
-    h1.textContent = `Resultado de ${nombreOp}`;
+    const section = UI.createSection("resultadoEVSection", `RESULTADO: ${getNombreOperacion(operacion)}`);
+    const content = document.createElement("div");
+    content.style.display = "flex";
+    content.style.flexDirection = "column";
+    content.style.alignItems = "center";
+    content.style.gap = "1rem";
 
-    section.appendChild(h1);
+    const mensaje = document.createElement("h3");
+    mensaje.style.textAlign = "center";
 
-    const article = document.getElementById("article");
-    article.appendChild(section);
-}
+    switch (operacion) {
+        case "li":
+            mensaje.textContent = resultado.esLI ? "🔵 Linealmente Independiente" : "🔴 Linealmente Dependiente";
+            mensaje.style.color = resultado.esLI ? "var(--success)" : "var(--error)";
+            break;
+        case "pertenecer":
+            mensaje.textContent = resultado.pertenece ? "✅ El vector SÍ pertenece a S" : "❌ El vector NO pertenece a S";
+            mensaje.style.color = resultado.pertenece ? "var(--success)" : "var(--error)";
+            break;
+        case "base":
+            mensaje.textContent = resultado.columnasEliminadas?.length === 0
+                ? "✅ El conjunto ya era una base"
+                : `✅ Base encontrada: ${resultado.base.length} vectores`;
+            mensaje.style.color = "var(--success)";
+            break;
+        case "completar":
+            mensaje.textContent = resultado.canonicosAgregados?.length === 0
+                ? "✅ La base ya estaba completa"
+                : `✅ Base completada con ${resultado.canonicosAgregados.length} canónicos`;
+            mensaje.style.color = "var(--success)";
+            break;
+    }
+    content.appendChild(mensaje);
 
-function limpiar(article) {
-    while (article.firstChild) article.removeChild(article.firstChild);
-}
-function calcularLI_LD(matriz) {
-    return clasificarLIoLD(matriz);
+    if (resultado.matrizReducida) {
+        const matrixContainer = document.createElement("div");
+        matrixContainer.className = "result-matrix-container";
+        const tabla = document.createElement("table");
+        tabla.className = "result-table";
+
+        const numCols = resultado.matrizReducida[0]?.length || 0;
+
+        resultado.matrizReducida.forEach((fila) => {
+            const tr = document.createElement("tr");
+            fila.forEach((valor, j) => {
+                const td = document.createElement("td");
+                const str = Auxiliares.fraccionToString(valor);
+                if (str.includes("/")) {
+                    const [num, den] = str.split("/");
+                    td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+                } else {
+                    td.textContent = str;
+                }
+                if (j === numCols - 2 && numCols > 2) {
+                    td.style.borderRight = "2px solid var(--primary)";
+                }
+                tr.appendChild(td);
+            });
+            tabla.appendChild(tr);
+        });
+
+        matrixContainer.appendChild(tabla);
+        content.appendChild(matrixContainer);
+    }
+
+    if (operacion === "base") {
+        if (resultado.columnasEliminadas?.length > 0) {
+            const p = document.createElement("p");
+            p.textContent = `🗑️ Vectores eliminados: ${resultado.columnasEliminadas.map(c => c + 1).join(", ")}`;
+            p.style.color = "var(--text-secondary)";
+            content.appendChild(p);
+        }
+
+        if (resultado.base && resultado.base.length > 0) {
+            const baseContainer = document.createElement("div");
+            baseContainer.style.display = "flex";
+            baseContainer.style.flexDirection = "column";
+            baseContainer.style.gap = "0.3rem";
+            baseContainer.style.alignItems = "center";
+
+            const baseTitle = document.createElement("p");
+            baseTitle.textContent = "📐 Vectores de la base:";
+            baseTitle.style.color = "var(--text-secondary)";
+            baseTitle.style.fontWeight = "600";
+            baseContainer.appendChild(baseTitle);
+
+            resultado.base.forEach((vector, idx) => {
+                const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+                const p = document.createElement("p");
+                p.textContent = `v${resultado.columnasPivote ? resultado.columnasPivote[idx] + 1 : idx + 1} = (${vectorStr})`;
+                p.style.color = "var(--text-primary)";
+                p.style.margin = "0";
+                baseContainer.appendChild(p);
+            });
+
+            content.appendChild(baseContainer);
+        }
+    }
+
+    if (operacion === "completar" && resultado.canonicosAgregados?.length > 0) {
+        const p = document.createElement("p");
+        p.textContent = `📐 Canónicos agregados: ${resultado.canonicosAgregados.map(i => `e${i + 1}`).join(", ")}`;
+        p.style.color = "var(--text-secondary)";
+        content.appendChild(p);
+    }
+
+    section.appendChild(content);
+    document.getElementById("article").appendChild(section);
 }
 
 function calcularPertenencia(matriz) {
     const numVectores = vectoresHorizontales.length;
-    const numComponentes = matriz.length;
-
     const matrizGeneradores = matriz.map(fila => fila.slice(0, numVectores - 1));
     const vectorB = matriz.map(fila => fila[numVectores - 1]);
-    
     return perteneceAS(matrizGeneradores, vectorB);
 }
 
-function calcularBase(matriz) {
-    return hallarBase(matriz);
-}
-
-function calcularCompletarBase(matriz) {
-    return completarBase(matriz);
+function limpiar(article) {
+    while (article.firstChild) article.removeChild(article.firstChild);
 }

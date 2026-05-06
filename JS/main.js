@@ -3,7 +3,7 @@ import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js";
 import { initDragAndDrop, initTableSync } from "./dragDrop.js";
 import UI from "./ui.js";
 import { desconfigurarEventosEV } from "./eventos_ev.js";
-
+import { desconfigurarEventosMatri } from "./eventos_matri.js";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
@@ -108,6 +108,7 @@ function switchModule(module) {
     currentModule = module;
     
     desconfigurarEventosEV();
+    desconfigurarEventosMatri(article); 
     
     if (module === "matrices") {
         buildAside();
@@ -128,3 +129,4 @@ document.addEventListener("DOMContentLoaded", () => {
     initDragAndDrop();
     initTableSync();
 });
+

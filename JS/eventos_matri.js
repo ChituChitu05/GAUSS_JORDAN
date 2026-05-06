@@ -11,6 +11,18 @@ let currentTable = null;
 let currentRow = 0;
 let currentCol = 0;
 let lastKeyTime = 0;
+export function desconfigurarEventosMatri(article) {
+    if (keydownHandler) article.removeEventListener('keydown', keydownHandler);
+    if (inputHandler) article.removeEventListener('input', inputHandler);
+    if (clickHandler) article.removeEventListener('click', clickHandler);
+    if (pasteHandler) article.removeEventListener('paste', pasteHandler);
+    
+    keydownHandler = null;
+    inputHandler = null;
+    clickHandler = null;
+    pasteHandler = null;
+    currentTable = null;
+}
 
 export function configurarEventos(article, table, operation) {
     currentTable = table;
