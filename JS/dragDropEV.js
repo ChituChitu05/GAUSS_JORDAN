@@ -1,10 +1,107 @@
 // dragDropEV.js
-import { crearSpanCelda } from "./celdas.js";
+import { crearSpanCelda, actualizarBotonCalcularEV, tieneErroresEV } from "./celdas.js";
 
 let onMatrixLoadCallback = null;
 
 export function setEVCallbacks(callback) {
     onMatrixLoadCallback = callback;
+}
+
+// Validar valor de vector
+export function isValidVectorValue(value) {
+    if (!value || value.trim() === "") return true;
+    
+    const trimmed = value.trim();
+    
+    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(trimmed)) return false;
+    if (/[^0-9\-\/\.]/.test(trimmed)) return false;
+    
+    const slashCount = (trimmed.match(/\//g) || []).length;
+    if (slashCount > 1) return false;
+    
+    if (/^\//.test(trimmed)) return false;
+    if (/\/$/.test(trimmed)) return false;
+    
+    if (trimmed.includes('/')) {
+        const slashIndex = trimmed.indexOf('/');
+        const beforeSlash = trimmed.substring(0, slashIndex);
+        const afterSlash = trimmed.substring(slashIndex + 1);
+        
+        if (beforeSlash !== '' && beforeSlash !== '-' && !/^-?\d*\.?\d*$/.test(beforeSlash)) return false;
+        if (afterSlash === '' || afterSlash === '-') return false;
+        if (!/^-?\d*\.?\d*$/.test(afterSlash)) return false;
+        
+        const denom = parseFloat(afterSlash);
+        if (denom === 0) return false;
+    } else {
+        if (trimmed !== '-' && !/^-?\d*\.?\d*$/.test(trimmed)) return false;
+    }
+    
+    return true;
+}
+
+// Encontrar errores en los vectores
+function findErrorsInVectors(vectores) {
+    const errors = [];
+    for (let i = 0; i < vectores.length; i++) {
+        for (let j = 0; j < vectores[i].length; j++) {
+            if (!isValidVectorValue(vectores[i][j])) {
+                errors.push({ row: i, col: j, value: vectores[i][j] });
+            }
+        }
+    }
+    return errors;
+}
+
+// Marcar errores en la tabla EV
+function markErrorsInEVTable(table, errors) {
+    if (!table) return;
+    
+    // Limpiar errores existentes
+    const allSpans = table.querySelectorAll('.cell-span');
+    allSpans.forEach(span => span.classList.remove('cell-error'));
+    
+    // Marcar nuevos errores
+    errors.forEach(({ row, col }) => {
+        let filaActual = 0;
+        for (let i = 0; i < table.rows.length; i++) {
+            const tr = table.rows[i];
+            const primeraCelda = tr.cells[0];
+            if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
+                if (filaActual === row) {
+                    const cell = tr.cells[col + 1];
+                    if (cell) {
+                        const span = cell.querySelector('.cell-span');
+                        if (span) span.classList.add('cell-error');
+                    }
+                    break;
+                }
+                filaActual++;
+            }
+        }
+    });
+    
+    // Actualizar indicador de archivo
+    updateEVFileIndicatorBasedOnErrors(errors.length > 0);
+    
+    // Actualizar botón calcular
+    actualizarBotonCalcularEV();
+}
+
+function updateEVFileIndicatorBasedOnErrors(hasErrors) {
+    let indicator = document.querySelector(".file-indicator-ev");
+    if (!indicator) return;
+    
+    const statusSpan = indicator.querySelector(".file-status");
+    if (statusSpan) {
+        if (hasErrors) {
+            statusSpan.className = "file-status error";
+            statusSpan.innerHTML = "⚠ Error";
+        } else {
+            statusSpan.className = "file-status valid";
+            statusSpan.innerHTML = "✓ Válido";
+        }
+    }
 }
 
 export function parseMatrixToVectors(text) {
@@ -31,9 +128,6 @@ export function parseMatrixToVectors(text) {
         }
     });
     
-    // CADA FILA DEL ARCHIVO = VECTOR HORIZONTAL (igual que ingresa el usuario)
-    // El usuario ingresa vectores horizontales: v1 = [a, b], v2 = [c, d]
-    // El archivo debe tener FILAS = VECTORES, COLUMNAS = COMPONENTES
     return matrix;
 }
 
@@ -42,6 +136,8 @@ export function clearEVFileData() {
     if (indicator) {
         indicator.remove();
     }
+    // Re-habilitar botón calcular después de eliminar archivo
+    setTimeout(() => actualizarBotonCalcularEV(), 50);
 }
 
 function updateEVFileIndicator(fileName, isValid) {
@@ -55,7 +151,7 @@ function updateEVFileIndicator(fileName, isValid) {
     indicator.innerHTML = `
         <span class="file-name">📄 ${fileName}</span>
         <span class="file-status ${isValid ? 'valid' : 'error'}">
-            ${isValid ? '✓ Cargado' : '⚠ Error'}
+            ${isValid ? '✓ Válido' : '⚠ Error'}
         </span>
         <button class="remove-file-ev" title="Quitar archivo">×</button>
     `;
@@ -140,10 +236,24 @@ export function initDragAndDropEV() {
                     throw new Error("Los vectores deben tener al menos 2 componentes");
                 }
                 
+                const errors = findErrorsInVectors(vectores);
+                const hasErrors = errors.length > 0;
+                
                 if (onMatrixLoadCallback) {
                     onMatrixLoadCallback(vectores, file.name);
                 }
-                updateEVFileIndicator(file.name, true);
+                
+                updateEVFileIndicator(file.name, !hasErrors);
+                
+                // Marcar errores después de que la tabla se construya
+                setTimeout(() => {
+                    const table = document.getElementById("inputTable");
+                    if (table && hasErrors) {
+                        markErrorsInEVTable(table, errors);
+                    }
+                    actualizarBotonCalcularEV();
+                }, 100);
+                
             } catch (error) {
                 alert(`Error al procesar el archivo: ${error.message}`);
             }

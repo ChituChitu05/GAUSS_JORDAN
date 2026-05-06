@@ -1,10 +1,9 @@
 import UI from "./ui.js";
-import { crearSpanCelda } from "./celdas.js";
 import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
 import Auxiliares from "./auxiliares.js";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase } from "./calculos.js";
 import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js";
-import { setEVMode } from "./celdas.js";
+import { crearSpanCelda, setEVMode, ajustarAnchoColumnaEV, ajustarTodasColumnasEV } from "./celdas.js";
 
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
@@ -215,7 +214,6 @@ function construirFilasVectores() {
     const numVectores = vectoresHorizontales.length;
     const esPertenecer = currentOperation === "pertenecer";
 
-    // En modo pertenecer, el último vector es B y debe tener separador antes
     vectoresHorizontales.forEach((vector, i) => {
         const esUltimo = (i === numVectores - 1);
         const esVectorB = esPertenecer && esUltimo;
@@ -262,6 +260,15 @@ function construirFilasVectores() {
     cellBtn.appendChild(btnAgregar);
     rowBtn.appendChild(cellBtn);
     tablaVectores.appendChild(rowBtn);
+    
+    // Ajustar anchos de columna para los spans en modo EV
+    setTimeout(() => {
+        if (tablaVectores) {
+            for (let j = 1; j <= numComponentes; j++) {
+                ajustarAnchoColumnaEV(tablaVectores, j);
+            }
+        }
+    }, 50);
 }
 
 function construirMatrizColumnas(table) {
@@ -270,8 +277,7 @@ function construirMatrizColumnas(table) {
 
     const numVectores = vectoresHorizontales.length;
     const numComponentes = vectoresHorizontales[0]?.length || 2;
-    const esPertenecer = currentOperation === "pertenecer";
-    const columnasTotales = esPertenecer ? numVectores : numVectores;
+    const columnasTotales = numVectores;
 
     for (let i = 0; i < numComponentes; i++) {
         const row = document.createElement("tr");
@@ -296,8 +302,8 @@ function construirMatrizColumnas(table) {
 
         table.appendChild(row);
     }
-
-    actualizarSeparadorMatriz(table);
+    
+    // IMPORTANTE: NO agregar separador en EV
 }
 
 function actualizarSeparadorMatriz(table) {

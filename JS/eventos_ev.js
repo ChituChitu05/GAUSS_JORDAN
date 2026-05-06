@@ -1,4 +1,4 @@
-import { spanToInput, inputToSpan, crearSpanCelda } from "./celdas.js";
+import { spanToInput, inputToSpan, crearSpanCelda, ajustarAnchoColumnaEV, actualizarBotonCalcularEV, tieneErroresEV } from "./celdas.js";
 
 let currentTable = null;
 let currentArticle = null;
@@ -6,6 +6,38 @@ let currentRow = 0;
 let currentCol = 0;
 let callbacks = {};
 let isProcessingBackspace = false;
+
+// Función para validar entrada en EV
+function esEntradaValidaEV(valor) {
+    if (valor === '' || valor === '-') return true;
+    
+    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) return false;
+    if (/[^0-9\-\/\.]/.test(valor)) return false;
+    
+    const slashCount = (valor.match(/\//g) || []).length;
+    if (slashCount > 1) return false;
+    
+    if (/^\//.test(valor)) return false;
+    if (/\/$/.test(valor)) return false;
+    
+    if (valor.includes('/')) {
+        const parts = valor.split('/');
+        if (parts.length > 2) return false;
+        
+        const left = parts[0];
+        const right = parts[1] !== undefined ? parts[1] : '';
+        
+        if (left !== '' && left !== '-' && !/^-?\d*\.?\d*$/.test(left)) return false;
+        if (right !== '' && right !== '-' && !/^-?\d*\.?\d*$/.test(right)) return false;
+        
+        const den = parseFloat(right);
+        if (right !== '' && right !== '-' && den === 0) return false;
+    } else {
+        if (valor !== '-' && !/^-?\d*\.?\d*$/.test(valor)) return false;
+    }
+    
+    return true;
+}
 
 export function configurarEventosEV(article, table, cbs = {}) {
     desconfigurarEventosEV();
@@ -102,6 +134,8 @@ function manejarKeydown(e) {
             target.setAttribute('data-value', '');
             target.innerHTML = '';
             target.textContent = '';
+            target.classList.remove('cell-error');
+            actualizarBotonCalcularEV();
             if (currentCol > 0) {
                 enfocarCelda(currentRow, currentCol - 1);
             } else if (currentRow > 0) {
@@ -179,6 +213,13 @@ function estructuraBackspace(e, table, input) {
                 if (nuevaFila >= 0 && nuevaCol >= 0) {
                     enfocarCelda(nuevaFila, nuevaCol);
                 }
+                if (currentTable) {
+                    const numComponentes = currentTable.rows[0]?.cells.length - 1 || 2;
+                    for (let j = 1; j <= numComponentes; j++) {
+                        ajustarAnchoColumnaEV(currentTable, j);
+                    }
+                }
+                actualizarBotonCalcularEV();
                 isProcessingBackspace = false;
             }, 30);
         };
@@ -293,17 +334,37 @@ function manejarInput(e) {
     if (!input.classList.contains('cell-input')) return;
 
     let valor = input.value;
-    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) {
-        valor = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
+    
+    // Validar y limpiar entrada
+    if (!esEntradaValidaEV(valor)) {
+        // Si la entrada es inválida, marcar error
+        input.classList.add('cell-error');
+        actualizarBotonCalcularEV();
+        
+        // Limpiar caracteres inválidos pero mantener los válidos
+        let cleanValue = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
+        cleanValue = cleanValue.replace(/[^0-9\-\/\.]/g, '');
+        
+        if (cleanValue !== valor) {
+            input.value = cleanValue;
+            valor = cleanValue;
+        }
+    } else {
+        input.classList.remove('cell-error');
+    }
+    
+    // Limitar múltiples barras
+    const slashCount = (valor.match(/\//g) || []).length;
+    if (slashCount > 1) {
+        const primeraBarra = valor.indexOf('/');
+        valor = valor.substring(0, primeraBarra + 1) + valor.substring(primeraBarra + 1).replace(/\//g, '');
         input.value = valor;
     }
-    if (/[^0-9\-\/\.]/.test(valor)) {
-        valor = valor.replace(/[^0-9\-\/\.]/g, '');
-        input.value = valor;
-    }
-
+    
     input.style.width = (input.value.length + 1) + "ch";
-
+    
+    actualizarBotonCalcularEV();
+    
     if (callbacks.onSync) callbacks.onSync();
 }
 
@@ -313,7 +374,22 @@ function manejarFocusout(e) {
     
     if (isProcessingBackspace) return;
     
+    // Validar valor final antes de convertir a span
+    const valor = input.value.trim();
+    if (valor !== '' && !esEntradaValidaEV(valor)) {
+        input.classList.add('cell-error');
+        actualizarBotonCalcularEV();
+    }
+    
     inputToSpan(input);
+
+    if (currentTable) {
+        const col = parseInt(input.getAttribute('data-col'));
+        setTimeout(() => {
+            ajustarAnchoColumnaEV(currentTable, col + 1);
+            actualizarBotonCalcularEV();
+        }, 10);
+    }
 
     if (callbacks.onSync) callbacks.onSync();
 }
