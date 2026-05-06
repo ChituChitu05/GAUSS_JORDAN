@@ -3,6 +3,8 @@ import { crearSpanCelda } from "./celdas.js";
 import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
 import Auxiliares from "./auxiliares.js";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase } from "./calculos.js";
+import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js";
+import { setEVMode } from "./celdas.js";
 
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
@@ -19,6 +21,44 @@ export function cambiarOperacionEV(article, modo) {
 export function inicializarEV(article, modo) {
     desconfigurarEventosEV();
     currentOperation = modo;
+
+    // Limpiar datos de archivo previo
+    clearEVFileData();
+
+    // Configurar modo EV en celdas.js
+    setEVMode(true);
+
+    // Configurar callback para drag & drop
+    setEVCallbacks((vectores, fileName) => {
+        if (vectores === null) {
+            // Se eliminó el archivo, no hacer nada o reiniciar a valores por defecto
+            return;
+        }
+
+        // vectores ya es un array de vectores horizontales (cada fila = un vector)
+        vectoresHorizontales = JSON.parse(JSON.stringify(vectores));
+
+        // Reconstruir la tabla
+        construirFilasVectores();
+        sincronizarMatrizDesdeVectores();
+
+        // Enfocar la primera celda
+        setTimeout(() => {
+            if (tablaVectores) {
+                // Buscar la primera fila válida
+                for (let i = 0; i < tablaVectores.rows.length; i++) {
+                    const row = tablaVectores.rows[i];
+                    const firstCell = row.cells[0];
+                    if (firstCell && (firstCell.innerHTML.includes("v") || firstCell.innerHTML.includes("B"))) {
+                        const span = row.cells[1]?.querySelector('.cell-span');
+                        if (span) span.click();
+                        break;
+                    }
+                }
+            }
+        }, 50);
+    });
+
     limpiar(article);
 
     const mainSection = UI.createSection("mainSection", "INGRESO DE VECTORES");
@@ -26,6 +66,13 @@ export function inicializarEV(article, modo) {
 
     tablaVectores = UI.createTable("inputTable");
     tablaVectores.style.borderSpacing = "6px";
+
+    // Inicializar vectores según modo
+    if (modo === "pertenecer") {
+        vectoresHorizontales = [["", ""], ["", ""], ["", ""]];
+    } else {
+        vectoresHorizontales = [["", ""], ["", ""]];
+    }
 
     construirFilasVectores();
 
@@ -103,11 +150,11 @@ export function inicializarEV(article, modo) {
         },
         onBackspace: (rowIndex, colIndex, tipo) => {
             guardarVectoresDesdeTabla();
-            
+
             const esPertenecer = currentOperation === "pertenecer";
             const totalVectores = vectoresHorizontales.length;
             const esVectorB = esPertenecer && (rowIndex === totalVectores - 1);
-            
+
             // En modo pertenecer, no permitir eliminar el vector B
             if (esPertenecer && esVectorB) {
                 // Solo limpiar el contenido de B, no eliminar la fila
@@ -119,35 +166,35 @@ export function inicializarEV(article, modo) {
                     return;
                 }
             }
-            
+
             // ELIMINACIÓN ACTIVA SEGÚN EL TIPO ENVIADO POR EL EVENTO
             if (tipo === 'fila' || tipo === 'ambos') {
                 if (vectoresHorizontales.length > 2) {
                     vectoresHorizontales.splice(rowIndex, 1);
                 }
             }
-            
+
             if (tipo === 'columna' || tipo === 'ambos') {
                 if (vectoresHorizontales[0]?.length > 2) {
                     vectoresHorizontales.forEach(v => v.splice(colIndex, 1));
                 }
             }
-            
+
             // Sincronizar y reconstruir la interfaz
             verificarEliminarFilasColumnas();
             sincronizarMatrizDesdeVectores();
-            
+
             // Reubicar el foco después de la reconstrucción del DOM
             setTimeout(() => {
                 const maxFila = Math.max(0, vectoresHorizontales.length - 1);
                 const maxCol = Math.max(0, (vectoresHorizontales[0]?.length || 2) - 1);
-                
+
                 let newRow = tipo === 'fila' || tipo === 'ambos' ? rowIndex - 1 : rowIndex;
                 let newCol = tipo === 'columna' || tipo === 'ambos' ? colIndex - 1 : colIndex;
-                
+
                 newRow = Math.max(0, Math.min(newRow, maxFila));
                 newCol = Math.max(0, Math.min(newCol, maxCol));
-                
+
                 enfocarCelda(newRow, newCol);
             }, 30);
         },
@@ -156,6 +203,9 @@ export function inicializarEV(article, modo) {
             currentCol = c;
         }
     });
+
+    // Inicializar drag & drop EV
+    initDragAndDropEV();
 }
 
 function construirFilasVectores() {
@@ -164,12 +214,12 @@ function construirFilasVectores() {
     const numComponentes = vectoresHorizontales[0]?.length || 2;
     const numVectores = vectoresHorizontales.length;
     const esPertenecer = currentOperation === "pertenecer";
-    
+
     // En modo pertenecer, el último vector es B y debe tener separador antes
     vectoresHorizontales.forEach((vector, i) => {
         const esUltimo = (i === numVectores - 1);
         const esVectorB = esPertenecer && esUltimo;
-        
+
         // Agregar separador ANTES del vector B en modo pertenecer
         if (esPertenecer && esVectorB) {
             const rowSep = document.createElement("tr");
@@ -180,14 +230,14 @@ function construirFilasVectores() {
             rowSep.appendChild(cellSep);
             tablaVectores.appendChild(rowSep);
         }
-        
+
         const row = document.createElement("tr");
         const labelCell = document.createElement("td");
         const label = esVectorB ? "B =" : `v${i + 1} =`;
         labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600;">${label}</span>`;
         labelCell.style.pointerEvents = "none";
         row.appendChild(labelCell);
-        
+
         for (let j = 0; j < numComponentes; j++) {
             const cell = document.createElement("td");
             const span = crearSpanCelda(vector[j] || "", i, j);
@@ -196,7 +246,7 @@ function construirFilasVectores() {
         }
         tablaVectores.appendChild(row);
     });
-    
+
     // Botón agregar vector
     const rowBtn = document.createElement("tr");
     const cellBtn = document.createElement("td");
@@ -221,7 +271,7 @@ function construirMatrizColumnas(table) {
     const numVectores = vectoresHorizontales.length;
     const numComponentes = vectoresHorizontales[0]?.length || 2;
     const esPertenecer = currentOperation === "pertenecer";
-    const columnasTotales = esPertenecer ? numVectores : numVectores + 1;
+    const columnasTotales = esPertenecer ? numVectores : numVectores;
 
     for (let i = 0; i < numComponentes; i++) {
         const row = document.createElement("tr");
@@ -255,7 +305,7 @@ function actualizarSeparadorMatriz(table) {
 
     const esPertenecer = currentOperation === "pertenecer";
     const numVectores = vectoresHorizontales.length;
-    const sep = esPertenecer ? numVectores - 2 : numVectores - 1;
+    const sep = esPertenecer ? numVectores - 2 : -1;
 
     for (let row of table.rows) {
         for (let cell of row.cells) {
@@ -266,10 +316,9 @@ function actualizarSeparadorMatriz(table) {
 
     if (sep >= 0) {
         for (let row of table.rows) {
-            const cell = row.cells[sep];
-            if (cell) {
-                cell.style.borderRight = "2px solid var(--primary)";
-                cell.classList.add("separator-col");
+            if (row.cells[sep]) {
+                row.cells[sep].style.borderRight = "2px solid var(--primary)";
+                row.cells[sep].classList.add("separator-col");
             }
         }
     }
@@ -286,40 +335,55 @@ function agregarComponenteATodos(indiceCol) {
 function agregarNuevoVector(indiceFila) {
     const numComp = vectoresHorizontales[0]?.length || 2;
     const esPertenecer = currentOperation === "pertenecer";
-    
+
     if (esPertenecer) {
-        // En modo pertenecer, no permitir agregar después del vector B
-        const maxIndice = vectoresHorizontales.length - 1;
-        const indiceInsercion = Math.min(indiceFila + 1, maxIndice);
-        
-        // Insertar el nuevo vector en la posición calculada
+        // En modo pertenecer, insertar antes del vector B
+        const indiceInsercion = vectoresHorizontales.length - 1;
         vectoresHorizontales.splice(indiceInsercion, 0, Array(numComp).fill(""));
         construirFilasVectores();
-        
-        // Enfocar la primera celda del nuevo vector
         setTimeout(() => enfocarCelda(indiceInsercion, 0), 10);
     } else {
-        // Modo normal: agregar justo debajo de la fila actual
-        const indiceInsercion = indiceFila + 1;
-        vectoresHorizontales.splice(indiceInsercion, 0, Array(numComp).fill(""));
+        // Modo normal: agregar al final
+        vectoresHorizontales.push(Array(numComp).fill(""));
         construirFilasVectores();
-        
-        // Enfocar la primera celda del nuevo vector
-        setTimeout(() => enfocarCelda(indiceInsercion, 0), 10);
+        setTimeout(() => enfocarCelda(vectoresHorizontales.length - 1, 0), 10);
     }
 }
 
 function enfocarCelda(r, c) {
     if (!tablaVectores) return;
-    const row = tablaVectores.rows[r];
-    if (!row) return;
-    const cell = row.cells[c + 1];
+
+    // Buscar la fila real (ignorando filas de separador y botón)
+    let filaEncontrada = null;
+    let contador = 0;
+
+    for (let i = 0; i < tablaVectores.rows.length; i++) {
+        const row = tablaVectores.rows[i];
+        const primeraCelda = row.cells[0];
+        if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
+            if (contador === r) {
+                filaEncontrada = row;
+                break;
+            }
+            contador++;
+        }
+    }
+
+    if (!filaEncontrada) return;
+
+    const columna = c + 1;
+    if (columna >= filaEncontrada.cells.length) return;
+
+    const cell = filaEncontrada.cells[columna];
     if (!cell) return;
+
     const span = cell.querySelector('.cell-span');
     if (span) span.click();
 }
 
 function guardarVectoresDesdeTabla() {
+    if (!tablaVectores) return;
+
     const filas = tablaVectores.querySelectorAll("tr");
     const nuevosDatos = [];
 
@@ -328,10 +392,14 @@ function guardarVectoresDesdeTabla() {
         if (celdas.length === 0) return;
         if (fila.querySelector(".btn-agregar-vector")) return;
 
-        const vector = Array.from(celdas).map(el =>
-            el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
-        );
-        nuevosDatos.push(vector);
+        // Verificar si es una fila de vector (primera celda tiene v o B)
+        const primeraCelda = fila.cells[0];
+        if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
+            const vector = Array.from(celdas).map(el =>
+                el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "")
+            );
+            nuevosDatos.push(vector);
+        }
     });
 
     if (nuevosDatos.length > 0) {
@@ -341,29 +409,35 @@ function guardarVectoresDesdeTabla() {
 
 function verificarEliminarFilasColumnas() {
     const esPertenecer = currentOperation === "pertenecer";
-    
-    // Borrar filas que solo tengan celdas vacías o espacios (excepto el vector B en modo pertenecer)
+
+    // Borrar filas que solo tengan celdas vacías (excepto el vector B en modo pertenecer)
     vectoresHorizontales = vectoresHorizontales.filter((fila, index) => {
         const esVectorB = esPertenecer && (index === vectoresHorizontales.length - 1);
-        if (esVectorB) return true; // Nunca eliminar el vector B
-        
+        if (esVectorB) return true;
+
         return fila.some(celda => {
             const v = String(celda || "").trim();
             return v !== "" && v !== "0";
         });
     });
-    
-    // Seguridad: Mínimo 2 vectores (filas) siempre
+
+    // Seguridad: Mínimo 2 vectores
     while (vectoresHorizontales.length < 2) {
         const c = vectoresHorizontales[0]?.length || 2;
         vectoresHorizontales.push(new Array(c).fill(""));
     }
-    
+
+    // En modo pertenecer, asegurar que hay exactamente un vector B al final
+    if (esPertenecer && vectoresHorizontales.length < 3) {
+        const c = vectoresHorizontales[0]?.length || 2;
+        vectoresHorizontales.push(new Array(c).fill(""));
+    }
+
     // Borrar columnas vacías
     if (vectoresHorizontales.length > 0) {
         const totalCols = vectoresHorizontales[0].length;
         let colsAKeep = [];
-        
+
         for (let j = 0; j < totalCols; j++) {
             let tieneData = vectoresHorizontales.some(f => {
                 const v = String(f[j] || "").trim();
@@ -371,12 +445,12 @@ function verificarEliminarFilasColumnas() {
             });
             if (tieneData || totalCols <= 2) colsAKeep.push(j);
         }
-        
-        vectoresHorizontales = vectoresHorizontales.map(f => 
+
+        vectoresHorizontales = vectoresHorizontales.map(f =>
             colsAKeep.map(idx => f[idx])
         );
     }
-    
+
     construirFilasVectores();
 }
 
@@ -585,14 +659,13 @@ function mostrarResultadoEV(resultado, operacion) {
         }
     }
 
-
     if (operacion === "completar" && resultado.baseCompleta && resultado.baseCompleta.length > 0) {
         const baseCompletaContainer = document.createElement("div");
         baseCompletaContainer.className = "base-completa-container";
 
         const title = document.createElement("p");
         title.className = "base-completa-title";
-        title.textContent = resultado.canonicosAgregados?.length === 0 
+        title.textContent = resultado.canonicosAgregados?.length === 0
             ? "CONJUNTO ORIGINAL (YA ERA BASE)"
             : "NUEVO CONJUNTO (BASE COMPLETADA)";
         baseCompletaContainer.appendChild(title);
@@ -608,13 +681,13 @@ function mostrarResultadoEV(resultado, operacion) {
         resultado.baseCompleta.forEach((vector, idx) => {
             const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
             const esCanonico = resultado.canonicosAgregados?.includes(idx - (resultado.baseOriginal || []).length);
-            
+
             const vectorSpan = document.createElement("span");
             vectorSpan.className = `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`;
             vectorSpan.textContent = `(${vectorStr})`;
-            
+
             conjuntoDiv.appendChild(vectorSpan);
-            
+
             if (idx < resultado.baseCompleta.length - 1) {
                 const comma = document.createElement("span");
                 comma.className = "base-completa-comma";
@@ -629,37 +702,22 @@ function mostrarResultadoEV(resultado, operacion) {
         conjuntoDiv.appendChild(closeBrace);
 
         baseCompletaContainer.appendChild(conjuntoDiv);
-        
+
         if (resultado.canonicosAgregados?.length > 0) {
             const infoBox = document.createElement("div");
             infoBox.className = "base-completa-info";
             infoBox.innerHTML = `
-                <span class="base-completa-info-text"> Se agregaron los canónicos:</span>
+                <span class="base-completa-info-text">Se agregaron los canónicos:</span>
                 <span class="base-completa-info-canonicos">
                     ${resultado.canonicosAgregados.map(i => `e${i + 1} = ${crearVectorCanonicoTexto(resultado.dimension, i)}`).join(", ")}
                 </span>
             `;
             baseCompletaContainer.appendChild(infoBox);
         }
-        
+
         content.appendChild(baseCompletaContainer);
-    } else if (operacion === "completar" && resultado.canonicosAgregados?.length === 0) {
-        const infoBox = document.createElement("div");
-        infoBox.className = "base-completa-mensaje";
-        infoBox.innerHTML = `
-            <span class="base-completa-mensaje-text"> El conjunto original ya constituye una base completa</span>
-        `;
-        content.appendChild(infoBox);
-    } else if (operacion === "completar" && resultado.canonicosAgregados?.length === 0) {
-        const infoBox = document.createElement("div");
-        infoBox.className = "base-completa-mensaje";
-        infoBox.innerHTML = `
-            <span class="base-completa-mensaje-text">✓ El conjunto original ya constituye una base completa</span>
-        `;
-        content.appendChild(infoBox);
     }
 
     section.appendChild(content);
     document.getElementById("article").appendChild(section);
 }
-

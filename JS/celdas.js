@@ -1,5 +1,11 @@
 import Auxiliares from "./auxiliares.js";
-import { syncTableToFileData } from "./dragDrop.js";
+
+// Variable para saber si estamos en modo EV
+let isEVMode = false;
+
+export function setEVMode(enabled) {
+    isEVMode = enabled;
+}
 
 export function crearSpanCelda(value, row, col) {
     const span = document.createElement("span");
@@ -19,23 +25,12 @@ export function crearSpanCelda(value, row, col) {
         } else if (Auxiliares.tieneDecimales(value)) {
             const [num, den] = value.split("/");
             span.setAttribute('data-value', value);
-            span.innerHTML = `
-                <span class="frac">
-                    <span class="top">${num}</span>
-                    <span class="bottom">${den}</span>
-                </span>
-            `;
+            span.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
         } else {
             span.setAttribute('data-value', valorSimplificado);
-            span.innerHTML = `
-                <span class="frac">
-                    <span class="top">${numSimp}</span>
-                    <span class="bottom">${denSimp}</span>
-                </span>
-            `;
+            span.innerHTML = `<span class="frac"><span class="top">${numSimp}</span><span class="bottom">${denSimp}</span></span>`;
         }
     } else {
-        // Mantiene el valor vacío si no hay entrada[cite: 6]
         span.setAttribute('data-value', value || "");
         span.textContent = value || "";
     }
@@ -60,9 +55,15 @@ export function spanToInput(span) {
     span.replaceWith(input);
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-    setTimeout(() => {
-        syncTableToFileData();
-    }, 50);
+    
+    // Solo sincronizar si NO estamos en modo EV
+    if (!isEVMode) {
+        setTimeout(() => {
+            import("./dragDrop.js").then(module => {
+                module.syncTableToFileData();
+            }).catch(() => {});
+        }, 50);
+    }
     return input;
 }
 
@@ -89,7 +90,6 @@ export function inputToSpan(input) {
         } else if (Auxiliares.esFraccion(value)) {
             const fraccion = Auxiliares.parsearFraccion(value);
             const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
-
             if (denSimp === 1) {
                 finalValue = `${numSimp}`;
             } else if (!Auxiliares.tieneDecimales(value)) {
@@ -103,7 +103,6 @@ export function inputToSpan(input) {
     try {
         input.replaceWith(span);
     } catch (error) {
-        // El input ya fue reemplazado por otro evento, ignorar
         return null;
     }
 
