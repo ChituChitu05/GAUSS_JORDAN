@@ -148,7 +148,18 @@ function manejarKeydown(e) {
 }
 
 function estructuraBackspace(e, table, input) {
-    if (input.value !== "") return;
+    if (input.value !== "") {
+        e.preventDefault();
+        const newValue = input.value.slice(0, -1);
+        input.value = newValue;
+        
+        const inputEvent = new Event('input', { bubbles: true });
+        input.dispatchEvent(inputEvent);
+        
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+        return;
+    }
     
     isProcessingBackspace = true;
     

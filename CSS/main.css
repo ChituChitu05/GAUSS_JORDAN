@@ -1396,3 +1396,11 @@ body.light .btn-agregar-vector:hover {
     color: var(--success);
     font-weight: 600;
 }
+#inputTable td {
+    border-right: none !important;
+}
+
+#inputTable td.separator-col,
+#inputTable td.separator {
+    border-right: none !important;
+}

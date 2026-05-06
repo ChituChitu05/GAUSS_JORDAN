@@ -218,17 +218,6 @@ function construirFilasVectores() {
         const esUltimo = (i === numVectores - 1);
         const esVectorB = esPertenecer && esUltimo;
 
-        // Agregar separador ANTES del vector B en modo pertenecer
-        if (esPertenecer && esVectorB) {
-            const rowSep = document.createElement("tr");
-            const cellSep = document.createElement("td");
-            cellSep.colSpan = numComponentes + 1;
-            cellSep.style.borderTop = "2px solid var(--primary)";
-            cellSep.style.padding = "0";
-            rowSep.appendChild(cellSep);
-            tablaVectores.appendChild(rowSep);
-        }
-
         const row = document.createElement("tr");
         const labelCell = document.createElement("td");
         const label = esVectorB ? "B =" : `v${i + 1} =`;
@@ -243,6 +232,18 @@ function construirFilasVectores() {
             row.appendChild(cell);
         }
         tablaVectores.appendChild(row);
+
+        // SOLO separador HORIZONTAL entre vectores y B en modo pertenecer
+        if (esPertenecer && i === numVectores - 2 && numVectores >= 2) {
+            const separatorRow = document.createElement("tr");
+            const separatorCell = document.createElement("td");
+            separatorCell.colSpan = numComponentes + 1;
+            separatorCell.style.borderTop = "2px solid var(--primary)";
+            separatorCell.style.margin = "6px 0";
+            separatorCell.style.padding = "0";
+            separatorRow.appendChild(separatorCell);
+            tablaVectores.appendChild(separatorRow);
+        }
     });
 
     // Botón agregar vector
@@ -261,7 +262,6 @@ function construirFilasVectores() {
     rowBtn.appendChild(cellBtn);
     tablaVectores.appendChild(rowBtn);
     
-    // Ajustar anchos de columna para los spans en modo EV
     setTimeout(() => {
         if (tablaVectores) {
             for (let j = 1; j <= numComponentes; j++) {
@@ -270,66 +270,59 @@ function construirFilasVectores() {
         }
     }, 50);
 }
-
 function construirMatrizColumnas(table) {
     if (!table) return;
     table.innerHTML = "";
 
-    const numVectores = vectoresHorizontales.length;
+    let numVectores = vectoresHorizontales.length;
     const numComponentes = vectoresHorizontales[0]?.length || 2;
-    const columnasTotales = numVectores;
+    const esPertenecer = currentOperation === "pertenecer";
+    
+    // Para operaciones que no son "pertenecer", agregar una columna de ceros al final (vector B = 0)
+    let columnasAMostrar = numVectores;
+    let mostrarColumnaCeros = false;
+    
+    if (!esPertenecer) {
+        mostrarColumnaCeros = true;
+        columnasAMostrar = numVectores + 1;
+    }
+    
+    // El separador va ANTES de la última columna (que es B)
+    const columnaSeparador = esPertenecer ? numVectores - 2 : numVectores - 1;
 
     for (let i = 0; i < numComponentes; i++) {
         const row = document.createElement("tr");
 
-        for (let j = 0; j < columnasTotales; j++) {
+        for (let j = 0; j < columnasAMostrar; j++) {
             const cell = document.createElement("td");
-
-            if (j < numVectores) {
-                const valor = vectoresHorizontales[j][i] || "";
-                if (valor && valor.includes('/')) {
-                    const [num, den] = valor.split('/');
-                    cell.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
-                } else {
-                    cell.textContent = valor === "" ? "0" : valor;
-                }
+            let valor;
+            
+            if (!esPertenecer && j === numVectores) {
+                // Esta es la columna extra de ceros
+                valor = "0";
             } else {
-                cell.textContent = "0";
+                valor = vectoresHorizontales[j][i] || "";
             }
-
+            
+            if (valor && valor.includes('/')) {
+                const [num, den] = valor.split('/');
+                cell.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+            } else {
+                cell.textContent = valor === "" ? "0" : valor;
+            }
+            
+            // Aplicar separador vertical ANTES de la última columna
+            if (j === columnaSeparador) {
+                cell.style.borderRight = "2px solid var(--primary)";
+                cell.classList.add("separator-col");
+            }
+            
             row.appendChild(cell);
         }
 
         table.appendChild(row);
     }
-    
-    // IMPORTANTE: NO agregar separador en EV
 }
-
-function actualizarSeparadorMatriz(table) {
-    if (!table || !table.rows.length) return;
-
-    const esPertenecer = currentOperation === "pertenecer";
-    const numVectores = vectoresHorizontales.length;
-    const sep = esPertenecer ? numVectores - 2 : -1;
-
-    for (let row of table.rows) {
-        for (let cell of row.cells) {
-            cell.style.borderRight = "";
-            cell.classList.remove("separator-col");
-        }
-    }
-
-    if (sep >= 0) {
-        for (let row of table.rows) {
-            if (row.cells[sep]) {
-                row.cells[sep].style.borderRight = "2px solid var(--primary)";
-                row.cells[sep].classList.add("separator-col");
-            }
-        }
-    }
-}
-
 function agregarComponenteATodos(indiceCol) {
     const r = currentRow;
     const c = indiceCol;
@@ -537,6 +530,9 @@ function mostrarResultadoEV(resultado, operacion) {
         tabla.className = "result-table";
 
         const numCols = resultado.matrizReducida[0]?.length || 0;
+        const esPertenecer = currentOperation === "pertenecer";
+        // El separador va ENTRE las últimas 2 columnas (penúltima y última)
+        const columnaSeparador = esPertenecer ? numCols - 2 : numCols - 2;
 
         resultado.matrizReducida.forEach((fila) => {
             const tr = document.createElement("tr");
@@ -549,7 +545,8 @@ function mostrarResultadoEV(resultado, operacion) {
                 } else {
                     td.textContent = str;
                 }
-                if (j === numCols - 2 && numCols > 2) {
+                // Aplicar separador vertical ENTRE las últimas 2 columnas
+                if (j === columnaSeparador) {
                     td.style.borderRight = "2px solid var(--primary)";
                     td.classList.add("separator-col");
                 }
