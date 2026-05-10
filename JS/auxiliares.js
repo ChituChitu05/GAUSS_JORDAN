@@ -391,7 +391,23 @@ export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
 
     return matriz;
 }
+//
+export function esVectorCero(vector) {
+    return vector.every(v => esCero(v));
+}
+
+export function obtenerColumna(matriz, colIndex) {
+    return matriz.map(fila => ({ num: fila[colIndex].num, den: fila[colIndex].den }));
+}
+
+export function vectorToString(vector) {
+    const componentes = vector.map(v => fraccionToString(v));
+    return `(${componentes.join(", ")})`;
+}
 const auxiliares = {
+    esVectorCero,
+    obtenerColumna,
+    vectorToString,
     simplificar,
     parsearFraccion,
     multiplicarFracciones,

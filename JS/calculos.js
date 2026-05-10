@@ -1,5 +1,5 @@
-import {esCero, multiplicarFracciones,dividirFracciones,restarFracciones,normalizarSigno,fraccionToString} from "./auxiliares.js";
-import { swapFilas } from "./operaciones.js";
+import { esCero, multiplicarFracciones, dividirFracciones, restarFracciones, normalizarSigno, fraccionToString,sumarFraccionesObj,esVectorCero,obtenerColumna,vectorToString } from "./auxiliares.js";
+import { productoPunto, normaCuadrada, multiplicarVectorPorEscalar, restarVectores, sumarVectores } from "./operaciones.js";
 import gaussJordan from "./gaussJordan.js";
 
 
@@ -35,7 +35,7 @@ function aplicarGaussJordanDeterminante(matriz) {
     for (let col = 0; col < n && filaPivote < n; col++) {
         // Buscar pivote en la columna actual desde filaPivote hasta abajo
         const { encontrado, huboSwap } = gaussJordan.buscarPivote(copia, filaPivote, col);
-        
+
         if (!encontrado) {
             return {
                 matrizFinal: copia,
@@ -43,15 +43,15 @@ function aplicarGaussJordanDeterminante(matriz) {
                 determinante: { num: 0, den: 1 }
             };
         }
-        
+
         // Contar el swap si ocurrió
         if (huboSwap) {
             swaps++;
         }
-        
+
         // Guardar el pivote y normalizar la fila
         const pivote = copia[filaPivote][col];
-        
+
         // Normalizar solo si el pivote no es 1
         if (!(pivote.num === 1 && pivote.den === 1)) {
             // Guardar el factor (el pivote original)
@@ -60,23 +60,23 @@ function aplicarGaussJordanDeterminante(matriz) {
         }
         gaussJordan.hacerCerosDebajo(copia, filaPivote, col);
         gaussJordan.hacerCerosArriba(copia, filaPivote, col);
-        
+
         filaPivote++;
     }
-    
+
     // Construir historial de factores
     const historialFactores = [];
-    
+
     // Factores de intercambio (-1 por cada swap)
     for (let i = 0; i < swaps; i++) {
         historialFactores.push(-1);
     }
-    
+
     // Factores de normalización (pivotes originales)
     for (const factor of factoresNormalizacion) {
         historialFactores.push(factor);
     }
-    
+
     // Calcular determinante como producto de todos los factores
     let determinante = { num: 1, den: 1 };
     for (const factor of historialFactores) {
@@ -87,7 +87,7 @@ function aplicarGaussJordanDeterminante(matriz) {
         }
     }
     determinante = normalizarSigno(determinante);
-    
+
     return {
         matrizFinal: copia,
         historialFactores: historialFactores,
@@ -263,7 +263,7 @@ export function completarBase(matrizVectores) {
     // Construir la base completa
     const baseCompleta = [...baseActual];
     const canonicosUsados = [];
-    
+
     for (let i = 0; i < canonicosAgregados.length; i++) {
         const idx = canonicosAgregados[i];
         baseCompleta.push(canonicos[idx]);
@@ -286,7 +286,7 @@ export function resolverAXB(matriz) {
 
 export function resolverInv(matriz) {
     const n = matriz.length;
-    
+
     if (!matriz.every(fila => fila.length === n)) {
         throw new Error("La matriz debe ser cuadrada");
     }
@@ -310,7 +310,7 @@ export function resolverInv(matriz) {
 
 export function calcularDet(matriz) {
     const n = matriz.length;
-    
+
     if (!matriz.every(fila => fila.length === n)) {
         throw new Error("La matriz debe ser cuadrada");
     }
@@ -321,8 +321,51 @@ export function calcularDet(matriz) {
             determinante: normalizarSigno(matriz[0][0])
         };
     }
-    
+
     const resultado = aplicarGaussJordanDeterminante(matriz);
-    
+
     return resultado;
+}
+
+export function ortogonalizar(matriz) {
+    if (!matriz.length || !matriz[0].length) {
+        throw new Error("Debes mandar una matriz con vectores como columnas");
+    }
+
+    const n = matriz.length;
+    const m = matriz[0].length;
+    
+    const vectoresOriginales = [];
+    for (let j = 0; j < m; j++) {
+        vectoresOriginales.push(obtenerColumna(matriz, j));
+    }
+    
+    const vectoresOrtogonales = [];
+    
+    for (let i = 0; i < m; i++) {
+        let vectorActual = vectoresOriginales[i].map(v => ({ num: v.num, den: v.den }));
+        
+        for (let j = 0; j < vectoresOrtogonales.length; j++) {
+            const vectorBase = vectoresOrtogonales[j];
+            
+            const productoPuntoVI_UJ = productoPunto(vectorActual, vectorBase);
+            const normaCuadradaUJ = normaCuadrada(vectorBase);
+            
+            if (!esCero(normaCuadradaUJ)) {
+                const factor = dividirFracciones(productoPuntoVI_UJ, normaCuadradaUJ);
+                const resta = multiplicarVectorPorEscalar(vectorBase, factor);
+                vectorActual = restarVectores(vectorActual, resta);
+            }
+        }
+        
+        if (!esVectorCero(vectorActual)) {
+            vectoresOrtogonales.push(vectorActual);
+        }
+    }
+    
+    if (vectoresOrtogonales.length === 0) {
+        throw new Error("Todos los vectores son linealmente dependientes");
+    }
+    
+    return vectoresOrtogonales;
 }

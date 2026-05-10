@@ -25,3 +25,43 @@ export function restarFilas(m, fil_i, fil_j, k) {
         m[fil_i][col] = normalizarSigno(restarFracciones(m[fil_i][col], termino));
     }
 }
+
+
+export function productoPunto(vectorA, vectorB) {
+    if (vectorA.length !== vectorB.length) {
+        throw new Error("Los vectores deben tener la misma dimensión");
+    }
+    
+    let resultado = { num: 0, den: 1 };
+    
+    for (let i = 0; i < vectorA.length; i++) {
+        const producto = multiplicarFracciones(vectorA[i], vectorB[i]);
+        resultado = sumarFraccionesObj(resultado, producto);
+    }
+    
+    return resultado;
+}
+
+export function normaCuadrada(vector) {
+    return productoPunto(vector, vector);
+}
+
+export function multiplicarVectorPorEscalar(vector, escalar) {
+    return vector.map(v => multiplicarFracciones(v, escalar));
+}
+
+export function restarVectores(vectorA, vectorB) {
+    if (vectorA.length !== vectorB.length) {
+        throw new Error("Los vectores deben tener la misma dimensión");
+    }
+    
+    return vectorA.map((v, i) => restarFracciones(v, vectorB[i]));
+}
+
+export function sumarVectores(vectorA, vectorB) {
+    if (vectorA.length !== vectorB.length) {
+        throw new Error("Los vectores deben tener la misma dimensión");
+    }
+    
+    return vectorA.map((v, i) => sumarFraccionesObj(v, vectorB[i]));
+}
