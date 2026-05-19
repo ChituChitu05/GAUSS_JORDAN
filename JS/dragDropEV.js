@@ -1,5 +1,5 @@
 // dragDropEV.js
-import { crearSpanCelda, actualizarBotonCalcularEV, tieneErroresEV } from "./celdas.js";
+import { actualizarBotonCalcularEV } from "./celdas.js";
 
 let onMatrixLoadCallback = null;
 
@@ -40,6 +40,144 @@ export function isValidVectorValue(value) {
     return true;
 }
 
+function limpiarValor(valor) {
+    if (valor === null || valor === undefined) return "";
+    return String(valor).trim();
+}
+
+function normalizarFilas(filas) {
+    const matrix = filas
+        .map(fila => fila.map(limpiarValor))
+        .filter(fila => fila.some(celda => celda !== ""));
+
+    if (matrix.length === 0) {
+        throw new Error("Archivo vacío");
+    }
+
+    const maxCols = Math.max(...matrix.map(row => row.length));
+    matrix.forEach(row => {
+        while (row.length < maxCols) {
+            row.push("0");
+        }
+    });
+
+    return matrix;
+}
+
+function transponerMatriz(matrix) {
+    const filas = matrix.length;
+    const columnas = matrix[0]?.length || 0;
+    const vectores = [];
+
+    for (let j = 0; j < columnas; j++) {
+        const vector = [];
+        for (let i = 0; i < filas; i++) {
+            vector.push(matrix[i][j] || "0");
+        }
+        vectores.push(vector);
+    }
+
+    return vectores;
+}
+
+function parseGreekVectorList(text) {
+    const vectores = [];
+    const regex = /[\u0370-\u03ff]+(?:\d+|[₀-₉]+)?\s*=\s*[\(\[]([^\)\]]+)[\)\]]/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        const componentes = match[1]
+            .split(/[\s,;]+/)
+            .map(limpiarValor)
+            .filter(valor => valor !== "");
+
+        if (componentes.length > 0) vectores.push(componentes);
+    }
+
+    return vectores.length > 0 ? normalizarFilas(vectores) : null;
+}
+
+function filasATexto(filas) {
+    return filas.map(fila => fila.map(limpiarValor).join(" ")).join("\n");
+}
+
+function pedirFormatoArchivo() {
+    return confirm(
+        "¿El archivo está en forma de matriz?\n\n" +
+        "Aceptar: matriz por columnas, cada columna será un vector.\n" +
+        "Cancelar: lista de vectores, cada fila será un vector."
+    ) ? "matriz" : "lista";
+}
+
+export function parseMatrixToVectors(text, modo = "lista") {
+    const greekVectors = parseGreekVectorList(text);
+    if (greekVectors) return greekVectors;
+
+    const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
+    
+    if (lines.length === 0) {
+        throw new Error("Archivo vacío");
+    }
+    
+    const matrix = normalizarFilas(lines.map((line, index) => {
+        const tokens = line.trim().split(/[\s,;]+/).filter(token => token);
+        if (tokens.length === 0) {
+            throw new Error(`Línea ${index + 1} vacía`);
+        }
+        return tokens;
+    }));
+    
+    return modo === "matriz" ? transponerMatriz(matrix) : matrix;
+}
+
+function parseRowsToVectors(rows, modo = "lista") {
+    const texto = filasATexto(rows);
+    const greekVectors = parseGreekVectorList(texto);
+    if (greekVectors) return greekVectors;
+
+    const matrix = normalizarFilas(rows);
+    return modo === "matriz" ? transponerMatriz(matrix) : matrix;
+}
+
+function leerArchivoTexto(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => resolve(event.target.result);
+        reader.onerror = () => reject(new Error("Error al leer el archivo"));
+        reader.readAsText(file);
+    });
+}
+
+function leerArchivoArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => resolve(event.target.result);
+        reader.onerror = () => reject(new Error("Error al leer el archivo"));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+async function leerXLSX(file) {
+    if (!window.XLSX) {
+        throw new Error("No se cargó el lector XLSX. Revisa la conexión o usa .txt/.csv.");
+    }
+
+    const buffer = await leerArchivoArrayBuffer(file);
+    const workbook = window.XLSX.read(new Uint8Array(buffer), { type: "array" });
+    const firstSheet = workbook.SheetNames[0];
+
+    if (!firstSheet) {
+        throw new Error("El archivo XLSX no contiene hojas");
+    }
+
+    const sheet = workbook.Sheets[firstSheet];
+    return window.XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+        defval: ""
+    });
+}
+
 // Encontrar errores en los vectores
 function findErrorsInVectors(vectores) {
     const errors = [];
@@ -67,13 +205,11 @@ function markErrorsInEVTable(table, errors) {
         for (let i = 0; i < table.rows.length; i++) {
             const tr = table.rows[i];
             const primeraCelda = tr.cells[0];
-            if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
+            if (primeraCelda && (primeraCelda.innerHTML.includes("α") || primeraCelda.innerHTML.includes("β"))) {
                 if (filaActual === row) {
-                    const cell = tr.cells[col + 1];
-                    if (cell) {
-                        const span = cell.querySelector('.cell-span');
-                        if (span) span.classList.add('cell-error');
-                    }
+                    const componentes = Array.from(tr.querySelectorAll('.cell-span'));
+                    const span = componentes[col];
+                    if (span) span.classList.add('cell-error');
                     break;
                 }
                 filaActual++;
@@ -96,39 +232,12 @@ function updateEVFileIndicatorBasedOnErrors(hasErrors) {
     if (statusSpan) {
         if (hasErrors) {
             statusSpan.className = "file-status error";
-            statusSpan.innerHTML = "⚠ Error";
+            statusSpan.innerHTML = " Error";
         } else {
             statusSpan.className = "file-status valid";
-            statusSpan.innerHTML = "✓ Válido";
+            statusSpan.innerHTML = " Válido";
         }
     }
-}
-
-export function parseMatrixToVectors(text) {
-    const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
-    
-    if (lines.length === 0) {
-        throw new Error("Archivo vacío");
-    }
-    
-    const matrix = lines.map((line, index) => {
-        const tokens = line.trim().split(/[\s,;]+/).filter(token => token);
-        if (tokens.length === 0) {
-            throw new Error(`Línea ${index + 1} vacía`);
-        }
-        return tokens;
-    });
-    
-    const columnCounts = matrix.map(row => row.length);
-    const maxCols = Math.max(...columnCounts);
-    
-    matrix.forEach(row => {
-        while (row.length < maxCols) {
-            row.push("0");
-        }
-    });
-    
-    return matrix;
 }
 
 export function clearEVFileData() {
@@ -136,7 +245,7 @@ export function clearEVFileData() {
     if (indicator) {
         indicator.remove();
     }
-    // Re-habilitar botón calcular después de eliminar archivo
+    // Rehabilitar botón calcular después de eliminar archivo
     setTimeout(() => actualizarBotonCalcularEV(), 50);
 }
 
@@ -166,6 +275,66 @@ function updateEVFileIndicator(fileName, isValid) {
     }
 }
 
+async function procesarArchivoEV(file) {
+    const fileName = file.name.toLowerCase();
+    const esXLSX = fileName.endsWith('.xlsx');
+    const esTexto = fileName.endsWith('.txt') || fileName.endsWith('.csv');
+
+    if (!esXLSX && !esTexto) {
+        alert('Formato no soportado. Use archivos .txt, .csv o .xlsx');
+        return;
+    }
+
+    let vectores;
+
+    if (esXLSX) {
+        const filas = await leerXLSX(file);
+        const texto = filasATexto(filas);
+        const greekVectors = parseGreekVectorList(texto);
+        if (greekVectors) {
+            vectores = greekVectors;
+        } else {
+            const modo = pedirFormatoArchivo();
+            vectores = parseRowsToVectors(filas, modo);
+        }
+    } else {
+        const content = await leerArchivoTexto(file);
+        const greekVectors = parseGreekVectorList(content);
+        if (greekVectors) {
+            vectores = greekVectors;
+        } else {
+            const modo = pedirFormatoArchivo();
+            vectores = parseMatrixToVectors(content, modo);
+        }
+    }
+
+    if (vectores.length < 2) {
+        throw new Error("Se requieren al menos 2 vectores");
+    }
+    if (vectores[0].length < 2) {
+        throw new Error("Los vectores deben tener al menos 2 componentes");
+    }
+
+    const errors = findErrorsInVectors(vectores);
+    const hasErrors = errors.length > 0;
+
+    if (onMatrixLoadCallback) {
+        onMatrixLoadCallback(vectores, file.name);
+    }
+
+    // Solo actualizar el indicador existente, no crear uno nuevo
+    updateEVFileIndicator(file.name, !hasErrors);
+
+    // Marcar errores después de que la tabla se construya
+    setTimeout(() => {
+        const table = document.getElementById("inputTable");
+        if (table && hasErrors) {
+            markErrorsInEVTable(table, errors);
+        }
+        actualizarBotonCalcularEV();
+    }, 100);
+}
+
 export function initDragAndDropEV() {
     const existingDropZone = document.getElementById("dropZoneEV");
     if (existingDropZone) existingDropZone.remove();
@@ -180,7 +349,8 @@ export function initDragAndDropEV() {
         <div class="drop-zone-content">
             <div class="icon">📥</div>
             <h2>Soltar archivo de vectores</h2>
-            <p>Formato: cada fila es un vector (componentes separados por espacio, coma o punto y coma)</p>
+            <p>Formatos: .txt, .csv o .xlsx</p>
+            <p>Lista: cada fila es un vector. Matriz: cada columna será un vector.</p>
         </div>
     `;
     body.appendChild(dropZone);
@@ -206,59 +376,21 @@ export function initDragAndDropEV() {
         if (dragCounter === 0) dropZone.classList.remove('active');
     });
     
-    body.addEventListener('drop', (e) => {
+    body.addEventListener('drop', async (e) => {
         preventDefaults(e);
         dragCounter = 0;
         dropZone.classList.remove('active');
+
+        // Si no está abierto el módulo de E.V y S.E.V, este manejador no debe procesar el archivo.
+        if (!document.getElementById("btnCalcularEV")) return;
         
         const files = e.dataTransfer.files;
         if (files.length === 0) return;
         
-        const file = files[0];
-        const validExtensions = ['.txt', '.csv'];
-        const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-        
-        if (!hasValidExtension) {
-            alert('Formato no soportado. Use archivos .txt o .csv');
-            return;
+        try {
+            await procesarArchivoEV(files[0]);
+        } catch (error) {
+            alert(`Error al procesar el archivo: ${error.message}`);
         }
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const content = event.target.result;
-                const vectores = parseMatrixToVectors(content);
-                
-                if (vectores.length < 2) {
-                    throw new Error("Se requieren al menos 2 vectores");
-                }
-                if (vectores[0].length < 2) {
-                    throw new Error("Los vectores deben tener al menos 2 componentes");
-                }
-                
-                const errors = findErrorsInVectors(vectores);
-                const hasErrors = errors.length > 0;
-                
-                if (onMatrixLoadCallback) {
-                    onMatrixLoadCallback(vectores, file.name);
-                }
-                
-                // Solo actualizar el indicador existente, no crear uno nuevo
-                updateEVFileIndicator(file.name, !hasErrors);
-                
-                // Marcar errores después de que la tabla se construya
-                setTimeout(() => {
-                    const table = document.getElementById("inputTable");
-                    if (table && hasErrors) {
-                        markErrorsInEVTable(table, errors);
-                    }
-                    actualizarBotonCalcularEV();
-                }, 100);
-                
-            } catch (error) {
-                alert(`Error al procesar el archivo: ${error.message}`);
-            }
-        };
-        reader.readAsText(file);
     });
 }
