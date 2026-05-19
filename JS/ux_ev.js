@@ -3,7 +3,7 @@ import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
 import Auxiliares from "./auxiliares.js";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar } from "./calculos.js";
 import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js";
-import { crearSpanCelda, setEVMode, ajustarAnchoColumnaEV, ajustarTodasColumnasEV } from "./celdas.js";
+import { crearSpanCelda, setEVMode, ajustarTodasColumnasEV } from "./celdas.js";
 
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
@@ -44,8 +44,8 @@ export function inicializarEV(article, modo, preserveState = false) {
                 for (let i = 0; i < tablaVectores.rows.length; i++) {
                     const row = tablaVectores.rows[i];
                     const firstCell = row.cells[0];
-                    if (firstCell && (firstCell.innerHTML.includes("v") || firstCell.innerHTML.includes("B"))) {
-                        const span = row.cells[1]?.querySelector('.cell-span');
+                    if (firstCell && (firstCell.innerHTML.includes("α") || firstCell.innerHTML.includes("β"))) {
+                        const span = row.querySelector('.cell-span');
                         if (span) span.click();
                         break;
                     }
@@ -156,7 +156,17 @@ export function inicializarEV(article, modo, preserveState = false) {
 
         mostrarResultadoEV(resultado, currentOperation);
     };
-    resultSection.appendChild(btnCalcular);
+    const botonesEV = document.createElement("div");
+    botonesEV.className = "ev-buttons";
+    botonesEV.appendChild(btnCalcular);
+
+    const btnLimpiar = UI.createButton("btnLimpiarEV", "Borrar toda la matriz", "btnCalcular btnLimpiarEV");
+    btnLimpiar.onclick = () => {
+        limpiarTodoEV();
+    };
+    botonesEV.appendChild(btnLimpiar);
+
+    resultSection.appendChild(botonesEV);
 
     article.appendChild(resultSection);
 
@@ -257,8 +267,8 @@ function construirFilasVectores() {
 
         // Celda de etiqueta
         const labelCell = document.createElement("td");
-        const label = esVectorB ? "\u03B2 =" : `\u03B1${i + 1} =`;
-        labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600; white-space:nowrap;">${label}</span>`;
+        const label = esVectorB ? "β =" : `α<sub>${i + 1}</sub> =`;
+        labelCell.innerHTML = `<span class="vector-label">${label}</span>`;
         labelCell.style.pointerEvents = "none";
         labelCell.style.verticalAlign = "middle";
         row.appendChild(labelCell);
@@ -278,6 +288,14 @@ function construirFilasVectores() {
             const span = crearSpanCelda(vector[j] || "", i, j);
             cell.appendChild(span);
             row.appendChild(cell);
+
+            if (j < numComponentes - 1) {
+                const commaCell = document.createElement("td");
+                commaCell.className = "vector-componente-comma-cell";
+                commaCell.innerHTML = `<span class="vector-componente-comma">,</span>`;
+                commaCell.style.pointerEvents = "none";
+                row.appendChild(commaCell);
+            }
         }
 
         // Paréntesis derecho
@@ -295,7 +313,7 @@ function construirFilasVectores() {
         if (esPertenecer && i === numVectores - 2 && numVectores >= 2) {
             const separatorRow = document.createElement("tr");
             const separatorCell = document.createElement("td");
-            separatorCell.colSpan = numComponentes + 3;
+            separatorCell.colSpan = (numComponentes * 2) + 2;
             separatorCell.style.borderTop = "2px solid var(--primary)";
             separatorCell.style.margin = "6px 0";
             separatorCell.style.padding = "0";
@@ -307,7 +325,7 @@ function construirFilasVectores() {
     // Botón agregar vector
     const rowBtn = document.createElement("tr");
     const cellBtn = document.createElement("td");
-    cellBtn.colSpan = (vectoresHorizontales[0]?.length || 2) + 3;
+    cellBtn.colSpan = ((vectoresHorizontales[0]?.length || 2) * 2) + 2;
     const btnAgregar = document.createElement("button");
     btnAgregar.textContent = "+ Agregar Vector";
     btnAgregar.className = "btn-agregar-vector";
@@ -320,13 +338,7 @@ function construirFilasVectores() {
     rowBtn.appendChild(cellBtn);
     tablaVectores.appendChild(rowBtn);
 
-    setTimeout(() => {
-        if (tablaVectores) {
-            for (let j = 0; j < numComponentes; j++) {
-                ajustarAnchoColumnaEV(tablaVectores, j + 2);
-            }
-        }
-    }, 50);
+    setTimeout(() => ajustarAnchosVectores(), 50);
 }
 
 function construirMatrizColumnas(table) {
@@ -415,7 +427,7 @@ function enfocarCelda(r, c) {
     for (let i = 0; i < tablaVectores.rows.length; i++) {
         const row = tablaVectores.rows[i];
         const primeraCelda = row.cells[0];
-        if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B") || primeraCelda.innerHTML.includes("α"))) {
+        if (primeraCelda && (primeraCelda.innerHTML.includes("α") || primeraCelda.innerHTML.includes("β"))) {
             if (contador === r) {
                 filaEncontrada = row;
                 break;
@@ -426,15 +438,15 @@ function enfocarCelda(r, c) {
 
     if (!filaEncontrada) return;
 
-    // +2 porque: cell[0]=label, cell[1]=paréntesis izquierdo, luego vienen las componentes
-    const columna = c + 2;
-    if (columna >= filaEncontrada.cells.length) return;
+    const celdasComponentes = Array.from(filaEncontrada.querySelectorAll('.cell-span, .cell-input'));
+    const elemento = celdasComponentes[c];
+    if (!elemento) return;
 
-    const cell = filaEncontrada.cells[columna];
-    if (!cell) return;
-
-    const span = cell.querySelector('.cell-span');
-    if (span) span.click();
+    if (elemento.classList.contains('cell-span')) elemento.click();
+    else {
+        elemento.focus();
+        elemento.select();
+    }
 }
 
 function guardarVectoresDesdeTabla() {
@@ -450,7 +462,7 @@ function guardarVectoresDesdeTabla() {
 
         // Verificar si es una fila de vector (primera celda tiene v o B)
         const primeraCelda = fila.cells[0];
-        if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
+        if (primeraCelda && (primeraCelda.innerHTML.includes("α") || primeraCelda.innerHTML.includes("β"))) {
             const vector = Array.from(celdas).map(el => {
                 let valor = el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "");
                 // Convertir celdas vacías a "0"
@@ -557,6 +569,93 @@ function crearVectorCanonicoTexto(dimension, indice) {
     return `(${componentes.join(", ")})`;
 }
 
+
+function limpiarTodoEV() {
+    const numComp = Math.max(2, vectoresHorizontales[0]?.length || 2);
+    if (currentOperation === "pertenecer") {
+        vectoresHorizontales = [Array(numComp).fill(""), Array(numComp).fill(""), Array(numComp).fill("")];
+    } else {
+        vectoresHorizontales = [Array(numComp).fill(""), Array(numComp).fill("")];
+    }
+    savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
+    construirFilasVectores();
+    sincronizarMatrizDesdeVectores();
+    const prev = document.getElementById("resultadoEVSection");
+    if (prev) prev.remove();
+    setTimeout(() => enfocarCelda(0, 0), 30);
+}
+
+function ajustarAnchosVectores() {
+    if (!tablaVectores) return;
+    const filas = Array.from(tablaVectores.rows).filter(row => {
+        const primeraCelda = row.cells[0];
+        return primeraCelda && (primeraCelda.innerHTML.includes("α") || primeraCelda.innerHTML.includes("β"));
+    });
+    if (!filas.length) return;
+
+    const numComponentes = vectoresHorizontales[0]?.length || 2;
+    for (let j = 0; j < numComponentes; j++) {
+        let maxChars = 6;
+        const elementos = [];
+        filas.forEach(row => {
+            const componentes = Array.from(row.querySelectorAll('.cell-span, .cell-input'));
+            const el = componentes[j];
+            if (!el) return;
+            elementos.push(el);
+            const valor = el.classList.contains('cell-input') ? el.value : (el.getAttribute('data-value') || el.textContent || "");
+            maxChars = Math.max(maxChars, String(valor || "").length + 1);
+        });
+        const finalWidth = `${maxChars}ch`;
+        elementos.forEach(el => {
+            el.style.width = finalWidth;
+            el.style.minWidth = finalWidth;
+        });
+    }
+}
+
+function convertirVectoresFraccionAMatriz(vectores, agregarColumnaCeros = false) {
+    if (!vectores.length) return [];
+    const dimension = vectores[0].length;
+    const matriz = [];
+    for (let i = 0; i < dimension; i++) {
+        const fila = vectores.map(vector => ({ num: vector[i].num, den: vector[i].den }));
+        if (agregarColumnaCeros) fila.push({ num: 0, den: 1 });
+        matriz.push(fila);
+    }
+    return matriz;
+}
+
+function crearConjuntoVectores(vectores, etiqueta = "W = {", claseVector = "vector-item") {
+    const conjuntoDiv = document.createElement("div");
+    conjuntoDiv.className = "conjunto-container";
+
+    const wLabel = document.createElement("span");
+    wLabel.className = "conjunto-llave-abierta";
+    wLabel.textContent = etiqueta;
+    conjuntoDiv.appendChild(wLabel);
+
+    vectores.forEach((vector, idx) => {
+        const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+        const vectorSpan = document.createElement("span");
+        vectorSpan.className = claseVector;
+        vectorSpan.textContent = `(${vectorStr})`;
+        conjuntoDiv.appendChild(vectorSpan);
+        if (idx < vectores.length - 1) {
+            const comma = document.createElement("span");
+            comma.className = "vector-comma";
+            comma.textContent = ",";
+            conjuntoDiv.appendChild(comma);
+        }
+    });
+
+    const closeBrace = document.createElement("span");
+    closeBrace.className = "conjunto-llave-cerrada";
+    closeBrace.textContent = "}";
+    conjuntoDiv.appendChild(closeBrace);
+
+    return conjuntoDiv;
+}
+
 function mostrarResultadoEV(resultado, operacion) {
     const prev = document.getElementById("resultadoEVSection");
     if (prev) prev.remove();
@@ -574,47 +673,18 @@ function mostrarResultadoEV(resultado, operacion) {
 
     // Mostrar matriz solo si no es error
     if (!esError) {
-        // Mostrar matriz ortogonal (para ortogonalizar)
+        // Mostrar base ortogonal como vectores, no como matriz
         if (operacion === "ortogonalizar" && resultado && resultado.length > 0) {
-            const wrapperMatriz = document.createElement("div");
-            wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
-            wrapperMatriz.style.marginBottom = "1rem";
+            const ortogonalContainer = document.createElement("div");
+            ortogonalContainer.className = "base-container base-ortogonal-container";
 
-            const label = document.createElement("div");
-            label.className = "result-label resultado-matriz-label";
-            label.textContent = "W =";
+            const title = document.createElement("p");
+            title.className = "base-title";
+            title.textContent = "BASE ORTOGONAL";
+            ortogonalContainer.appendChild(title);
 
-            const matrixContainer = document.createElement("div");
-            matrixContainer.className = "result-matrix-container";
-
-            const tabla = document.createElement("table");
-            tabla.className = "result-table";
-
-            const numFilas = resultado[0]?.length || 0;
-            const numColumnas = resultado.length;
-
-            for (let i = 0; i < numFilas; i++) {
-                const tr = document.createElement("tr");
-                for (let j = 0; j < numColumnas; j++) {
-                    const td = document.createElement("td");
-                    const vector = resultado[j];
-                    const valor = vector[i];
-                    const str = Auxiliares.fraccionToString(valor);
-                    if (str.includes("/")) {
-                        const [num, den] = str.split("/");
-                        td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
-                    } else {
-                        td.textContent = str;
-                    }
-                    tr.appendChild(td);
-                }
-                tabla.appendChild(tr);
-            }
-
-            matrixContainer.appendChild(tabla);
-            wrapperMatriz.appendChild(label);
-            wrapperMatriz.appendChild(matrixContainer);
-            content.appendChild(wrapperMatriz);
+            ortogonalContainer.appendChild(crearConjuntoVectores(resultado, "W = {", "vector-item vector-ortogonal"));
+            content.appendChild(ortogonalContainer);
         }
 
         // Mostrar matriz reducida (para LI/LD, pertenecer, base, completar)
@@ -745,6 +815,21 @@ function mostrarResultadoEV(resultado, operacion) {
             conjuntoDiv.appendChild(closeBrace);
 
             baseContainer.appendChild(conjuntoDiv);
+
+            const btnCompletarBase = document.createElement("button");
+            btnCompletarBase.className = "btnCalcular btn-completar-desde-base";
+            btnCompletarBase.textContent = "Completar esta base";
+            btnCompletarBase.onclick = () => {
+                try {
+                    const matrizBase = convertirVectoresFraccionAMatriz(resultado.base, true);
+                    const baseCompletada = completarBase(matrizBase);
+                    mostrarResultadoEV(baseCompletada, "completar");
+                } catch (error) {
+                    mostrarResultadoEV({ esError: true, mensaje: error.message }, "completar");
+                }
+            };
+            baseContainer.appendChild(btnCompletarBase);
+
             content.appendChild(baseContainer);
         }
 
