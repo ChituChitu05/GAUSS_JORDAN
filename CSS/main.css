@@ -1465,3 +1465,165 @@ kbd {
         font-size: 18px;
     }
 }
+/* ===== AJUSTES DE ARMONÍA VISUAL ===== */
+.result-table td {
+    font-size: clamp(1.25rem, 2vw, 1.7rem);
+    font-weight: 500;
+}
+
+.result-table .frac {
+    font-size: 1em;
+    min-width: 70px;
+}
+
+.det-result-value,
+.det-equal,
+.factor-item {
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+#inputTable .cell-input,
+#inputTable .cell-span {
+    font-size: 1.55rem;
+}
+
+.vector-label {
+    color: var(--primary);
+    font-weight: 700;
+    white-space: nowrap;
+    font-size: 1.35rem;
+}
+
+.vector-label sub {
+    font-size: 0.7em;
+    vertical-align: sub;
+}
+
+.vector-componente-comma-cell {
+    min-width: 12px !important;
+    width: 12px !important;
+    padding: 0 !important;
+}
+
+.vector-componente-comma {
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 1.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.paren-left,
+.paren-right {
+    min-height: 65px;
+    font-size: 3.2rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.ev-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.btnLimpiarEV {
+    background: transparent !important;
+    border: 2px solid var(--error) !important;
+    color: var(--error) !important;
+}
+
+.btnLimpiarEV:hover {
+    background: rgba(255, 59, 92, 0.12) !important;
+}
+
+.btn-completar-desde-base {
+    margin-top: 0.5rem;
+}
+
+.vector-ortogonal {
+    background: rgba(0, 200, 160, 0.1);
+    border: 1px solid rgba(0, 200, 160, 0.25);
+}
+
+.tutorial-section {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.tutorial-btn {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.tutorial-content {
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.tutorial-content.show {
+    display: flex;
+}
+
+.tutorial-video-box {
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.tutorial-video-box h4 {
+    color: var(--success);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.video-placeholder {
+    min-height: 130px;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.video-placeholder::before {
+    content: "Espacio para insertar video";
+}
+
+@media (max-width: 768px) {
+    .result-table td {
+        font-size: clamp(1.05rem, 3vw, 1.35rem);
+    }
+
+    .paren-left,
+    .paren-right {
+        min-height: 58px;
+        font-size: 2.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .result-table td {
+        font-size: clamp(0.95rem, 3vw, 1.15rem);
+    }
+
+    .paren-left,
+    .paren-right {
+        min-height: 50px;
+        font-size: 2.2rem;
+    }
+}
