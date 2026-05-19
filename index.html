@@ -6,6 +6,7 @@
     <title>Gauss-Jordan</title>
     <link rel="stylesheet" href="./CSS/main.css">
     <link rel="icon" href="./img/los-pollos-hermanos-logo-png_seeklogo-502644.png?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <header id="hearder">
@@ -37,10 +38,27 @@
                         <li><kbd>Tab</kbd> - Mover a la siguiente celda</li>
                         <li><kbd>Enter</kbd> - Crear nueva fila</li>
                         <li><kbd>Espacio</kbd> - Crear nueva columna</li>
-                        <li><kbd>Backspace</kbd> - Eliminar contenido (vacía la celda)</li>
+                        <li><kbd>Backspace</kbd> / <kbd>Delete</kbd> - Borrar contenido y eliminar filas o columnas vacías</li>
                         <li><kbd>Esc</kbd> - Cancelar edición</li>
                         <li><kbd>Ctrl + Enter</kbd> - Calcular resultado</li>
                     </ul>
+                </div>
+                <div class="tutorial-section">
+                    <button id="tutorialBtn" class="tutorial-btn">Tutorial</button>
+                    <div id="tutorialContent" class="tutorial-content">
+                        <div class="tutorial-video-box">
+                            <h4>Matrices</h4>
+                            <div class="video-placeholder">
+                                <!-- Inserta aquí el video tutorial de matrices -->
+                            </div>
+                        </div>
+                        <div class="tutorial-video-box">
+                            <h4>Espacios vectoriales y subespacios vectoriales</h4>
+                            <div class="video-placeholder">
+                                <!-- Inserta aquí el video tutorial de E.V y S.E.V -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
