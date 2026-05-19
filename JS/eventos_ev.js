@@ -1,4 +1,4 @@
-import { spanToInput, inputToSpan, crearSpanCelda, ajustarAnchoColumnaEV, actualizarBotonCalcularEV } from "./celdas.js";
+import { spanToInput, inputToSpan, crearSpanCelda, ajustarTodasColumnasEV, actualizarBotonCalcularEV } from "./celdas.js";
 
 let currentTable = null;
 let currentArticle = null;
@@ -271,7 +271,7 @@ function manejarKeydown(e) {
         return;
     }
 
-    if (e.key === 'Backspace') {
+    if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         e.stopPropagation();
         
@@ -284,21 +284,73 @@ function manejarKeydown(e) {
                 target.setSelectionRange(target.value.length, target.value.length);
                 return;
             }
-            // Input vacío - convertir a span y mover a izquierda
             inputToSpan(target);
-            moverIzquierda();
-            if (callbacks.onSync) callbacks.onSync();
+            if (!procesarBorradoEstructural(currentRowIndex, currentColIndex)) {
+                moverIzquierda();
+                if (callbacks.onSync) callbacks.onSync();
+            }
         } else if (isSpan) {
             target.setAttribute('data-value', '');
             target.innerHTML = '';
             target.textContent = '';
             target.classList.remove('cell-error');
             actualizarBotonCalcularEV();
-            moverIzquierda();
-            if (callbacks.onSync) callbacks.onSync();
+            if (!procesarBorradoEstructural(currentRowIndex, currentColIndex)) {
+                moverIzquierda();
+                if (callbacks.onSync) callbacks.onSync();
+            }
         }
         return;
     }
+}
+
+
+function valorEditableVacio(elemento) {
+    if (!elemento) return true;
+    const valor = elemento.classList.contains('cell-input')
+        ? elemento.value
+        : (elemento.getAttribute('data-value') || elemento.textContent || "");
+    return String(valor || "").trim() === "";
+}
+
+function filaVaciaEV(rowIdx) {
+    const filasVectores = obtenerFilasDeVectores();
+    const row = filasVectores[rowIdx];
+    if (!row) return false;
+    const cells = getComponenteCellsFromRow(row);
+    return cells.every(({ element }) => valorEditableVacio(element));
+}
+
+function columnaVaciaEV(colIdx) {
+    const filasVectores = obtenerFilasDeVectores();
+    if (!filasVectores.length) return false;
+    return filasVectores.every(row => {
+        const cells = getComponenteCellsFromRow(row);
+        return valorEditableVacio(cells[colIdx]?.element);
+    });
+}
+
+function procesarBorradoEstructural(rowIdx, colIdx) {
+    if (!callbacks.onBackspace) return false;
+
+    const filasVectores = obtenerFilasDeVectores();
+    const numFilas = filasVectores.length;
+    const numColumnas = filasVectores[0] ? getComponenteCellsFromRow(filasVectores[0]).length : 0;
+    const minFilas = 2;
+    const minColumnas = 2;
+
+    const puedeBorrarFila = numFilas > minFilas && filaVaciaEV(rowIdx);
+    const puedeBorrarColumna = numColumnas > minColumnas && columnaVaciaEV(colIdx);
+
+    let tipo = null;
+    if (puedeBorrarFila && puedeBorrarColumna) tipo = 'ambos';
+    else if (puedeBorrarFila) tipo = 'fila';
+    else if (puedeBorrarColumna) tipo = 'columna';
+
+    if (!tipo) return false;
+
+    callbacks.onBackspace(rowIdx, colIdx, tipo);
+    return true;
 }
 
 function manejarClick(e) {
@@ -356,8 +408,7 @@ function manejarFocusout(e) {
     if (currentTable) {
         setTimeout(() => {
             if (currentCell) {
-                const col = currentColIndex;
-                ajustarAnchoColumnaEV(currentTable, col + 2);
+                ajustarTodasColumnasEV(currentTable);
             }
             actualizarBotonCalcularEV();
         }, 10);
