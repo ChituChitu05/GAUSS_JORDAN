@@ -93,6 +93,7 @@ export function ajustarTodasColumnasEV(table) {
 }
 
 export function crearSpanCelda(value, row, col) {
+    const valorNormalizado = Auxiliares.normalizarValorTexto(value);
     const span = document.createElement("span");
     span.className = "cell-span";
     span.setAttribute("data-row", row);
@@ -110,28 +111,24 @@ export function crearSpanCelda(value, row, col) {
     span.style.lineHeight = "1.4";
     span.style.minWidth = "6ch";
 
-    if (value && Auxiliares.esFraccion(value)) {
-        const fraccion = Auxiliares.parsearFraccion(value);
+    if (valorNormalizado && Auxiliares.esFraccion(valorNormalizado)) {
+        const fraccion = Auxiliares.parsearFraccion(valorNormalizado);
         const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
         const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
 
         if (denSimp === 1) {
             span.setAttribute('data-value', valorSimplificado);
             span.textContent = numSimp;
-        } else if (Auxiliares.tieneDecimales(value)) {
-            const [num, den] = value.split("/");
-            span.setAttribute('data-value', value);
-            span.innerHTML = `<span class="frac" style="display:inline-flex; flex-direction:column; align-items:center;"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
         } else {
             span.setAttribute('data-value', valorSimplificado);
             span.innerHTML = `<span class="frac" style="display:inline-flex; flex-direction:column; align-items:center;"><span class="top">${numSimp}</span><span class="bottom">${denSimp}</span></span>`;
         }
     } else {
-        span.setAttribute('data-value', value || "");
-        span.textContent = value || "";
+        span.setAttribute('data-value', valorNormalizado || "");
+        span.textContent = valorNormalizado || "";
     }
     
-    const contentLength = (value || "").length;
+    const contentLength = (valorNormalizado || "").length;
     const initialWidth = Math.max(6, contentLength + 1);
     span.style.width = initialWidth + "ch";
 
@@ -180,28 +177,10 @@ export function inputToSpan(input) {
     const col = parseInt(input.getAttribute('data-col'));
     const value = input.value.trim();
 
-    let finalValue = value;
+    let finalValue = Auxiliares.normalizarValorTexto(value);
 
     if (finalValue === "/") {
         finalValue = "";
-    }
-
-    if (value && value.includes('/')) {
-        const [numStr, denStr] = value.split('/');
-        const num = parseFloat(numStr);
-        const den = parseFloat(denStr);
-        
-        if (!isNaN(num) && !isNaN(den) && den === 1) {
-            finalValue = `${num}`;
-        } else if (Auxiliares.esFraccion(value)) {
-            const fraccion = Auxiliares.parsearFraccion(value);
-            const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
-            if (denSimp === 1) {
-                finalValue = `${numSimp}`;
-            } else if (!Auxiliares.tieneDecimales(value)) {
-                finalValue = `${numSimp}/${denSimp}`;
-            }
-        }
     }
 
     const span = crearSpanCelda(finalValue, row, col);
