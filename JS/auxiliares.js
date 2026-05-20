@@ -163,6 +163,35 @@ export function parsearMatriz(table) {
     );
 }
 
+
+// Normalizar textos numéricos para evitar ceros a la izquierda y signos redundantes
+export function normalizarValorTexto(valor) {
+    if (valor === null || valor === undefined) return "";
+
+    const str = String(valor).trim();
+    if (str === "" || str === "-") return str;
+
+    try {
+        if (str.includes("/")) {
+            const partes = str.split("/");
+            if (partes.length !== 2) return str;
+
+            const fraccion = parsearFraccion(str);
+            const [num, den] = simplificar(fraccion.num, fraccion.den);
+
+            if (num === 0) return "0";
+            return den === 1 ? `${num}` : `${num}/${den}`;
+        }
+
+        const numero = Number(str);
+        if (Number.isNaN(numero)) return str;
+
+        return `${Object.is(numero, -0) ? 0 : numero}`;
+    } catch (error) {
+        return str;
+    }
+}
+
 export function formatearResultado(frac, tieneDecimal) {
     const valorDecimal = frac.num / frac.den;
     
@@ -429,7 +458,8 @@ const auxiliares = {
     esFraccion,
     tieneDecimales,
     formatearResultado,
-    parsearVectoresAMatriz
+    parsearVectoresAMatriz,
+    normalizarValorTexto
 };
 
 export default auxiliares;
