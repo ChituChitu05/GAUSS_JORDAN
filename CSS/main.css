@@ -2092,7 +2092,7 @@ kbd {
 }
 
 
-/* ===== AJUSTES V8 - CENTRADO FINAL DE CAJAS RESPECTO A PARÉNTESIS ===== */
+/* ===== AJUSTES V9 - CENTRADO FINO DE CAJAS RESPECTO A PARÉNTESIS ===== */
 #inputTable.ev-vector-table .ev-vector-input-cell,
 #inputTable.ev-vector-table .vector-componente-comma-cell {
     top: 0 !important;
@@ -2103,7 +2103,7 @@ kbd {
 #inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
 #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
     position: relative !important;
-    top: 5px !important;
+    top: 7px !important;
 }
 
 #inputTable.ev-vector-table .ev-paren-cell .paren-left,
@@ -2117,6 +2117,6 @@ kbd {
     #inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
     #inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
     #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
-        top: 4px !important;
+        top: 6px !important;
     }
 }
