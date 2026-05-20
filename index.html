@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Gauss-Jordan</title>
-    <link rel="stylesheet" href="./CSS/main.css">
+    <link rel="stylesheet" href="./CSS/main.css?v=5">
     <link rel="icon" href="./img/los-pollos-hermanos-logo-png_seeklogo-502644.png?v=2">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -45,8 +45,8 @@
                 </div>
             </div>
             <div class="modal-footer modal-footer-dual">
-                <button id="tutorialBtn" class="btn-close-modal">Tutorial</button>
-                <button id="btnEntendidoModal" class="btn-close-modal">Entendido</button>
+                <button id="tutorialBtn" class="btn-close-modal" type="button">Tutorial</button>
+                <button id="btnEntendidoModal" class="btn-close-modal" type="button">Entendido</button>
             </div>
         </div>
     </div>
@@ -56,7 +56,7 @@
         <div class="modal-content tutorial-modal-content">
             <div class="modal-header">
                 <h2>Tutoriales</h2>
-                <button id="tutorialModalClose" class="modal-close">&times;</button>
+                <button id="tutorialModalClose" class="modal-close" type="button">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="tutorial-content show">
@@ -75,11 +75,58 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btnCerrarTutorialModal" class="btn-close-modal">Entendido</button>
+                <button id="btnCerrarTutorialModal" class="btn-close-modal" type="button">Entendido</button>
             </div>
         </div>
     </div>
     
-    <script type="module" src="./JS/main.js"></script>
+
+    <script>
+        window.addEventListener("DOMContentLoaded", function () {
+            const helpModal = document.getElementById("helpModal");
+            const tutorialModal = document.getElementById("tutorialModal");
+            const tutorialBtn = document.getElementById("tutorialBtn");
+            const closeHelpBtn = document.getElementById("btnEntendidoModal");
+            const closeTutorialBtn = document.getElementById("btnCerrarTutorialModal");
+            const tutorialCloseX = document.getElementById("tutorialModalClose");
+
+            function abrirTutoriales() {
+                if (helpModal) helpModal.classList.remove("show");
+                if (tutorialModal) tutorialModal.classList.add("show");
+            }
+
+            function cerrarTutoriales() {
+                if (tutorialModal) tutorialModal.classList.remove("show");
+            }
+
+            if (tutorialBtn && !tutorialBtn.dataset.fallbackTutorial) {
+                tutorialBtn.dataset.fallbackTutorial = "true";
+                tutorialBtn.addEventListener("click", abrirTutoriales);
+            }
+
+            if (closeHelpBtn && helpModal && !closeHelpBtn.dataset.fallbackHelp) {
+                closeHelpBtn.dataset.fallbackHelp = "true";
+                closeHelpBtn.addEventListener("click", function () {
+                    helpModal.classList.remove("show");
+                });
+            }
+
+            [closeTutorialBtn, tutorialCloseX].forEach(function (btn) {
+                if (btn && !btn.dataset.fallbackTutorialClose) {
+                    btn.dataset.fallbackTutorialClose = "true";
+                    btn.addEventListener("click", cerrarTutoriales);
+                }
+            });
+
+            if (tutorialModal && !tutorialModal.dataset.fallbackBackdrop) {
+                tutorialModal.dataset.fallbackBackdrop = "true";
+                tutorialModal.addEventListener("click", function (event) {
+                    if (event.target === tutorialModal) cerrarTutoriales();
+                });
+            }
+        });
+    </script>
+
+    <script type="module" src="./JS/main.js?v=5"></script>
 </body>
 </html>
