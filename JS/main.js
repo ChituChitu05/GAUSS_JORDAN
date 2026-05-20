@@ -9,7 +9,7 @@ const article = document.getElementById("article");
 const aside = document.getElementById("aside");
 const modal = document.getElementById("helpModal");
 const modalClose = document.querySelector(".modal-close");
-const btnCloseModal = document.querySelector(".btn-close-modal");
+const btnCloseModal = document.getElementById("btnEntendidoModal");
 const tutorialBtn = document.getElementById("tutorialBtn");
 const tutorialContent = document.getElementById("tutorialContent");
 
