@@ -1,5 +1,5 @@
 import { inicializarMatriz, cambiarModo } from "./ux_matrices.js";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=5";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=6";
 import { initDragAndDrop, initTableSync } from "./dragDrop.js";
 import UI from "./ui.js";
 import { desconfigurarEventosEV } from "./eventos_ev.js";
