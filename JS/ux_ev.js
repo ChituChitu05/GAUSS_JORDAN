@@ -373,6 +373,8 @@ function construirMatrizColumnas(table) {
                 valor = vectoresHorizontales[j][i] || "";
             }
 
+            valor = Auxiliares.normalizarValorTexto(valor);
+
             if (valor && valor.includes('/')) {
                 const [num, den] = valor.split('/');
                 cell.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
@@ -469,7 +471,7 @@ function guardarVectoresDesdeTabla() {
                 if (valor === "" || valor === null || valor === undefined) {
                     return "0";
                 }
-                return valor;
+                return Auxiliares.normalizarValorTexto(valor);
             });
             nuevosDatos.push(vector);
         }
@@ -625,6 +627,63 @@ function convertirVectoresFraccionAMatriz(vectores, agregarColumnaCeros = false)
     return matriz;
 }
 
+function crearFraccionVisualDesdeTexto(texto) {
+    const frac = document.createElement("span");
+    frac.className = "frac frac-vector";
+
+    const [num, den] = texto.split("/");
+
+    const top = document.createElement("span");
+    top.className = "top";
+    top.textContent = num;
+
+    const bottom = document.createElement("span");
+    bottom.className = "bottom";
+    bottom.textContent = den;
+
+    frac.appendChild(top);
+    frac.appendChild(bottom);
+    return frac;
+}
+
+function crearVectorVisual(vector, claseVector = "vector-item") {
+    const vectorSpan = document.createElement("span");
+    vectorSpan.className = `${claseVector} vector-visual`;
+
+    const leftParen = document.createElement("span");
+    leftParen.className = "vector-paren";
+    leftParen.textContent = "(";
+    vectorSpan.appendChild(leftParen);
+
+    vector.forEach((valor, idx) => {
+        const componente = document.createElement("span");
+        componente.className = "vector-component";
+
+        const texto = Auxiliares.normalizarValorTexto(Auxiliares.fraccionToString(valor));
+        if (texto.includes("/")) {
+            componente.appendChild(crearFraccionVisualDesdeTexto(texto));
+        } else {
+            componente.textContent = texto;
+        }
+
+        vectorSpan.appendChild(componente);
+
+        if (idx < vector.length - 1) {
+            const comma = document.createElement("span");
+            comma.className = "vector-component-comma";
+            comma.textContent = ",";
+            vectorSpan.appendChild(comma);
+        }
+    });
+
+    const rightParen = document.createElement("span");
+    rightParen.className = "vector-paren";
+    rightParen.textContent = ")";
+    vectorSpan.appendChild(rightParen);
+
+    return vectorSpan;
+}
+
 function crearConjuntoVectores(vectores, etiqueta = "W = {", claseVector = "vector-item") {
     const conjuntoDiv = document.createElement("div");
     conjuntoDiv.className = "conjunto-container";
@@ -635,11 +694,7 @@ function crearConjuntoVectores(vectores, etiqueta = "W = {", claseVector = "vect
     conjuntoDiv.appendChild(wLabel);
 
     vectores.forEach((vector, idx) => {
-        const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
-        const vectorSpan = document.createElement("span");
-        vectorSpan.className = claseVector;
-        vectorSpan.textContent = `(${vectorStr})`;
-        conjuntoDiv.appendChild(vectorSpan);
+        conjuntoDiv.appendChild(crearVectorVisual(vector, claseVector));
         if (idx < vectores.length - 1) {
             const comma = document.createElement("span");
             comma.className = "vector-comma";
@@ -787,33 +842,7 @@ function mostrarResultadoEV(resultado, operacion) {
             baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
             baseContainer.appendChild(baseTitle);
 
-            const conjuntoDiv = document.createElement("div");
-            conjuntoDiv.className = "conjunto-container";
-
-            const wLabel = document.createElement("span");
-            wLabel.className = "conjunto-llave-abierta";
-            wLabel.textContent = "W = {";
-            conjuntoDiv.appendChild(wLabel);
-
-            resultado.base.forEach((vector, idx) => {
-                const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
-                const vectorSpan = document.createElement("span");
-                vectorSpan.className = "vector-item";
-                vectorSpan.textContent = `(${vectorStr})`;
-                conjuntoDiv.appendChild(vectorSpan);
-                if (idx < resultado.base.length - 1) {
-                    const comma = document.createElement("span");
-                    comma.className = "vector-comma";
-                    comma.textContent = ",";
-                    conjuntoDiv.appendChild(comma);
-                }
-            });
-
-            const closeBrace = document.createElement("span");
-            closeBrace.className = "conjunto-llave-cerrada";
-            closeBrace.textContent = "}";
-            conjuntoDiv.appendChild(closeBrace);
-
+            const conjuntoDiv = crearConjuntoVectores(resultado.base, "W = {", "vector-item");
             baseContainer.appendChild(conjuntoDiv);
 
             const btnCompletarBase = document.createElement("button");
@@ -853,12 +882,8 @@ function mostrarResultadoEV(resultado, operacion) {
             conjuntoDiv.appendChild(wLabel);
 
             resultado.baseCompleta.forEach((vector, idx) => {
-                const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
-                const esCanonico = resultado.canonicosAgregados?.includes(idx - (resultado.baseOriginal || []).length);
-                const vectorSpan = document.createElement("span");
-                vectorSpan.className = `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`;
-                vectorSpan.textContent = `(${vectorStr})`;
-                conjuntoDiv.appendChild(vectorSpan);
+                const esCanonico = idx >= (resultado.baseOriginal || []).length;
+                conjuntoDiv.appendChild(crearVectorVisual(vector, `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`));
                 if (idx < resultado.baseCompleta.length - 1) {
                     const comma = document.createElement("span");
                     comma.className = "base-completa-comma";
