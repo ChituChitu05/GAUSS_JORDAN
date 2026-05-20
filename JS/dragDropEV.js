@@ -2,6 +2,9 @@
 import { actualizarBotonCalcularEV } from "./celdas.js";
 
 let onMatrixLoadCallback = null;
+let evDropListenersAttached = false;
+let evDropZone = null;
+let evIsProcessingDrop = false;
 
 export function setEVCallbacks(callback) {
     onMatrixLoadCallback = callback;
@@ -42,7 +45,23 @@ export function isValidVectorValue(value) {
 
 function limpiarValor(valor) {
     if (valor === null || valor === undefined) return "";
-    return String(valor).trim();
+
+    const limpio = String(valor).trim();
+    if (limpio === "" || limpio === "-") return limpio;
+
+    if (limpio.includes("/")) {
+        const partes = limpio.split("/");
+        if (partes.length !== 2) return limpio;
+
+        const num = Number(partes[0]);
+        const den = Number(partes[1]);
+        if (Number.isNaN(num) || Number.isNaN(den)) return limpio;
+
+        return `${Object.is(num, -0) ? 0 : num}/${Object.is(den, -0) ? 0 : den}`;
+    }
+
+    const numero = Number(limpio);
+    return Number.isNaN(numero) ? limpio : `${Object.is(numero, -0) ? 0 : numero}`;
 }
 
 function normalizarFilas(filas) {
@@ -101,12 +120,75 @@ function filasATexto(filas) {
     return filas.map(fila => fila.map(limpiarValor).join(" ")).join("\n");
 }
 
+let formatoArchivoPromise = null;
+
+function obtenerModalFormatoArchivo() {
+    let modal = document.getElementById("fileFormatModal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "fileFormatModal";
+    modal.className = "modal";
+    modal.innerHTML = `
+        <div class="modal-content file-format-modal-content">
+            <div class="modal-header">
+                <h2>Formato del archivo</h2>
+                <button class="modal-close" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>¿Cómo quieres leer los datos?</h3>
+                    <p><strong>Lista de vectores:</strong> cada fila del archivo será un vector.</p>
+                    <p><strong>Matriz:</strong> cada columna del archivo será tomada como un vector.</p>
+                </div>
+            </div>
+            <div class="modal-footer modal-footer-dual">
+                <button type="button" class="btn-close-modal btn-formato-lista">Lista de vectores</button>
+                <button type="button" class="btn-close-modal btn-formato-matriz">Matriz</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    return modal;
+}
+
 function pedirFormatoArchivo() {
-    return confirm(
-        "¿El archivo está en forma de matriz?\n\n" +
-        "Aceptar: matriz por columnas, cada columna será un vector.\n" +
-        "Cancelar: lista de vectores, cada fila será un vector."
-    ) ? "matriz" : "lista";
+    if (formatoArchivoPromise) return formatoArchivoPromise;
+
+    const modal = obtenerModalFormatoArchivo();
+    const btnLista = modal.querySelector(".btn-formato-lista");
+    const btnMatriz = modal.querySelector(".btn-formato-matriz");
+    const btnCerrar = modal.querySelector(".modal-close");
+
+    formatoArchivoPromise = new Promise(resolve => {
+        const cerrar = (modo = "lista") => {
+            modal.classList.remove("show");
+            btnLista?.removeEventListener("click", seleccionarLista);
+            btnMatriz?.removeEventListener("click", seleccionarMatriz);
+            btnCerrar?.removeEventListener("click", cancelar);
+            modal.removeEventListener("click", cerrarPorFondo);
+            document.removeEventListener("keydown", cerrarPorEscape);
+            formatoArchivoPromise = null;
+            resolve(modo);
+        };
+
+        const seleccionarLista = () => cerrar("lista");
+        const seleccionarMatriz = () => cerrar("matriz");
+        const cancelar = () => cerrar("lista");
+        const cerrarPorFondo = e => { if (e.target === modal) cerrar("lista"); };
+        const cerrarPorEscape = e => { if (e.key === "Escape") cerrar("lista"); };
+
+        btnLista?.addEventListener("click", seleccionarLista);
+        btnMatriz?.addEventListener("click", seleccionarMatriz);
+        btnCerrar?.addEventListener("click", cancelar);
+        modal.addEventListener("click", cerrarPorFondo);
+        document.addEventListener("keydown", cerrarPorEscape);
+
+        modal.classList.add("show");
+    });
+
+    return formatoArchivoPromise;
 }
 
 export function parseMatrixToVectors(text, modo = "lista") {
@@ -294,7 +376,7 @@ async function procesarArchivoEV(file) {
         if (greekVectors) {
             vectores = greekVectors;
         } else {
-            const modo = pedirFormatoArchivo();
+            const modo = await pedirFormatoArchivo();
             vectores = parseRowsToVectors(filas, modo);
         }
     } else {
@@ -303,7 +385,7 @@ async function procesarArchivoEV(file) {
         if (greekVectors) {
             vectores = greekVectors;
         } else {
-            const modo = pedirFormatoArchivo();
+            const modo = await pedirFormatoArchivo();
             vectores = parseMatrixToVectors(content, modo);
         }
     }
@@ -336,16 +418,16 @@ async function procesarArchivoEV(file) {
 }
 
 export function initDragAndDropEV() {
-    const existingDropZone = document.getElementById("dropZoneEV");
-    if (existingDropZone) existingDropZone.remove();
-    
+    if (evDropZone) {
+        evDropZone.remove();
+        evDropZone = null;
+    }
+
     const body = document.body;
-    let dragCounter = 0;
-    
-    const dropZone = document.createElement("div");
-    dropZone.id = "dropZoneEV";
-    dropZone.className = "drop-zone";
-    dropZone.innerHTML = `
+    evDropZone = document.createElement("div");
+    evDropZone.id = "dropZoneEV";
+    evDropZone.className = "drop-zone";
+    evDropZone.innerHTML = `
         <div class="drop-zone-content">
             <div class="icon">📥</div>
             <h2>Soltar archivo de vectores</h2>
@@ -353,44 +435,53 @@ export function initDragAndDropEV() {
             <p>Lista: cada fila es un vector. Matriz: cada columna será un vector.</p>
         </div>
     `;
-    body.appendChild(dropZone);
-    
+    body.appendChild(evDropZone);
+
+    if (evDropListenersAttached) return;
+
+    let dragCounter = 0;
+
     function preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
     }
-    
+
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         body.addEventListener(eventName, preventDefaults, false);
     });
-    
+
     body.addEventListener('dragenter', (e) => {
         preventDefaults(e);
         dragCounter++;
-        if (dragCounter === 1) dropZone.classList.add('active');
+        if (dragCounter === 1 && evDropZone) evDropZone.classList.add('active');
     });
-    
+
     body.addEventListener('dragleave', (e) => {
         preventDefaults(e);
-        dragCounter--;
-        if (dragCounter === 0) dropZone.classList.remove('active');
+        dragCounter = Math.max(0, dragCounter - 1);
+        if (dragCounter === 0 && evDropZone) evDropZone.classList.remove('active');
     });
-    
+
     body.addEventListener('drop', async (e) => {
         preventDefaults(e);
         dragCounter = 0;
-        dropZone.classList.remove('active');
+        if (evDropZone) evDropZone.classList.remove('active');
 
         // Si no está abierto el módulo de E.V y S.E.V, este manejador no debe procesar el archivo.
-        if (!document.getElementById("btnCalcularEV")) return;
-        
+        if (!document.getElementById("btnCalcularEV") || evIsProcessingDrop) return;
+
         const files = e.dataTransfer.files;
-        if (files.length === 0) return;
-        
+        if (!files || files.length === 0) return;
+
+        evIsProcessingDrop = true;
         try {
             await procesarArchivoEV(files[0]);
         } catch (error) {
             alert(`Error al procesar el archivo: ${error.message}`);
+        } finally {
+            evIsProcessingDrop = false;
         }
     });
+
+    evDropListenersAttached = true;
 }
