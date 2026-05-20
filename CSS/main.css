@@ -2068,7 +2068,7 @@ kbd {
 #inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
 #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
     position: relative !important;
-    top: 10px !important;
+    top: 4px !important;
 }
 
 #inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
@@ -2087,6 +2087,36 @@ kbd {
     #inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
     #inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
     #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
-        top: 8px !important;
+        top: 3px !important;
+    }
+}
+
+
+/* ===== AJUSTES V8 - CENTRADO FINAL DE CAJAS RESPECTO A PARÉNTESIS ===== */
+#inputTable.ev-vector-table .ev-vector-input-cell,
+#inputTable.ev-vector-table .vector-componente-comma-cell {
+    top: 0 !important;
+}
+
+#inputTable.ev-vector-table .ev-vector-label-cell .vector-label,
+#inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
+#inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
+#inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
+    position: relative !important;
+    top: 5px !important;
+}
+
+#inputTable.ev-vector-table .ev-paren-cell .paren-left,
+#inputTable.ev-vector-table .ev-paren-cell .paren-right {
+    position: relative !important;
+    top: 0 !important;
+}
+
+@media (max-width: 768px) {
+    #inputTable.ev-vector-table .ev-vector-label-cell .vector-label,
+    #inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
+    #inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
+    #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
+        top: 4px !important;
     }
 }
