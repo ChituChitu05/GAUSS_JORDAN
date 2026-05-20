@@ -2060,3 +2060,33 @@ kbd {
         top: 3px !important;
     }
 }
+
+
+/* ===== AJUSTES V7 - CENTRADO VERTICAL REAL EN VECTORES ===== */
+#inputTable.ev-vector-table .ev-vector-label-cell .vector-label,
+#inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
+#inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
+#inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
+    position: relative !important;
+    top: 10px !important;
+}
+
+#inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
+#inputTable.ev-vector-table .ev-vector-input-cell > .cell-input {
+    transform: none !important;
+}
+
+#inputTable.ev-vector-table .ev-paren-cell .paren-left,
+#inputTable.ev-vector-table .ev-paren-cell .paren-right {
+    position: relative !important;
+    top: 0 !important;
+}
+
+@media (max-width: 768px) {
+    #inputTable.ev-vector-table .ev-vector-label-cell .vector-label,
+    #inputTable.ev-vector-table .ev-vector-input-cell > .cell-span,
+    #inputTable.ev-vector-table .ev-vector-input-cell > .cell-input,
+    #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
+        top: 8px !important;
+    }
+}
