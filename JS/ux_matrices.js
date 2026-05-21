@@ -348,11 +348,11 @@ function calcularDeterminante() {
             if (f === -1) {
                 spanFactor.textContent = "(-1)";
             } else {
-                const contenidoFraccion = crearFraccionHTML(f, tieneDecimalesEnEntrada);
-                
-                const htmlFinal = (typeof contenidoFraccion === 'object') ? contenidoFraccion.outerHTML : contenidoFraccion;
+                const contenidoFactor = tieneDecimalesEnEntrada
+                    ? Auxiliares.formatearResultado(f, true)
+                    : crearFraccionHTML(f, false);
 
-                spanFactor.innerHTML = `(${htmlFinal})`;
+                spanFactor.innerHTML = `(${contenidoFactor})`;
             }
             factoresContainer.appendChild(spanFactor);
         });
