@@ -2166,3 +2166,10 @@ kbd {
         top: 11px !important;
     }
 }
+
+.tutorial-video{
+    width: 100%;
+    border-radius: 16px;
+    outline: none;
+    background: #000;
+}
