@@ -2146,3 +2146,23 @@ kbd {
 .det-result-value .frac .bottom {
     padding-top: 0.08em;
 }
+
+
+/* ===== AJUSTES V12 - COMAS DE COMPONENTES VECTORIALES ===== */
+#inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 2.45rem !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    color: var(--text-secondary) !important;
+    top: 13px !important;
+    transform: none !important;
+    width: 20px !important;
+}
+
+@media (max-width: 768px) {
+    #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
+        font-size: 2.15rem !important;
+        top: 11px !important;
+    }
+}
