@@ -1589,21 +1589,6 @@ kbd {
     font-size: 0.95rem;
 }
 
-.video-placeholder {
-    min-height: 130px;
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-.video-placeholder::before {
-    content: "Espacio para insertar video";
-}
-
 @media (max-width: 768px) {
     .result-table td {
         font-size: clamp(1.05rem, 3vw, 1.35rem);
@@ -2172,4 +2157,31 @@ kbd {
     border-radius: 16px;
     outline: none;
     background: #000;
+}
+
+.video-container{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.tutorial-video{
+    width: 100%;
+    max-width: 1000px;
+
+    border-radius: 22px;
+
+    background: #000;
+
+    display: block;
+
+    box-shadow:
+        0 0 25px rgba(0,0,0,.35);
+
+    object-fit: contain;
+}
+
+.tutorial-video-box{
+    width: 100%;
 }
