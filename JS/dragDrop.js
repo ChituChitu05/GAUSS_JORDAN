@@ -7,6 +7,92 @@ let currentFileName = null;
 let errorCells = new Set();
 let isProcessing = false;
 
+function limpiarValorArchivoMatriz(valor) {
+    if (valor === null || valor === undefined) return "";
+    return Auxiliares.normalizarValorTexto(String(valor).trim());
+}
+
+function normalizarFilasMatriz(filas) {
+    const matrix = filas
+        .map(fila => fila.map(limpiarValorArchivoMatriz))
+        .filter(fila => fila.some(celda => celda !== ""));
+
+    if (matrix.length === 0) {
+        throw new Error("Archivo vacío");
+    }
+
+    const maxCols = Math.max(...matrix.map(row => row.length));
+    matrix.forEach(row => {
+        while (row.length < maxCols) {
+            row.push("0");
+        }
+    });
+
+    return matrix;
+}
+
+function leerArchivoTexto(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => resolve(event.target.result);
+        reader.onerror = () => reject(new Error("Error al leer el archivo"));
+        reader.readAsText(file);
+    });
+}
+
+function leerArchivoArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => resolve(event.target.result);
+        reader.onerror = () => reject(new Error("Error al leer el archivo"));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+async function leerXLSXMatriz(file) {
+    if (!window.XLSX) {
+        throw new Error("No se cargó el lector XLSX. Revisa la conexión o usa .txt/.csv.");
+    }
+
+    const buffer = await leerArchivoArrayBuffer(file);
+    const workbook = window.XLSX.read(new Uint8Array(buffer), { type: "array" });
+    const firstSheet = workbook.SheetNames[0];
+
+    if (!firstSheet) {
+        throw new Error("El archivo XLSX no contiene hojas");
+    }
+
+    const sheet = workbook.Sheets[firstSheet];
+    return window.XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+        defval: ""
+    });
+}
+
+async function procesarArchivoMatriz(file) {
+    const fileName = file.name.toLowerCase();
+    const esXLSX = fileName.endsWith('.xlsx');
+    const esTexto = fileName.endsWith('.txt') || fileName.endsWith('.csv');
+
+    if (!esXLSX && !esTexto) {
+        alert('Formato no soportado. Use archivos .txt, .csv o .xlsx');
+        return;
+    }
+
+    let matrix;
+
+    if (esXLSX) {
+        const filas = await leerXLSXMatriz(file);
+        matrix = normalizarFilasMatriz(filas);
+    } else {
+        const content = await leerArchivoTexto(file);
+        matrix = parseMatrixText(content);
+    }
+
+    applyMatrixToTable(matrix, file.name);
+}
+
 export function parseMatrixText(text) {
     const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
     
@@ -14,7 +100,7 @@ export function parseMatrixText(text) {
         throw new Error("Archivo vacío");
     }
     
-    const matrix = lines.map((line, index) => {
+    const rows = lines.map((line, index) => {
         const tokens = line.trim().split(/[\s,;]+/).filter(token => token);
         
         if (tokens.length === 0) {
@@ -24,16 +110,7 @@ export function parseMatrixText(text) {
         return tokens;
     });
     
-    const columnCounts = matrix.map(row => row.length);
-    const maxCols = Math.max(...columnCounts);
-    
-    matrix.forEach(row => {
-        while (row.length < maxCols) {
-            row.push("0");
-        }
-    });
-    
-    return matrix;
+    return normalizarFilasMatriz(rows);
 }
 
 export function isValidMatrixValue(value) {
@@ -381,7 +458,7 @@ export function initDragAndDrop() {
         <div class="drop-zone-content">
             <div class="icon">📥</div>
             <h2>Soltar archivo de matriz</h2>
-            <p>Formatos aceptados: .txt, .csv</p>
+            <p>Formatos aceptados: .txt, .csv o .xlsx</p>
         </div>
     `;
     body.appendChild(dropZone);
@@ -411,42 +488,26 @@ export function initDragAndDrop() {
         }
     });
     
-    body.addEventListener('drop', (e) => {
+    body.addEventListener('drop', async (e) => {
         preventDefaults(e);
         dragCounter = 0;
         dropZone.classList.remove('active');
 
         // Si el módulo de espacios vectoriales está activo, este manejador no debe tocar el archivo.
         if (document.getElementById("btnCalcularEV")) return;
+        if (isProcessing) return;
         
         const files = e.dataTransfer.files;
         if (files.length === 0) return;
         
-        const file = files[0];
-        
-        const validExtensions = ['.txt', '.csv'];
-        const fileName = file.name.toLowerCase();
-        const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
-        
-        if (!hasValidExtension) {
-            alert('Formato no soportado. Use archivos .txt o .csv');
-            return;
+        isProcessing = true;
+        try {
+            await procesarArchivoMatriz(files[0]);
+        } catch (error) {
+            alert(`Error al procesar el archivo: ${error.message}`);
+        } finally {
+            isProcessing = false;
         }
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const content = event.target.result;
-                const matrix = parseMatrixText(content);
-                applyMatrixToTable(matrix, file.name);
-            } catch (error) {
-                alert(`Error al procesar el archivo: ${error.message}`);
-            }
-        };
-        reader.onerror = () => {
-            alert('Error al leer el archivo');
-        };
-        reader.readAsText(file);
     });
 }
 
