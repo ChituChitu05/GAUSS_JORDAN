@@ -1,12 +1,13 @@
 import Auxiliares from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
 import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux_matrices.js";
-import { syncTableToFileData } from "./dragDrop.js";
+import { syncTableToFileData } from "./dragDrop.js?v=11";
 
 let keydownHandler = null;
 let inputHandler = null;
 let clickHandler = null;
 let pasteHandler = null;
+let beforeInputHandler = null;
 let currentTable = null;
 let currentRow = 0;
 let currentCol = 0;
@@ -16,11 +17,13 @@ export function desconfigurarEventosMatri(article) {
     if (inputHandler) article.removeEventListener('input', inputHandler);
     if (clickHandler) article.removeEventListener('click', clickHandler);
     if (pasteHandler) article.removeEventListener('paste', pasteHandler);
+    if (beforeInputHandler) article.removeEventListener('beforeinput', beforeInputHandler);
     
     keydownHandler = null;
     inputHandler = null;
     clickHandler = null;
     pasteHandler = null;
+    beforeInputHandler = null;
     currentTable = null;
 }
 
@@ -31,16 +34,19 @@ export function configurarEventos(article, table, operation) {
     if (inputHandler) article.removeEventListener('input', inputHandler);
     if (clickHandler) article.removeEventListener('click', clickHandler);
     if (pasteHandler) article.removeEventListener('paste', pasteHandler);
+    if (beforeInputHandler) article.removeEventListener('beforeinput', beforeInputHandler);
 
     keydownHandler = (e) => manejarKeydown(e);
     inputHandler = manejarInput;
     clickHandler = (e) => manejarClick(e);
     pasteHandler = (e) => manejarPegado(e);
+    beforeInputHandler = (e) => manejarBeforeInput(e);
 
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
     article.addEventListener('click', clickHandler);
     article.addEventListener('paste', pasteHandler);
+    article.addEventListener('beforeinput', beforeInputHandler);
 
     // Prevenir el scroll por espacio en la página completa
     window.addEventListener('keydown', function (e) {
@@ -362,6 +368,28 @@ function manejarClick(e) {
     }
 }
 
+function manejarBeforeInput(e) {
+    const input = e.target;
+    if (!input || input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;
+
+    const data = e.data || "";
+    const esEspacioMovil = e.inputType === 'insertText' && /\s/.test(data);
+    if (!esEspacioMovil) return;
+
+    e.preventDefault();
+    actualizarCoordenadasDesdeElemento(input);
+
+    const cell = input.closest('td');
+    const row = cell?.parentElement;
+    if (!cell || !row || !currentTable) return;
+
+    input.value = input.value.replace(/\s+/g, '');
+    inputToSpan(input);
+    ajustarAnchoColumna(currentTable, cell.cellIndex);
+    crearNuevaColumna(currentTable, row.rowIndex, cell.cellIndex);
+    setTimeout(() => syncTableToFileData(), 100);
+}
+
 function manejarInput(e) {
     const input = e.target;
     if (input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;
@@ -369,6 +397,19 @@ function manejarInput(e) {
     actualizarCoordenadasDesdeElemento(input);
 
     let valor = input.value;
+
+    if (/\s/.test(valor)) {
+        const cell = input.closest('td');
+        const row = cell?.parentElement;
+        input.value = valor.replace(/\s+/g, '');
+        if (cell && row && currentTable) {
+            inputToSpan(input);
+            ajustarAnchoColumna(currentTable, cell.cellIndex);
+            crearNuevaColumna(currentTable, row.rowIndex, cell.cellIndex);
+            setTimeout(() => syncTableToFileData(), 100);
+        }
+        return;
+    }
     
     // Bloquear cualquier letra inmediatamente
     const tieneLetras = /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor);
