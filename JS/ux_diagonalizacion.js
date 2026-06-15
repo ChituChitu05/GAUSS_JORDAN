@@ -137,6 +137,17 @@ function crearFactorHTML(factor) {
     const span = document.createElement("span");
     span.className = "factor-item";
     
+    // Si es una constante (como -1)
+    if (factor.tipo === "constante") {
+        const valor = factor.valor;
+        if (valor.num === -1 && valor.den === 1) {
+            span.textContent = "-";
+        } else {
+            span.textContent = Auxiliares.fraccionToString(valor);
+        }
+        return span;
+    }
+    
     if (factor.tipo === "lineal") {
         const a = factor.coeficientes[1];
         const b = factor.coeficientes[0];
@@ -144,24 +155,34 @@ function crearFactorHTML(factor) {
             if (b.num === 0) {
                 span.textContent = "λ";
             } else if (b.num < 0) {
-                span.textContent = `(λ + ${Auxiliares.fraccionToString({ num: -b.num, den: b.den })})`;
+                const positivo = { num: -b.num, den: b.den };
+                span.textContent = `(λ + ${Auxiliares.fraccionToString(positivo)})`;
             } else {
                 span.textContent = `(λ - ${Auxiliares.fraccionToString(b)})`;
             }
         } else {
             span.textContent = `(${polinomioToString(factor.coeficientes)})`;
         }
-    } else if (factor.tipo === "cuadratico") {
-        span.textContent = `(${polinomioToString(factor.coeficientes)})`;
-    } else {
-        span.textContent = `(${polinomioToString(factor.coeficientes)})`;
+        return span;
     }
     
+    if (factor.tipo === "cuadratico") {
+        // factor.coeficientes ya viene en orden [a, b, c]
+        span.textContent = `(${polinomioToString(factor.coeficientes)})`;
+        return span;
+    }
+    
+    if (factor.tipo === "irreducible") {
+        span.textContent = `(${polinomioToString(factor.coeficientes)})`;
+        return span;
+    }
+    
+    span.textContent = "?";
     return span;
 }
-
 function mostrarResultados(article, resultados) {
     // Eliminar resultados anteriores
+    console.log("factoresPolinomio:", resultados.factoresPolinomio);
     const prev = document.getElementById("diagResultSection");
     if (prev) prev.remove();
     
@@ -202,15 +223,22 @@ function mostrarResultados(article, resultados) {
     }
     factoresContainer.appendChild(factoresDiv);
     content.appendChild(factoresContainer);
-    
     // 5. Valores propios
     const vpContainer = document.createElement("div");
     vpContainer.className = "result-block";
     vpContainer.innerHTML = "<h3>Valores propios</h3>";
     const vpList = document.createElement("div");
     vpList.className = "valores-propios-list";
-    
-    if (resultados.valoresPropios.length === 0) {
+
+    if (resultados.raices && resultados.raices.length > 0) {
+        resultados.raices.forEach((raiz, idx) => {
+            const vpItem = document.createElement("div");
+            vpItem.className = "valor-propio-item";
+            vpItem.innerHTML = `λ${idx + 1} = `;
+            vpItem.appendChild(crearRaizHTML(raiz));
+            vpList.appendChild(vpItem);
+        });
+    } else if (resultados.valoresPropios.length === 0) {
         vpList.textContent = "No se encontraron valores propios reales";
     } else {
         resultados.valoresPropios.forEach((vp, idx) => {
@@ -219,6 +247,11 @@ function mostrarResultados(article, resultados) {
             let str;
             if (vp.tipo === "exacta") {
                 str = Auxiliares.fraccionToString(vp.valor);
+            } else if (vp.tipo === "raiz") {
+                const expr = { tipo: "raiz", coeficiente: vp.coeficiente, radicando: vp.radicando };
+                vpItem.appendChild(crearRaizHTML(expr));
+                vpList.appendChild(vpItem);
+                return;
             } else {
                 str = "complejo";
             }
@@ -228,7 +261,6 @@ function mostrarResultados(article, resultados) {
     }
     vpContainer.appendChild(vpList);
     content.appendChild(vpContainer);
-    
     // 6. Matriz diagonal D (si es diagonalizable)
     if (resultados.diagonalizacion.esDiagonalizable && resultados.matrizDiagonal) {
         const DContainer = document.createElement("div");
@@ -499,4 +531,99 @@ function actualizarMinimoDiag(table) {
     const n = Math.max(2, Math.min(filas, cols));
     table.dataset.minRows = String(n);
     table.dataset.minCols = String(n);
+}
+function crearRaizHTML(raiz) {
+    if (!raiz) return document.createTextNode("");
+    
+    if (raiz.tipo === "exacta") {
+        const texto = Auxiliares.fraccionToString(raiz.valor);
+        if (texto.includes("/")) {
+            const [num, den] = texto.split("/");
+            const span = document.createElement("span");
+            span.className = "frac";
+            span.innerHTML = `<span class="top">${num}</span><span class="bottom">${den}</span>`;
+            return span;
+        }
+        return document.createTextNode(texto);
+    }
+    
+    if (raiz.tipo === "raiz") {
+        const container = document.createElement("span");
+        container.className = "root-expression";
+        container.style.display = "inline-flex";
+        container.style.alignItems = "center";
+        container.style.gap = "2px";
+        
+        // Mostrar la parte real si existe
+        if (raiz.parteReal) {
+            const realStr = Auxiliares.fraccionToString(raiz.parteReal);
+            const realSpan = document.createElement("span");
+            realSpan.textContent = realStr;
+            container.appendChild(realSpan);
+        }
+        
+        // Mostrar el signo ±
+        const signSpan = document.createElement("span");
+        const coefVal = raiz.coeficiente.num / raiz.coeficiente.den;
+        if (coefVal > 0) {
+            signSpan.textContent = " + ";
+        } else {
+            signSpan.textContent = " - ";
+        }
+        container.appendChild(signSpan);
+        
+        // Mostrar la raíz (usando valor absoluto del coeficiente)
+        const coefAbs = { num: Math.abs(raiz.coeficiente.num), den: raiz.coeficiente.den };
+        const coefValAbs = coefAbs.num / coefAbs.den;
+        
+        if (coefValAbs !== 1) {
+            const coefSpan = document.createElement("span");
+            if (coefAbs.den === 1) {
+                coefSpan.textContent = coefAbs.num.toString();
+            } else {
+                coefSpan.className = "frac";
+                coefSpan.innerHTML = `<span class="top">${coefAbs.num}</span><span class="bottom">${coefAbs.den}</span>`;
+            }
+            container.appendChild(coefSpan);
+        }
+        
+        const rootSymbol = document.createElement("span");
+        rootSymbol.className = "root-symbol";
+        rootSymbol.textContent = "√";
+        rootSymbol.style.fontSize = "1.2em";
+        container.appendChild(rootSymbol);
+        
+        const radicandoSpan = document.createElement("span");
+        radicandoSpan.className = "root-radicando";
+        radicandoSpan.style.borderTop = "1px solid currentColor";
+        radicandoSpan.style.paddingTop = "2px";
+        radicandoSpan.style.marginLeft = "2px";
+        
+        const rad = raiz.radicando;
+        if (rad.den === 1) {
+            radicandoSpan.textContent = rad.num.toString();
+        } else {
+            const fracSpan = document.createElement("span");
+            fracSpan.className = "frac";
+            fracSpan.innerHTML = `<span class="top">${rad.num}</span><span class="bottom">${rad.den}</span>`;
+            radicandoSpan.appendChild(fracSpan);
+        }
+        
+        container.appendChild(radicandoSpan);
+        return container;
+    }
+    
+    if (raiz.tipo === "complejo") {
+        const span = document.createElement("span");
+        span.className = "complex-number";
+        if (raiz.parteReal) {
+            const realStr = Auxiliares.fraccionToString(raiz.parteReal);
+            span.innerHTML = `${realStr} ± i√?`;
+        } else {
+            span.innerHTML = `± i√?`;
+        }
+        return span;
+    }
+    
+    return document.createTextNode("");
 }

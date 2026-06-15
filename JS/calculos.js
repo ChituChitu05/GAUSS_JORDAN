@@ -435,10 +435,15 @@ export function resolverGrado1(a, b) {
 }
 
 export function resolverGrado2(a, b, c) {
+    console.log("\n=== resolverGrado2 ===");
+    console.log("a:", fraccionToString(a), "b:", fraccionToString(b), "c:", fraccionToString(c));
+    
     if (a.num === 0) {
+        console.log("a es 0, delegando a resolverGrado1");
         return [resolverGrado1(b, c)];
     }
     
+    // Calcular discriminante Δ = b² - 4ac
     const b2 = multiplicarFracciones(b, b);
     const cuatroAc = multiplicarFracciones({ num: 4, den: 1 }, multiplicarFracciones(a, c));
     const discriminante = restarFracciones(b2, cuatroAc);
@@ -447,39 +452,65 @@ export function resolverGrado2(a, b, c) {
     const bNeg = { num: -b.num, den: b.den };
     const discVal = discriminante.num / discriminante.den;
     
+    console.log("b²:", fraccionToString(b2));
+    console.log("4ac:", fraccionToString(cuatroAc));
+    console.log("discriminante:", fraccionToString(discriminante));
+    console.log("discVal:", discVal);
+    
     if (discVal < 0) {
-        return [{ tipo: "complejo", valor: null, parteReal: dividirFracciones(bNeg, dosA) }];
+        console.log("Discriminante negativo → raíces complejas");
+        const real = dividirFracciones(bNeg, dosA);
+        return [{ tipo: "complejo", valor: null, parteReal: real }];
     }
     
+    // Simplificar la raíz del discriminante
     const raizDisc = simplificarRaizExacta(discriminante);
+    console.log("raizDisc:", raizDisc);
     
     if (raizDisc.tipo === "exacta") {
+        console.log("Raíz exacta");
         const λ1 = normalizarSigno(dividirFracciones(restarFracciones(bNeg, raizDisc.valorFraccion), dosA));
         const λ2 = normalizarSigno(dividirFracciones(sumarFraccionesObj(bNeg, raizDisc.valorFraccion), dosA));
-        return [{ tipo: "exacta", valor: λ1 }, { tipo: "exacta", valor: λ2 }];
+        console.log("λ1:", fraccionToString(λ1));
+        console.log("λ2:", fraccionToString(λ2));
+        return [
+            { tipo: "exacta", valor: λ1 },
+            { tipo: "exacta", valor: λ2 }
+        ];
     }
     
-    const coef = raizDisc.coeficiente;
-    const rad = raizDisc.radicando;
+    console.log("Raíz no exacta");
+    // Raíces con raíz cuadrada no exacta
+    const parteRacional = dividirFracciones(bNeg, dosA);
+    const coeficienteRaiz = dividirFracciones({ num: 1, den: 1 }, dosA);
+    const coefFinal = multiplicarFracciones(raizDisc.coeficiente, coeficienteRaiz);
+    const radicando = raizDisc.radicando;
     
-    return [
-        {
-            tipo: "raiz",
-            coeficiente: coef,
-            radicando: rad,
-            discriminante: discriminante,
-            a, b, c
-        },
-        {
-            tipo: "raiz",
-            coeficiente: { num: -coef.num, den: coef.den },
-            radicando: rad,
-            discriminante: discriminante,
-            a, b, c
-        }
-    ];
+    console.log("parteRacional:", fraccionToString(parteRacional));
+    console.log("coeficienteRaiz:", fraccionToString(coeficienteRaiz));
+    console.log("coefFinal:", fraccionToString(coefFinal));
+    console.log("radicando:", fraccionToString(radicando));
+    
+    const raiz1 = {
+        tipo: "raiz",
+        parteReal: parteRacional,
+        coeficiente: coefFinal,
+        radicando: radicando,
+        expresion: `${fraccionToString(parteRacional)} ± ${fraccionToString(coefFinal)}√${fraccionToString(radicando)}`
+    };
+    
+    const raiz2 = {
+        tipo: "raiz",
+        parteReal: parteRacional,
+        coeficiente: { num: -coefFinal.num, den: coefFinal.den },
+        radicando: radicando
+    };
+    
+    console.log("raiz1:", raiz1.expresion);
+    console.log("raiz2:", `${fraccionToString(parteRacional)} ± ${fraccionToString(raiz2.coeficiente)}√${fraccionToString(radicando)}`);
+    
+    return [raiz1, raiz2];
 }
-
 export function simplificarRaiz(frac) {
     const valor = frac.num / frac.den;
     if (valor < 0) {
@@ -535,83 +566,107 @@ export function simplificarRaizExacta(frac) {
 }
 
 export function factorizarPolinomio(polinomio) {
-    const grado = polinomio.length - 1;
+    // Si el coeficiente principal es negativo, factorizar -1 primero
+    let pol = [...polinomio];
+    let factorGlobal = null;
+    
+    const grado = pol.length - 1;
+    if (grado >= 0 && pol[grado].num < 0) {
+        factorGlobal = { num: -1, den: 1 };
+        pol = pol.map(c => multiplicarFracciones(c, factorGlobal));
+    }
+    
     const factores = [];
     
     if (grado === 1) {
-        const a = polinomio[1];
-        const b = polinomio[0];
+        const a = pol[1];
+        const b = pol[0];
+        const raiz = resolverGrado1(a, b);
         factores.push({
             tipo: "lineal",
-            coeficientes: [a, b],
-            raiz: resolverGrado1(a, b)
+            coeficientes: [b, a],
+            raiz: raiz
         });
+        if (factorGlobal) {
+            factores.unshift({ tipo: "constante", valor: factorGlobal });
+        }
         return factores;
     }
     
     if (grado === 2) {
-        const a = polinomio[2];
-        const b = polinomio[1];
-        const c = polinomio[0];
+        const a = pol[2];
+        const b = pol[1];
+        const c = pol[0];
         const raices = resolverGrado2(a, b, c);
         
         if (raices.length === 2 && raices[0].tipo === "exacta" && raices[1].tipo === "exacta") {
+            const r1 = raices[0].valor;
+            const r2 = raices[1].valor;
             factores.push({
                 tipo: "lineal",
-                coeficientes: [{ num: 1, den: 1 }, { num: -raices[0].valor.num, den: raices[0].valor.den }],
+                coeficientes: [{ num: -r1.num, den: r1.den }, { num: 1, den: 1 }],
                 raiz: raices[0]
             });
             factores.push({
                 tipo: "lineal",
-                coeficientes: [{ num: 1, den: 1 }, { num: -raices[1].valor.num, den: raices[1].valor.den }],
+                coeficientes: [{ num: -r2.num, den: r2.den }, { num: 1, den: 1 }],
                 raiz: raices[1]
             });
         } else {
+            // Guardar en orden [a, b, c] para polinomioToString
             factores.push({
                 tipo: "cuadratico",
                 coeficientes: [a, b, c],
                 raices: raices
             });
         }
+        if (factorGlobal) {
+            factores.unshift({ tipo: "constante", valor: factorGlobal });
+        }
         return factores;
     }
     
-    const raicesRacionales = buscarRaicesRacionales(polinomio);
+    // Para grados mayores, buscar raíces racionales
+    const raicesRacionales = buscarRaicesRacionales(pol);
     
     if (raicesRacionales.length > 0) {
-        let pol = [...polinomio];
-        for (const raiz of raicesRacionales) {
-            const factor = [{ num: -raiz.num, den: raiz.den }, { num: 1, den: 1 }];
+        let polActual = [...pol];
+        for (const r of raicesRacionales) {
+            const factor = [{ num: -r.num, den: r.den }, { num: 1, den: 1 }];
             factores.push({
                 tipo: "lineal",
                 coeficientes: factor,
-                raiz: { tipo: "exacta", valor: raiz }
+                raiz: { tipo: "exacta", valor: r }
             });
-            const { cociente } = dividirPolinomios(pol, factor);
-            pol = cociente;
+            const { cociente } = dividirPolinomios(polActual, factor);
+            polActual = cociente;
         }
         
-        if (pol.length > 2 || (pol.length === 2 && (pol[0].num !== 0 || pol[1].num !== 1))) {
-            const restantes = factorizarPolinomio(pol);
+        if (polActual.length > 2 || (polActual.length === 2 && (polActual[0].num !== 0 || polActual[1].num !== 1))) {
+            const restantes = factorizarPolinomio(polActual);
             factores.push(...restantes);
-        } else if (pol.length === 2 && pol[1].num === 1 && pol[0].num !== 0) {
+        } else if (polActual.length === 2 && polActual[1].num === 1 && polActual[0].num !== 0) {
+            const raiz = resolverGrado1(polActual[1], polActual[0]);
             factores.push({
                 tipo: "lineal",
-                coeficientes: pol,
-                raiz: resolverGrado1(pol[1], pol[0])
+                coeficientes: [polActual[0], polActual[1]],
+                raiz: raiz
             });
         }
     } else {
         factores.push({
             tipo: "irreducible",
-            coeficientes: polinomio,
+            coeficientes: pol,
             grado: grado
         });
     }
     
+    if (factorGlobal) {
+        factores.unshift({ tipo: "constante", valor: factorGlobal });
+    }
+    
     return factores;
 }
-
 function buscarRaicesRacionales(polinomio) {
     if (polinomio.length <= 2) return [];
     
@@ -663,6 +718,7 @@ function esRaizPolinomio(polinomio, r) {
         potencia = multiplicarFracciones(potencia, r);
     }
     
+    console.log(`Evaluando r = ${r.num}/${r.den}, resultado = ${resultado.num}/${resultado.den}`);
     return resultado.num === 0;
 }
 
@@ -773,11 +829,22 @@ export function diagonalizarMatrizCompleta(A) {
     
     const factoresPol = factorizarPolinomio(polCaracteristico);
     
+    // Extraer todas las raíces (incluyendo las no exactas)
+    const raices = [];
     const valoresPropios = [];
+    
     for (const factor of factoresPol) {
         if (factor.tipo === "lineal" && factor.raiz) {
+            raices.push(factor.raiz);
             if (factor.raiz.tipo === "exacta") {
                 valoresPropios.push(factor.raiz);
+            }
+        } else if (factor.tipo === "cuadratico" && factor.raices) {
+            for (const raiz of factor.raices) {
+                raices.push(raiz);
+                if (raiz.tipo === "exacta") {
+                    valoresPropios.push(raiz);
+                }
             }
         }
     }
@@ -794,6 +861,7 @@ export function diagonalizarMatrizCompleta(A) {
         lambdaImenosA: lambdaImenosA,
         polinomioCaracteristico: polCaracteristico,
         factoresPolinomio: factoresPol,
+        raices: raices,
         valoresPropios: valoresPropios,
         diagonalizacion: diagonalizacion,
         matrizDiagonal: D

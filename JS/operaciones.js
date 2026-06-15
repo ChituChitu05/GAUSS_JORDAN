@@ -242,6 +242,8 @@ export function sumarPolinomios(p, q) {
 }
 
 export function restarPolinomios(p, q) {
+    console.log("restarPolinomios:", polinomioToString(p), "-", polinomioToString(q));
+    
     const maxLen = Math.max(p.length, q.length);
     const resultado = [];
     
@@ -255,6 +257,7 @@ export function restarPolinomios(p, q) {
         resultado.pop();
     }
     
+    console.log("  resultado:", polinomioToString(resultado));
     return resultado;
 }
 
@@ -355,7 +358,6 @@ export function obtenerPolinomioCaracteristico(A) {
     const lambdaImenosA = matrizPolinomiosDesdeMatrizNumerica(A);
     const polinomio = determinantePolinomioMatriz(lambdaImenosA);
     
-    // Ya no es necesario negar — det(λI - A) siempre tiene líder positivo
     return { 
         polinomio, 
         matrizLambdaI: lambdaImenosA 
