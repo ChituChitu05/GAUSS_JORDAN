@@ -397,17 +397,17 @@ function _matrixStructEnter(table, input) {
 function _matrixStructBackspace(e, table, input) {
     if (e.key !== 'Backspace' && e.key !== 'Delete') return;
 
-    // Capturar coordenadas ANTES de cualquier operación DOM
-    const cell     = input.closest('td');
-    const row      = cell?.parentElement;
+    const cell = input.closest('td');
+    const row  = cell?.parentElement;
     if (!cell || !row) return;
 
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
 
-    // Helper: reemplaza el elemento editable ACTUAL de la celda por un span vacío.
-    // Usa removeChild + insertBefore en lugar de replaceWith para evitar el
-    // NotFoundError que ocurre cuando blur/focusout ya movió el nodo.
+    const currentOp = getCurrentOperation();
+    const minRows = currentOp === "axb" ? 2 : 2;
+    const minCols = currentOp === "axb" ? 3 : 2;
+
     function _replaceCurrentEditableWithEmpty() {
         const currentCell = table.rows[rowIndex]?.cells[colIndex];
         if (!currentCell) return;
@@ -418,12 +418,9 @@ function _matrixStructBackspace(e, table, input) {
             currentCell.insertBefore(empty, el);
             currentCell.removeChild(el);
         } catch (_) {
-            // El nodo ya fue movido por blur/focusout; el span vacío ya está en la celda
-            if (!currentCell.contains(empty)) {
-                currentCell.appendChild(empty);
-            }
+            if (!currentCell.contains(empty)) currentCell.appendChild(empty);
             if (currentCell.contains(el)) {
-                try { currentCell.removeChild(el); } catch (_2) { /* ignorar */ }
+                try { currentCell.removeChild(el); } catch (_2) {}
             }
         }
         _coordsFromElement(empty);
@@ -431,6 +428,11 @@ function _matrixStructBackspace(e, table, input) {
 
     if (input.value === "") {
         e.preventDefault();
+
+        // En el mínimo: solo limpiar contenido visualmente, no mover foco ni borrar estructura
+        const enMinimo = table.rows.length <= minRows && (table.rows[0]?.cells.length ?? 0) <= minCols;
+        if (enMinimo) return;
+
         _replaceCurrentEditableWithEmpty();
         _matrixRevisarBorrado(table, rowIndex, colIndex);
         return;
@@ -443,13 +445,18 @@ function _matrixStructBackspace(e, table, input) {
         const currentInput = currentCell.querySelector('.cell-input');
         const currentSpan  = currentCell.querySelector('.cell-span');
 
-        if (currentInput && currentInput.value.trim() === "") {
-            _replaceCurrentEditableWithEmpty();
-            _matrixRevisarBorrado(table, rowIndex, colIndex);
+        if (currentInput) {
+            if (currentInput.value.trim() === "") {
+                const enMinimo = table.rows.length <= minRows && (table.rows[0]?.cells.length ?? 0) <= minCols;
+                if (enMinimo) return;
+                _replaceCurrentEditableWithEmpty();
+                _matrixRevisarBorrado(table, rowIndex, colIndex);
+            }
         } else if (currentSpan) {
-            // focusout ya convirtió el input en span; si quedó vacío, revisar borrado
             const val = (currentSpan.getAttribute('data-value') ?? currentSpan.textContent ?? "").trim();
             if (val === "") {
+                const enMinimo = table.rows.length <= minRows && (table.rows[0]?.cells.length ?? 0) <= minCols;
+                if (enMinimo) return;
                 _matrixRevisarBorrado(table, rowIndex, colIndex);
             }
         }
