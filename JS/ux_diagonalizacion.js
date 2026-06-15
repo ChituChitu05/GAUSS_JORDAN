@@ -98,14 +98,15 @@ function crearMatrizHTML(matriz) {
             td.style.padding = "4px 8px";
             td.style.textAlign = "center";
             
-            // Verificar si es un valor especial con raíz
+            // 🔥 VERIFICAR si es un valor con raíz
             if (valor && valor.tipo === "raiz") {
-                td.appendChild(crearRaizHTML({
+                const expr = {
                     tipo: "raiz",
-                    parteReal: valor.parteReal,
                     coeficiente: valor.coeficiente,
-                    radicando: valor.radicando
-                }));
+                    radicando: valor.radicando,
+                    parteReal: valor.parteReal
+                };
+                td.appendChild(Auxiliares.crearRaizHTML(expr));
             } else {
                 const str = Auxiliares.fraccionToString(valor);
                 if (str.includes("/")) {
@@ -121,6 +122,7 @@ function crearMatrizHTML(matriz) {
     }
     return table;
 }
+
 function crearMatrizPolinomiosHTML(M) {
     if (!M || M.length === 0) return document.createTextNode("");
     
@@ -133,16 +135,44 @@ function crearMatrizPolinomiosHTML(M) {
         const tr = document.createElement("tr");
         for (const pol of fila) {
             const td = document.createElement("td");
-            td.style.padding = "4px 8px";
+            td.style.padding = "8px 12px";
             td.style.textAlign = "center";
-            td.textContent = polinomioToString(pol);
+            
+            // pol es [constante, coeficiente_de_λ]
+            if (pol.length === 2 && pol[1].num === -1 && pol[1].den === 1) {
+                // Caso: -λ + a  → mostrar a - λ
+                const a = pol[0];
+                if (a.num === 0) {
+                    td.textContent = "-λ";
+                } else {
+                    const constante = Auxiliares.fraccionToString(a);
+                    td.textContent = `${constante} - λ`;
+                }
+            } 
+            else if (pol.length === 2 && pol[1].num === 1 && pol[1].den === 1) {
+                // Caso: λ - a  → mostrar -a + λ
+                const a = pol[0];
+                const negA = { num: -a.num, den: a.den };
+                if (negA.num === 0) {
+                    td.textContent = "λ";
+                } else {
+                    td.textContent = `${Auxiliares.fraccionToString(negA)} + λ`;
+                }
+            } 
+            else if (pol.length === 1) {
+                // Término constante (fuera de la diagonal)
+                const val = pol[0];
+                td.textContent = val.num === 0 ? "0" : Auxiliares.fraccionToString(val);
+            } 
+            else {
+                td.textContent = polinomioToString(pol);
+            }
             tr.appendChild(td);
         }
         table.appendChild(tr);
     }
     return table;
 }
-
 function crearFactorHTML(factor) {
     const span = document.createElement("span");
     span.className = "factor-item";
@@ -277,10 +307,13 @@ function mostrarResultados(article, resultados) {
     content.className = "diag-results-content";
     content.style.display = "flex";
     content.style.flexDirection = "column";
-    content.style.gap = "1rem";
+    content.style.gap = "1.5rem";
     content.style.alignItems = "flex-start";
+    content.style.width = "100%";
     
-    // 1. Matriz A
+    const n = resultados.matrizOriginal.length;
+    
+    // ===== 1. MATRIZ ORIGINAL A =====
     const matrizALine = document.createElement("div");
     matrizALine.style.display = "flex";
     matrizALine.style.alignItems = "center";
@@ -290,36 +323,30 @@ function mostrarResultados(article, resultados) {
     matrizALine.appendChild(crearMatrizHTML(resultados.matrizOriginal));
     content.appendChild(matrizALine);
     
-    // 2. λI - A
-    const lambdaILine = document.createElement("div");
-    lambdaILine.style.display = "flex";
-    lambdaILine.style.alignItems = "center";
-    lambdaILine.style.flexWrap = "wrap";
-    lambdaILine.style.gap = "10px";
-    lambdaILine.innerHTML = "<strong>λI - A =</strong>";
-    lambdaILine.appendChild(crearMatrizPolinomiosHTML(resultados.lambdaImenosA));
-    content.appendChild(lambdaILine);
+    // ===== 2. MATRIZ A - λI (CON POLINOMIOS) =====
+    const A_menos_lambdaI_Line = document.createElement("div");
+    A_menos_lambdaI_Line.style.display = "flex";
+    A_menos_lambdaI_Line.style.alignItems = "center";
+    A_menos_lambdaI_Line.style.flexWrap = "wrap";
+    A_menos_lambdaI_Line.style.gap = "10px";
+    A_menos_lambdaI_Line.innerHTML = "<strong>A - λI =</strong>";
     
-    // 3. Determinante como matriz
-    const n = resultados.matrizOriginal.length;
-    const identidad = Array(n).fill().map(() => Array(n).fill());
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-            if (i === j) {
-                identidad[i][j] = `λ - ${Auxiliares.fraccionToString(resultados.matrizOriginal[i][j])}`;
-            } else {
-                identidad[i][j] = `-${Auxiliares.fraccionToString(resultados.matrizOriginal[i][j])}`;
-            }
-        }
-    }
+    // Calcular A - λI (cambiar signos de λI - A que ya tenemos)
+    const A_menos_lambdaI = resultados.lambdaImenosA.map(fila =>
+        fila.map(pol => pol.map(coef => ({ num: -coef.num, den: coef.den })))
+    );
+    A_menos_lambdaI_Line.appendChild(crearMatrizPolinomiosHTML(A_menos_lambdaI));
+    content.appendChild(A_menos_lambdaI_Line);
     
+    // ===== 3. DETERMINANTE = det(A - λI) =====
     const detLine = document.createElement("div");
     detLine.style.display = "flex";
     detLine.style.alignItems = "center";
     detLine.style.flexWrap = "wrap";
     detLine.style.gap = "10px";
-    detLine.innerHTML = "<strong>det(λI - A) =</strong>";
+    detLine.innerHTML = "<strong>det(A - λI) =</strong>";
     
+    // Mostrar la matriz con λ en las diagonales
     const detMatrix = document.createElement("span");
     detMatrix.style.display = "inline-block";
     detMatrix.style.verticalAlign = "middle";
@@ -327,13 +354,18 @@ function mostrarResultados(article, resultados) {
     detTable.className = "result-table";
     detTable.style.display = "inline-table";
     detTable.style.margin = "0";
+    
     for (let i = 0; i < n; i++) {
         const tr = document.createElement("tr");
         for (let j = 0; j < n; j++) {
             const td = document.createElement("td");
-            td.style.padding = "4px 8px";
+            td.style.padding = "8px 12px";
             td.style.textAlign = "center";
-            td.textContent = identidad[i][j];
+            if (i === j) {
+                td.innerHTML = `${Auxiliares.fraccionToString(resultados.matrizOriginal[i][j])} - λ`;
+            } else {
+                td.textContent = Auxiliares.fraccionToString(resultados.matrizOriginal[i][j]);
+            }
             tr.appendChild(td);
         }
         detTable.appendChild(tr);
@@ -343,34 +375,35 @@ function mostrarResultados(article, resultados) {
     detLine.appendChild(document.createTextNode(" = 0"));
     content.appendChild(detLine);
     
-    // 4. Polinomio característico
+    // ===== 4. POLINOMIO CARACTERÍSTICO =====
     const polLine = document.createElement("div");
     polLine.style.display = "flex";
     polLine.style.alignItems = "center";
     polLine.style.flexWrap = "wrap";
     polLine.style.gap = "10px";
-    polLine.innerHTML = `${polinomioToString(resultados.polinomioCaracteristico)} = 0`;
+    polLine.innerHTML = `<strong>Polinomio característico:</strong> ${polinomioToString(resultados.polinomioCaracteristico)} = 0`;
     content.appendChild(polLine);
     
-    // 5. Polinomio factorizado
+    // ===== 5. FACTORIZACIÓN =====
     const factoresDiv = document.createElement("div");
     factoresDiv.style.display = "flex";
     factoresDiv.style.alignItems = "center";
     factoresDiv.style.flexWrap = "wrap";
-    factoresDiv.style.gap = "5px";
+    factoresDiv.style.gap = "8px";
+    factoresDiv.innerHTML = "<strong>Factorización:</strong> ";
     for (const factor of resultados.factoresPolinomio) {
         factoresDiv.appendChild(crearFactorHTML(factor));
     }
     factoresDiv.appendChild(document.createTextNode(" = 0"));
     content.appendChild(factoresDiv);
     
-    // 6. Valores propios
+    // ===== 6. VALORES PROPIOS =====
     const vpLine = document.createElement("div");
     vpLine.style.display = "flex";
     vpLine.style.alignItems = "center";
     vpLine.style.flexWrap = "wrap";
     vpLine.style.gap = "10px";
-    vpLine.innerHTML = "<strong>Valores propios =</strong> { ";
+    vpLine.innerHTML = "<strong>Valores propios:</strong> { ";
     
     if (resultados.raices && resultados.raices.length > 0) {
         resultados.raices.forEach((raiz, idx) => {
@@ -385,7 +418,7 @@ function mostrarResultados(article, resultados) {
     vpLine.appendChild(document.createTextNode(" }"));
     content.appendChild(vpLine);
     
-    // 7. Matriz diagonal D 
+    // ===== 7. MATRIZ DIAGONAL D =====
     const DLine = document.createElement("div");
     DLine.style.display = "flex";
     DLine.style.alignItems = "center";
@@ -404,11 +437,11 @@ function mostrarResultados(article, resultados) {
     }
     content.appendChild(DLine);
     
-    // 8. Mensaje final
+    // ===== 8. MENSAJE FINAL =====
     const mensajeLine = document.createElement("div");
     mensajeLine.style.fontWeight = "bold";
     mensajeLine.style.marginTop = "10px";
-    mensajeLine.style.padding = "10px";
+    mensajeLine.style.padding = "12px";
     mensajeLine.style.borderRadius = "8px";
     mensajeLine.style.backgroundColor = resultados.diagonalizacion.esDiagonalizable ? "rgba(0,200,0,0.1)" : "rgba(200,0,0,0.1)";
     mensajeLine.style.borderLeft = `4px solid ${resultados.diagonalizacion.esDiagonalizable ? "green" : "red"}`;
@@ -419,6 +452,7 @@ function mostrarResultados(article, resultados) {
     article.appendChild(section);
     section.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
 function mostrarError(article, mensaje) {
     const prev = document.getElementById("diagResultSection");
     if (prev) prev.remove();
@@ -448,18 +482,57 @@ function leerMatriz(table) {
             if (input) {
                 valor = input.value.trim();
             } else if (span) {
-                valor = span.getAttribute("data-value") || "";
+                valor = span.getAttribute("data-value") || span.textContent || "";
             } else {
                 valor = cell.textContent.trim();
             }
             
-            const valorFinal = valor === "" ? "0" : valor;
-            
-            if (!Auxiliares.esValorNumericoValido(valorFinal, true)) {
-                throw new Error(`Valor inválido en fila ${i + 1}, columna ${j + 1}: "${valor}"`);
+            if (valor === "") {
+                fila.push({ num: 0, den: 1 });
+                continue;
             }
             
-            fila.push(Auxiliares.normalizarSigno(Auxiliares.parsearFraccion(valorFinal)));
+            // 🔥 DETECTAR RAÍCES
+            if (valor.includes('√')) {
+                try {
+                    const expr = Auxiliares.evaluarExpresionCompleta(valor);
+                    
+                    if (expr && expr.tipo === "raiz") {
+                        // Asegurarse de que el coeficiente existe
+                        const coef = expr.coeficiente || { num: 1, den: 1 };
+                        const rad = expr.radicando || { num: 1, den: 1 };
+                        
+                        fila.push({
+                            num: coef.num,
+                            den: coef.den,
+                            raiz: { num: rad.num, den: rad.den },
+                            tipo: "raiz"
+                        });
+                    } 
+                    else if (expr && expr.tipo === "numero") {
+                        const val = expr.valor || { num: 0, den: 1 };
+                        const [num, den] = Auxiliares.simplificar(val.num, val.den);
+                        fila.push({ num, den });
+                    }
+                    else {
+                        // Si no se pudo parsear, tratar como 0
+                        console.warn(`No se pudo parsear: "${valor}", usando 0`);
+                        fila.push({ num: 0, den: 1 });
+                    }
+                } catch (e) {
+                    console.warn(`Error parseando "${valor}":`, e);
+                    fila.push({ num: 0, den: 1 });
+                }
+            } 
+            else {
+                // Valor normal (número o fracción)
+                if (!Auxiliares.esValorNumericoValido(valor, true)) {
+                    throw new Error(`Valor inválido en fila ${i + 1}, columna ${j + 1}: "${valor}"`);
+                }
+                const f = Auxiliares.parsearFraccion(valor);
+                const [num, den] = Auxiliares.simplificar(f.num, f.den);
+                fila.push({ num, den });
+            }
         }
         filas.push(fila);
     }

@@ -511,6 +511,7 @@ export function resolverGrado2(a, b, c) {
     
     return [raiz1, raiz2];
 }
+
 export function simplificarRaiz(frac) {
     const valor = frac.num / frac.den;
     if (valor < 0) {
@@ -667,6 +668,7 @@ export function factorizarPolinomio(polinomio) {
     
     return factores;
 }
+
 function buscarRaicesRacionales(polinomio) {
     if (polinomio.length <= 2) return [];
     
@@ -826,6 +828,7 @@ export function verificarDiagonalizacion(A, valoresPropios) {
         razon: "La matriz es diagonalizable en ℝ" 
     };
 }
+
 export function construirMatrizDiagonalCompleta(raices, n) {
     const D = Array(n).fill().map(() => Array(n).fill({ num: 0, den: 1 }));
     
@@ -837,15 +840,12 @@ export function construirMatrizDiagonalCompleta(raices, n) {
             D[i][i] = normalizarSigno(raiz.valor);
         } else if (raiz.tipo === "raiz") {
             // Guardar el valor propio como objeto especial para mostrar con raíz
-            // En lugar de guardar una fracción, guardamos la representación de raíz
             D[i][i] = {
-                tipo: "raiz",
-                parteReal: raiz.parteReal,
-                coeficiente: raiz.coeficiente,
-                radicando: raiz.radicando,
-                // También guardamos como fracción aproximada para cálculos
                 num: raiz.parteReal?.num || 0,
-                den: raiz.parteReal?.den || 1
+                den: raiz.parteReal?.den || 1,
+                tipo: "raiz",
+                coeficiente: raiz.coeficiente,
+                radicando: raiz.radicando
             };
         }
     }

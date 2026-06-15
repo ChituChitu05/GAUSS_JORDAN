@@ -199,27 +199,51 @@ export function polinomioToString(polinomio) {
     }
     
     const terminos = [];
-    for (let i = 0; i < polinomio.length; i++) {
+    for (let i = polinomio.length - 1; i >= 0; i--) {
         const coef = polinomio[i];
         if (coef.num === 0) continue;
         
-        const coefStr = (coef.num === 1 && coef.den === 1 && i > 0) ? "" :
-                        (coef.num === -1 && coef.den === 1 && i > 0) ? "-" :
-                        fraccionToString(coef);
+        const esPositivo = coef.num > 0;
+        const absCoef = { num: Math.abs(coef.num), den: coef.den };
+        const coefStr = (absCoef.num === 1 && absCoef.den === 1) ? "" : fraccionToString(absCoef);
+        
+        let termino = "";
         
         if (i === 0) {
-            terminos.push(coefStr);
+            termino = fraccionToString(coef);
         } else if (i === 1) {
-            terminos.push(`${coefStr}λ`);
+            termino = coefStr === "" ? "λ" : `${coefStr}λ`;
         } else {
-            terminos.push(`${coefStr}λ^${i}`);
+            termino = coefStr === "" ? `λ^${i}` : `${coefStr}λ^${i}`;
+        }
+        
+        if (terminos.length === 0) {
+            if (esPositivo) {
+                terminos.push(termino);
+            } else {
+                terminos.push(`-${termino}`);
+            }
+        } else {
+            if (esPositivo) {
+                terminos.push(`+ ${termino}`);
+            } else {
+                terminos.push(`- ${termino}`);
+            }
         }
     }
     
     if (terminos.length === 0) return "0";
-    return terminos.reverse().join(" + ").replace(/\+ -/g, "- ");
+    
+    let resultado = terminos.join(" ");
+    resultado = resultado.replace(/\+ -/g, "- ");
+    resultado = resultado.replace(/-\s*-/g, "- ");
+    
+    // 🔥 Arreglar doble signo en constante negativa
+    resultado = resultado.replace(/-\s*-(\d+)/g, "- $1");
+    resultado = resultado.replace(/-\s*-(\d+\/\d+)/g, "- $1");
+    
+    return resultado;
 }
-
 export function crearPolinomio(polinomio) {
     return polinomio.map(c => ({ num: c.num, den: c.den }));
 }

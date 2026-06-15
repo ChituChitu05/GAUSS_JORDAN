@@ -129,7 +129,6 @@ export function inicializarMatriz(article, modo) {
     const button = UI.createButton("btnCalcular", buttonText, "btnCalcular");
     const btnLimpiar = UI.createButton("btnLimpiarMatriz", "Borrar matriz", "btnCalcular btnLimpiarEV");
     
-    // Botón de raíz cuadrada - CORREGIDO
     const btnRaiz = document.createElement("button");
     btnRaiz.type = "button";
     btnRaiz.className = "btn-raiz";
