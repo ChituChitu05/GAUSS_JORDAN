@@ -490,10 +490,18 @@ function _columnaVaciaOCero(table, colIndex) {
 }
 
 function _matrixRevisarBorrado(table, rowIndex, colIndex) {
-    const minRows  = parseInt(table.dataset.minRows) || 1;
-    const minCols  = parseInt(table.dataset.minCols) || 1;
     const currentOp = getCurrentOperation();
 
+    let minRows, minCols;
+    if (currentOp === "axb") {
+        minRows = 2;
+        minCols = 3;
+    } else {
+        const dsRows = parseInt(table.dataset.minRows) || 2;
+        const dsCols = parseInt(table.dataset.minCols) || 2;
+        minRows = Math.max(2, dsRows);
+        minCols = Math.max(2, dsCols);
+    }
     setTimeout(() => {
         let tr = rowIndex, tc = colIndex;
 

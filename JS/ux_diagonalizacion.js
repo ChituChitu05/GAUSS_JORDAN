@@ -24,7 +24,7 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
 
     const label = document.createElement("div");
     label.className = "diag-matrix-label";
-    label.textContent = "A =";
+    label.textContent = "A[α↓] =";
 
     const container = document.createElement("div");
     container.className = "diag-matrix-container";
@@ -32,8 +32,8 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
     const table = document.createElement("table");
     table.id = id;
     table.className = "diag-input-table";
-    table.dataset.minRows = "1";
-    table.dataset.minCols = "1";
+    table.dataset.minRows = "2"; 
+    table.dataset.minCols = "2"; 
 
     for (let i = 0; i < filas; i++) {
         const tr = document.createElement("tr");
@@ -47,7 +47,6 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
     card.append(label, container);
     return { card, table };
 }
-
 // ==================== VALIDACIÓN ====================
 
 function esMatrizCuadrada(table) {
@@ -392,6 +391,7 @@ function configurarEventosDiag(section, table) {
             e.stopPropagation();
             const { insertarRaiz } = await import("./celdas.js");
             insertarRaiz();
+             actualizarMinimoDiag(table); 
         });
     }
     
@@ -491,4 +491,12 @@ export function inicializarDiagonalizacion(article) {
             }
         }
     }, 100);
+}
+function actualizarMinimoDiag(table) {
+    const filas = table.rows.length;
+    const cols  = table.rows[0]?.cells.length ?? 0;
+    // El mínimo es la dimensión actual, nunca menos de 2
+    const n = Math.max(2, Math.min(filas, cols));
+    table.dataset.minRows = String(n);
+    table.dataset.minCols = String(n);
 }
