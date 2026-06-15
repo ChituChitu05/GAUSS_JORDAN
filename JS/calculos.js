@@ -773,6 +773,9 @@ export function encontrarMultiplicidadGeometrica(A, λ) {
 }
 
 export function verificarDiagonalizacion(A, valoresPropios) {
+    const n = A.length;
+    
+    // Si no hay valores propios reales
     if (valoresPropios.length === 0) {
         return { 
             esDiagonalizable: false, 
@@ -780,15 +783,29 @@ export function verificarDiagonalizacion(A, valoresPropios) {
         };
     }
     
+    // Si hay valores propios complejos (no reales)
+    for (const vp of valoresPropios) {
+        if (vp.tipo === "complejo") {
+            return { 
+                esDiagonalizable: false, 
+                razon: "La matriz tiene valores propios complejos (no reales). No es diagonalizable en ℝ." 
+            };
+        }
+    }
+    
+    // Contar multiplicidades algebraicas (frecuencia de cada valor propio)
     const mapa = new Map();
     for (const vp of valoresPropios) {
         if (vp.tipo !== "exacta") {
-            return { esDiagonalizable: false, razon: "Tiene valores propios no reales (complejos)" };
+            // Si hay una raíz no exacta (como 5 ± √41), son dos valores distintos
+            // No necesitamos verificar multiplicidad geométrica porque ya sabemos que son distintos
+            continue;
         }
         const key = `${vp.valor.num}/${vp.valor.den}`;
         mapa.set(key, (mapa.get(key) || 0) + 1);
     }
     
+    // Verificar multiplicidad geométrica para cada valor propio (solo si es exacto)
     for (const [key, multAlgebraica] of mapa.entries()) {
         const [num, den] = key.split("/").map(Number);
         const λ = { num, den: den || 1 };
@@ -802,15 +819,34 @@ export function verificarDiagonalizacion(A, valoresPropios) {
         }
     }
     
-    return { esDiagonalizable: true, razon: "La matriz es diagonalizable" };
+    // Si llegamos aquí, la matriz es diagonalizable
+    // (los valores propios con raíz no exacta ya son distintos entre sí)
+    return { 
+        esDiagonalizable: true, 
+        razon: "La matriz es diagonalizable en ℝ" 
+    };
 }
-
-export function construirMatrizDiagonal(valoresPropios, n) {
+export function construirMatrizDiagonalCompleta(raices, n) {
     const D = Array(n).fill().map(() => Array(n).fill({ num: 0, den: 1 }));
     
-    for (let i = 0; i < Math.min(n, valoresPropios.length); i++) {
-        if (valoresPropios[i] && valoresPropios[i].valor) {
-            D[i][i] = normalizarSigno(valoresPropios[i].valor);
+    // Para cada valor propio en la diagonal (en orden)
+    for (let i = 0; i < Math.min(n, raices.length); i++) {
+        const raiz = raices[i];
+        
+        if (raiz.tipo === "exacta") {
+            D[i][i] = normalizarSigno(raiz.valor);
+        } else if (raiz.tipo === "raiz") {
+            // Guardar el valor propio como objeto especial para mostrar con raíz
+            // En lugar de guardar una fracción, guardamos la representación de raíz
+            D[i][i] = {
+                tipo: "raiz",
+                parteReal: raiz.parteReal,
+                coeficiente: raiz.coeficiente,
+                radicando: raiz.radicando,
+                // También guardamos como fracción aproximada para cálculos
+                num: raiz.parteReal?.num || 0,
+                den: raiz.parteReal?.den || 1
+            };
         }
     }
     
@@ -849,11 +885,27 @@ export function diagonalizarMatrizCompleta(A) {
         }
     }
     
+    // DEBUG
+    console.log("=== DEBUG diagonalizarMatrizCompleta ===");
+    console.log("valoresPropios:", valoresPropios.map(v => {
+        if (v.tipo === "exacta") return fraccionToString(v.valor);
+        if (v.tipo === "raiz") return `${fraccionToString(v.parteReal)} ± ${fraccionToString(v.coeficiente)}√${fraccionToString(v.radicando)}`;
+        return v.tipo;
+    }));
+    console.log("raices:", raices.map(r => {
+        if (r.tipo === "exacta") return fraccionToString(r.valor);
+        if (r.tipo === "raiz") return `${fraccionToString(r.parteReal)} ± ${fraccionToString(r.coeficiente)}√${fraccionToString(r.radicando)}`;
+        return r.tipo;
+    }));
+    console.log("n:", n, "valoresPropios.length:", valoresPropios.length);
+    
     const diagonalizacion = verificarDiagonalizacion(A, valoresPropios);
+    console.log("diagonalizacion:", diagonalizacion);
     
     let D = null;
-    if (diagonalizacion.esDiagonalizable && valoresPropios.length === n) {
-        D = construirMatrizDiagonal(valoresPropios, n);
+    if (diagonalizacion.esDiagonalizable) {
+        // Construir D con TODOS los valores propios (incluyendo los no exactos)
+        D = construirMatrizDiagonalCompleta(raices, n);
     }
     
     return {
