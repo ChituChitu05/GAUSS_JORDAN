@@ -1,5 +1,5 @@
 import { esCero, multiplicarFracciones, dividirFracciones, restarFracciones, normalizarSigno, fraccionToString, sumarFraccionesObj, esVectorCero, obtenerColumna, vectorToString } from "./auxiliares.js";
-import { productoPunto, normaCuadrada, multiplicarVectorPorEscalar, restarVectores, sumarVectores, multiplicarMatrices,obtenerPolinomioCaracteristicoConDebug } from "./operaciones.js";
+import { productoPunto, normaCuadrada, multiplicarVectorPorEscalar, restarVectores, sumarVectores, multiplicarMatrices } from "./operaciones.js";
 import gaussJordan from "./gaussJordan.js";
 import { 
     obtenerPolinomioCaracteristico,
@@ -769,20 +769,9 @@ export function diagonalizarMatrizCompleta(A) {
         throw new Error("La matriz debe ser cuadrada");
     }
     
-    // Usar la versión con debug
-    const { polinomio: polCaracteristico, matrizLambdaI: lambdaImenosA } = obtenerPolinomioCaracteristicoConDebug(A);
-    
-    console.log("=== DIAGONALIZACIÓN ===");
-    console.log("Matriz A:", A.map(row => row.map(v => fraccionToString(v))));
-    console.log("Polinomio característico:", polinomioToString(polCaracteristico));
+    const { polinomio: polCaracteristico, matrizLambdaI: lambdaImenosA } = obtenerPolinomioCaracteristico(A);
     
     const factoresPol = factorizarPolinomio(polCaracteristico);
-    console.log("Factores:", factoresPol.map(f => {
-        if (f.tipo === "lineal") {
-            return `(λ - ${fraccionToString(f.raiz.valor)})`;
-        }
-        return polinomioToString(f.coeficientes);
-    }));
     
     const valoresPropios = [];
     for (const factor of factoresPol) {
@@ -792,7 +781,6 @@ export function diagonalizarMatrizCompleta(A) {
             }
         }
     }
-    console.log("Valores propios:", valoresPropios.map(v => fraccionToString(v.valor)));
     
     const diagonalizacion = verificarDiagonalizacion(A, valoresPropios);
     

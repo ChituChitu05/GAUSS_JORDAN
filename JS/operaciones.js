@@ -296,16 +296,15 @@ export function matrizPolinomiosDesdeMatrizNumerica(A) {
         M[i] = [];
         for (let j = 0; j < n; j++) {
             if (i === j) {
-                // a_ii - λ
-                M[i][j] = [
-                    { num: A[i][j].num, den: A[i][j].den },  // término constante: a_ii
-                    { num: -1, den: 1 }                        // término lineal: -λ
-                ];
-                if (M[i][j][0].num === 0) M[i][j].shift();
+                const constante = { num: -A[i][j].num, den: A[i][j].den };
+                if (constante.num === 0) {
+                    M[i][j] = [{ num: 1, den: 1 }]; // solo λ
+                } else {
+                    M[i][j] = [constante, { num: 1, den: 1 }];
+                }
             } else {
-                // a_ij (sin cambio de signo)
-                M[i][j] = [{ num: A[i][j].num, den: A[i][j].den }];
-                if (M[i][j][0].num === 0) M[i][j] = [{ num: 0, den: 1 }];
+                const val = { num: -A[i][j].num, den: A[i][j].den };
+                M[i][j] = [val.num === 0 ? { num: 0, den: 1 } : val];
             }
         }
     }
@@ -326,37 +325,7 @@ export function determinantePolinomioMatriz(M) {
         return restarPolinomios(ad, bc);
     }
     
-    if (n === 3) {
-        const a11 = M[0][0], a12 = M[0][1], a13 = M[0][2];
-        const a21 = M[1][0], a22 = M[1][1], a23 = M[1][2];
-        const a31 = M[2][0], a32 = M[2][1], a33 = M[2][2];
-        
-        // Termino 1: + a11 * (a22*a33 - a23*a32)
-        const a22_a33 = multiplicarPolinomios(a22, a33);
-        const a23_a32 = multiplicarPolinomios(a23, a32);
-        const subDet1 = restarPolinomios(a22_a33, a23_a32);
-        const term1 = multiplicarPolinomios(a11, subDet1);
-        
-        // Termino 2: - a12 * (a21*a33 - a23*a31)
-        const a21_a33 = multiplicarPolinomios(a21, a33);
-        const a23_a31 = multiplicarPolinomios(a23, a31);
-        const subDet2 = restarPolinomios(a21_a33, a23_a31);
-        const term2 = multiplicarPolinomios(a12, subDet2);
-        const term2Neg = multiplicarPolinomios(term2, [{ num: -1, den: 1 }]);
-        
-        // Termino 3: + a13 * (a21*a32 - a22*a31)
-        const a21_a32 = multiplicarPolinomios(a21, a32);
-        const a22_a31 = multiplicarPolinomios(a22, a31);
-        const subDet3 = restarPolinomios(a21_a32, a22_a31);
-        const term3 = multiplicarPolinomios(a13, subDet3);
-        
-        let det = sumarPolinomios(term1, term2Neg);
-        det = sumarPolinomios(det, term3);
-        
-        return det;
-    }
-    
-    // Para n > 3, usar expansión recursiva por primera fila
+    // Para n >= 3: expansión por cofactores de la primera fila
     let det = [{ num: 0, den: 1 }];
     
     for (let col = 0; col < n; col++) {
@@ -364,9 +333,7 @@ export function determinantePolinomioMatriz(M) {
         for (let i = 1; i < n; i++) {
             const fila = [];
             for (let j = 0; j < n; j++) {
-                if (j !== col) {
-                    fila.push(M[i][j]);
-                }
+                if (j !== col) fila.push(M[i][j]);
             }
             subMatriz.push(fila);
         }
@@ -383,44 +350,30 @@ export function determinantePolinomioMatriz(M) {
     
     return det;
 }
-export function obtenerPolinomioCaracteristicoConDebug(A) {
-    const n = A.length;
-    console.log("Matriz A:", A.map(row => row.map(v => fraccionToString(v))));
-    
-    const lambdaImenosA = matrizPolinomiosDesdeMatrizNumerica(A);
-    console.log("A - λI:");
-    for (let i = 0; i < n; i++) {
-        console.log(lambdaImenosA[i].map(p => polinomioToString(p)));
-    }
-    
-    const polinomio = determinantePolinomioMatriz(lambdaImenosA);
-    console.log("Polinomio característico (sin normalizar):", polinomioToString(polinomio));
-    
-    let polNormalizado = [...polinomio];
-    const grado = polNormalizado.length - 1;
-    if (grado >= 0 && polNormalizado[grado].num < 0) {
-        for (let i = 0; i < polNormalizado.length; i++) {
-            polNormalizado[i] = multiplicarFracciones(polNormalizado[i], { num: -1, den: 1 });
-        }
-    }
-    console.log("Polinomio normalizado:", polinomioToString(polNormalizado));
-    
-    return { 
-        polinomio: polNormalizado, 
-        matrizLambdaI: lambdaImenosA 
-    };
-}
 
 export function obtenerPolinomioCaracteristico(A) {
     const lambdaImenosA = matrizPolinomiosDesdeMatrizNumerica(A);
     const polinomio = determinantePolinomioMatriz(lambdaImenosA);
     
-    const grado = polinomio.length - 1;
-    if (grado >= 0 && polinomio[grado].num < 0) {
-        for (let i = 0; i < polinomio.length; i++) {
-            polinomio[i] = multiplicarFracciones(polinomio[i], { num: -1, den: 1 });
-        }
+    // Ya no es necesario negar — det(λI - A) siempre tiene líder positivo
+    return { 
+        polinomio, 
+        matrizLambdaI: lambdaImenosA 
+    };
+}
+
+export function obtenerPolinomioCaracteristicoConDebug(A) {
+    const n = A.length;
+    console.log("Matriz A:", A.map(row => row.map(v => fraccionToString(v))));
+    
+    const lambdaImenosA = matrizPolinomiosDesdeMatrizNumerica(A);
+    console.log("λI - A:");
+    for (let i = 0; i < n; i++) {
+        console.log(lambdaImenosA[i].map(p => polinomioToString(p)));
     }
+    
+    const polinomio = determinantePolinomioMatriz(lambdaImenosA);
+    console.log("Polinomio característico:", polinomioToString(polinomio));
     
     return { 
         polinomio, 
