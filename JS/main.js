@@ -84,7 +84,7 @@ function initThemeToggle() {
     });
 }
 
-// ========== PLACEHOLDER ==========
+// ========== PLACEHOLDER (se mantiene por si acaso, pero ya no se usa para diagonalización) ==========
 function mostrarPlaceholder(article, titulo, subtitulo = "Módulo en construcción") {
     while (article.firstChild) article.removeChild(article.firstChild);
 
@@ -139,7 +139,14 @@ function buildAside() {
     document.body.classList.toggle("module-transformaciones", currentModule === "transformaciones");
     aside.classList.toggle("aside-basicas", currentModule === "basicas");
 
-    if (currentModule === "transformaciones") return;
+    // Ocultar aside para transformaciones y diagonalización
+    if (currentModule === "transformaciones" || currentModule === "diagonalizacion") {
+        aside.innerHTML = "";
+        aside.classList.add("aside-hidden");
+        return;
+    }
+    
+    aside.classList.remove("aside-hidden");
 
     const ul = document.createElement("ul");
     ul.className = "aside-function-list";
@@ -244,7 +251,13 @@ function switchModule(module) {
     }
     else if (module === "diagonalizacion") {
         currentAsideSelection = "";
-        mostrarPlaceholder(article, "DIAGONALIZACIÓN");
+        // Importar dinámicamente el módulo de diagonalización
+        import("./ux_diagonalizacion.js").then(module => {
+            module.inicializarDiagonalizacion(article);
+        }).catch(error => {
+            console.error("Error al cargar el módulo de diagonalización:", error);
+            mostrarPlaceholder(article, "DIAGONALIZACIÓN", "Error al cargar el módulo. Verifica que el archivo ux_diagonalizacion.js existe.");
+        });
     }
 
     if (!isSameModule) article.scrollTo?.({ top: 0, behavior: "smooth" });

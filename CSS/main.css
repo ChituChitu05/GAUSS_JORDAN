@@ -4309,3 +4309,139 @@ body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
     white-space: nowrap;
     z-index: 1000;
 }
+/* Diagonalización */
+.diag-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.5rem;
+}
+
+.diag-matrix-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 2px solid var(--primary);
+    border-radius: 16px;
+    background: var(--bg-surface);
+}
+
+.diag-matrix-label {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.diag-matrix-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.diag-input-table {
+    border-collapse: collapse;
+    background: var(--bg-card);
+}
+
+.diag-input-table td {
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+}
+
+.diag-input-table .cell-span,
+.diag-input-table .cell-input {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.5rem 0.75rem;
+    min-width: 5ch;
+    font-family: monospace;
+    font-size: 1rem;
+}
+
+.diag-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.diag-results-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border-top: 2px solid var(--primary);
+}
+
+.diag-results-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.result-block {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.result-block h3 {
+    margin-bottom: 0.75rem;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.poly-table td {
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-family: monospace;
+}
+
+.poly-display {
+    font-family: monospace;
+    font-size: 1.1rem;
+    padding: 0.5rem;
+    background: var(--bg-code);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.factores-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.factor-item {
+    font-family: monospace;
+    font-size: 1rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-code);
+    border-radius: 6px;
+}
+
+.valores-propios-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.valor-propio-item {
+    font-family: monospace;
+    font-size: 1rem;
+}
+
+.mensaje-final {
+    text-align: center;
+    font-weight: bold;
+}
+
+.aside-hidden {
+    display: none !important;
+}

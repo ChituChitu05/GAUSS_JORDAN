@@ -397,6 +397,7 @@ function _matrixStructEnter(table, input) {
 function _matrixStructBackspace(e, table, input) {
     if (e.key !== 'Backspace' && e.key !== 'Delete') return;
 
+    // Capturar coordenadas ANTES de cualquier operación DOM
     const cell     = input.closest('td');
     const row      = cell?.parentElement;
     if (!cell || !row) return;
@@ -404,21 +405,54 @@ function _matrixStructBackspace(e, table, input) {
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
 
+    // Helper: reemplaza el elemento editable ACTUAL de la celda por un span vacío.
+    // Usa removeChild + insertBefore en lugar de replaceWith para evitar el
+    // NotFoundError que ocurre cuando blur/focusout ya movió el nodo.
+    function _replaceCurrentEditableWithEmpty() {
+        const currentCell = table.rows[rowIndex]?.cells[colIndex];
+        if (!currentCell) return;
+        const el = currentCell.querySelector('.cell-input') ?? currentCell.querySelector('.cell-span');
+        if (!el) return;
+        const empty = crearSpanCelda("", rowIndex, colIndex);
+        try {
+            currentCell.insertBefore(empty, el);
+            currentCell.removeChild(el);
+        } catch (_) {
+            // El nodo ya fue movido por blur/focusout; el span vacío ya está en la celda
+            if (!currentCell.contains(empty)) {
+                currentCell.appendChild(empty);
+            }
+            if (currentCell.contains(el)) {
+                try { currentCell.removeChild(el); } catch (_2) { /* ignorar */ }
+            }
+        }
+        _coordsFromElement(empty);
+    }
+
     if (input.value === "") {
         e.preventDefault();
-        const empty = crearSpanCelda("", rowIndex, colIndex);
-        input.replaceWith(empty);
-        _coordsFromElement(empty);
+        _replaceCurrentEditableWithEmpty();
         _matrixRevisarBorrado(table, rowIndex, colIndex);
         return;
     }
 
     setTimeout(() => {
-        if (!input.isConnected || input.value.trim() !== "") return;
-        const empty = crearSpanCelda("", rowIndex, colIndex);
-        input.replaceWith(empty);
-        _coordsFromElement(empty);
-        _matrixRevisarBorrado(table, rowIndex, colIndex);
+        const currentCell = table.rows[rowIndex]?.cells[colIndex];
+        if (!currentCell) return;
+
+        const currentInput = currentCell.querySelector('.cell-input');
+        const currentSpan  = currentCell.querySelector('.cell-span');
+
+        if (currentInput && currentInput.value.trim() === "") {
+            _replaceCurrentEditableWithEmpty();
+            _matrixRevisarBorrado(table, rowIndex, colIndex);
+        } else if (currentSpan) {
+            // focusout ya convirtió el input en span; si quedó vacío, revisar borrado
+            const val = (currentSpan.getAttribute('data-value') ?? currentSpan.textContent ?? "").trim();
+            if (val === "") {
+                _matrixRevisarBorrado(table, rowIndex, colIndex);
+            }
+        }
     }, 0);
 }
 
@@ -820,11 +854,6 @@ function _detach() {
     _onFocusout  = _onPaste   = _onWindowKey = null;
 }
 
-// ─────────────────────────────────────────────
-// API pública
-// ─────────────────────────────────────────────
-
-/** Desconecta cualquier modo activo. */
 export function desconfigurarEventos() {
     _detach();
     _article = _table = _mode = null;
@@ -832,11 +861,9 @@ export function desconfigurarEventos() {
     _row = _col = 0;
 }
 
-// Aliases de compatibilidad
 export const desconfigurarEventosMatri = desconfigurarEventos;
 export const desconfigurarEventosEV    = desconfigurarEventos;
 
-/** Configura eventos para el módulo de Matrices. */
 export function configurarEventos(article, table, operation) {
     desconfigurarEventos();
     _article = article;

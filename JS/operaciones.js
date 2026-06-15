@@ -1,6 +1,11 @@
-import { multiplicarFracciones, sumarFraccionesObj, restarFracciones, normalizarSigno } from "./auxiliares.js";
-
-// ==================== OPERACIONES CON VECTORES ====================
+import { 
+    multiplicarFracciones, 
+    sumarFraccionesObj, 
+    restarFracciones, 
+    normalizarSigno, 
+    fraccionToString,
+    dividirFracciones
+} from "./auxiliares.js";
 
 export function swapFilas(m, fil_i, fil_j) {
     if (fil_i === fil_j) return false;
@@ -66,8 +71,6 @@ export function sumarVectores(vectorA, vectorB) {
     
     return vectorA.map((v, i) => sumarFraccionesObj(v, vectorB[i]));
 }
-
-// ==================== OPERACIONES CON MATRICES ====================
 
 export function sumarMatrices(A, B) {
     return A.map((fila, i) => 
@@ -186,4 +189,279 @@ export function validarDimensionesMatrices(modo, A, B = null) {
     }
     
     return true;
+}
+
+export function polinomioToString(polinomio) {
+    if (!polinomio || polinomio.length === 0) return "0";
+    
+    while (polinomio.length > 1 && polinomio[polinomio.length - 1].num === 0) {
+        polinomio.pop();
+    }
+    
+    const terminos = [];
+    for (let i = 0; i < polinomio.length; i++) {
+        const coef = polinomio[i];
+        if (coef.num === 0) continue;
+        
+        const coefStr = (coef.num === 1 && coef.den === 1 && i > 0) ? "" :
+                        (coef.num === -1 && coef.den === 1 && i > 0) ? "-" :
+                        fraccionToString(coef);
+        
+        if (i === 0) {
+            terminos.push(coefStr);
+        } else if (i === 1) {
+            terminos.push(`${coefStr}λ`);
+        } else {
+            terminos.push(`${coefStr}λ^${i}`);
+        }
+    }
+    
+    if (terminos.length === 0) return "0";
+    return terminos.reverse().join(" + ").replace(/\+ -/g, "- ");
+}
+
+export function crearPolinomio(polinomio) {
+    return polinomio.map(c => ({ num: c.num, den: c.den }));
+}
+
+export function sumarPolinomios(p, q) {
+    const maxLen = Math.max(p.length, q.length);
+    const resultado = [];
+    
+    for (let i = 0; i < maxLen; i++) {
+        const pCoef = i < p.length ? p[i] : { num: 0, den: 1 };
+        const qCoef = i < q.length ? q[i] : { num: 0, den: 1 };
+        resultado.push(normalizarSigno(sumarFraccionesObj(pCoef, qCoef)));
+    }
+    
+    while (resultado.length > 1 && resultado[resultado.length - 1].num === 0) {
+        resultado.pop();
+    }
+    
+    return resultado;
+}
+
+export function restarPolinomios(p, q) {
+    const maxLen = Math.max(p.length, q.length);
+    const resultado = [];
+    
+    for (let i = 0; i < maxLen; i++) {
+        const pCoef = i < p.length ? p[i] : { num: 0, den: 1 };
+        const qCoef = i < q.length ? q[i] : { num: 0, den: 1 };
+        resultado.push(normalizarSigno(restarFracciones(pCoef, qCoef)));
+    }
+    
+    while (resultado.length > 1 && resultado[resultado.length - 1].num === 0) {
+        resultado.pop();
+    }
+    
+    return resultado;
+}
+
+export function multiplicarPolinomios(p, q) {
+    const gradoP = p.length - 1;
+    const gradoQ = q.length - 1;
+    const resultado = Array(gradoP + gradoQ + 1).fill({ num: 0, den: 1 });
+    
+    for (let i = 0; i <= gradoP; i++) {
+        for (let j = 0; j <= gradoQ; j++) {
+            resultado[i + j] = normalizarSigno(
+                sumarFraccionesObj(resultado[i + j], multiplicarFracciones(p[i], q[j]))
+            );
+        }
+    }
+    
+    while (resultado.length > 1 && resultado[resultado.length - 1].num === 0) {
+        resultado.pop();
+    }
+    
+    return resultado;
+}
+
+export function multiplicarPolinomioPorMonomio(p, k, g = 0) {
+    const resultado = Array(g).fill({ num: 0, den: 1 });
+    
+    for (let i = 0; i < p.length; i++) {
+        resultado.push(normalizarSigno(multiplicarFracciones(p[i], k)));
+    }
+    
+    return resultado;
+}
+
+export function matrizPolinomiosDesdeMatrizNumerica(A) {
+    const n = A.length;
+    const M = [];
+    
+    for (let i = 0; i < n; i++) {
+        M[i] = [];
+        for (let j = 0; j < n; j++) {
+            if (i === j) {
+                // a_ii - λ
+                M[i][j] = [
+                    { num: A[i][j].num, den: A[i][j].den },  // término constante: a_ii
+                    { num: -1, den: 1 }                        // término lineal: -λ
+                ];
+                if (M[i][j][0].num === 0) M[i][j].shift();
+            } else {
+                // a_ij (sin cambio de signo)
+                M[i][j] = [{ num: A[i][j].num, den: A[i][j].den }];
+                if (M[i][j][0].num === 0) M[i][j] = [{ num: 0, den: 1 }];
+            }
+        }
+    }
+    return M;
+}
+
+export function determinantePolinomioMatriz(M) {
+    const n = M.length;
+    
+    if (n === 1) {
+        return crearPolinomio(M[0][0]);
+    }
+    
+    if (n === 2) {
+        const a = M[0][0], b = M[0][1], c = M[1][0], d = M[1][1];
+        const ad = multiplicarPolinomios(a, d);
+        const bc = multiplicarPolinomios(b, c);
+        return restarPolinomios(ad, bc);
+    }
+    
+    if (n === 3) {
+        const a11 = M[0][0], a12 = M[0][1], a13 = M[0][2];
+        const a21 = M[1][0], a22 = M[1][1], a23 = M[1][2];
+        const a31 = M[2][0], a32 = M[2][1], a33 = M[2][2];
+        
+        // Termino 1: + a11 * (a22*a33 - a23*a32)
+        const a22_a33 = multiplicarPolinomios(a22, a33);
+        const a23_a32 = multiplicarPolinomios(a23, a32);
+        const subDet1 = restarPolinomios(a22_a33, a23_a32);
+        const term1 = multiplicarPolinomios(a11, subDet1);
+        
+        // Termino 2: - a12 * (a21*a33 - a23*a31)
+        const a21_a33 = multiplicarPolinomios(a21, a33);
+        const a23_a31 = multiplicarPolinomios(a23, a31);
+        const subDet2 = restarPolinomios(a21_a33, a23_a31);
+        const term2 = multiplicarPolinomios(a12, subDet2);
+        const term2Neg = multiplicarPolinomios(term2, [{ num: -1, den: 1 }]);
+        
+        // Termino 3: + a13 * (a21*a32 - a22*a31)
+        const a21_a32 = multiplicarPolinomios(a21, a32);
+        const a22_a31 = multiplicarPolinomios(a22, a31);
+        const subDet3 = restarPolinomios(a21_a32, a22_a31);
+        const term3 = multiplicarPolinomios(a13, subDet3);
+        
+        let det = sumarPolinomios(term1, term2Neg);
+        det = sumarPolinomios(det, term3);
+        
+        return det;
+    }
+    
+    // Para n > 3, usar expansión recursiva por primera fila
+    let det = [{ num: 0, den: 1 }];
+    
+    for (let col = 0; col < n; col++) {
+        const subMatriz = [];
+        for (let i = 1; i < n; i++) {
+            const fila = [];
+            for (let j = 0; j < n; j++) {
+                if (j !== col) {
+                    fila.push(M[i][j]);
+                }
+            }
+            subMatriz.push(fila);
+        }
+        
+        const cofactor = determinantePolinomioMatriz(subMatriz);
+        let termino = multiplicarPolinomios(M[0][col], cofactor);
+        
+        if (col % 2 !== 0) {
+            termino = multiplicarPolinomios(termino, [{ num: -1, den: 1 }]);
+        }
+        
+        det = sumarPolinomios(det, termino);
+    }
+    
+    return det;
+}
+export function obtenerPolinomioCaracteristicoConDebug(A) {
+    const n = A.length;
+    console.log("Matriz A:", A.map(row => row.map(v => fraccionToString(v))));
+    
+    const lambdaImenosA = matrizPolinomiosDesdeMatrizNumerica(A);
+    console.log("A - λI:");
+    for (let i = 0; i < n; i++) {
+        console.log(lambdaImenosA[i].map(p => polinomioToString(p)));
+    }
+    
+    const polinomio = determinantePolinomioMatriz(lambdaImenosA);
+    console.log("Polinomio característico (sin normalizar):", polinomioToString(polinomio));
+    
+    let polNormalizado = [...polinomio];
+    const grado = polNormalizado.length - 1;
+    if (grado >= 0 && polNormalizado[grado].num < 0) {
+        for (let i = 0; i < polNormalizado.length; i++) {
+            polNormalizado[i] = multiplicarFracciones(polNormalizado[i], { num: -1, den: 1 });
+        }
+    }
+    console.log("Polinomio normalizado:", polinomioToString(polNormalizado));
+    
+    return { 
+        polinomio: polNormalizado, 
+        matrizLambdaI: lambdaImenosA 
+    };
+}
+
+export function obtenerPolinomioCaracteristico(A) {
+    const lambdaImenosA = matrizPolinomiosDesdeMatrizNumerica(A);
+    const polinomio = determinantePolinomioMatriz(lambdaImenosA);
+    
+    const grado = polinomio.length - 1;
+    if (grado >= 0 && polinomio[grado].num < 0) {
+        for (let i = 0; i < polinomio.length; i++) {
+            polinomio[i] = multiplicarFracciones(polinomio[i], { num: -1, den: 1 });
+        }
+    }
+    
+    return { 
+        polinomio, 
+        matrizLambdaI: lambdaImenosA 
+    };
+}
+export function dividirPolinomios(p, q) {
+    if (q.length === 0 || (q.length === 1 && q[0].num === 0)) {
+        throw new Error("División por polinomio cero");
+    }
+    const gradoQ = q.length - 1;
+    const coefPrincipal = q[gradoQ];
+    const esMonico = coefPrincipal.num === 1 && coefPrincipal.den === 1;
+    
+    let divisor = q;
+    let factorNormalizacion = { num: 1, den: 1 };
+    
+    if (!esMonico) {
+        factorNormalizacion = { num: 1, den: 1 };
+        divisor = q.map(c => dividirFracciones(c, coefPrincipal));
+    }
+    
+    let residuo = [...p];
+    const cociente = Array(Math.max(0, p.length - gradoQ)).fill({ num: 0, den: 1 });
+    
+    for (let i = p.length - 1; i >= gradoQ; i--) {
+        if (residuo[i].num === 0) continue;
+        
+        const coef = dividirFracciones(residuo[i], divisor[gradoQ]);
+        cociente[i - gradoQ] = coef;
+        
+        for (let j = 0; j <= gradoQ; j++) {
+            residuo[i - gradoQ + j] = normalizarSigno(
+                restarFracciones(residuo[i - gradoQ + j], multiplicarFracciones(divisor[j], coef))
+            );
+        }
+    }
+    
+    while (residuo.length > 1 && residuo[residuo.length - 1].num === 0) {
+        residuo.pop();
+    }
+    
+    return { cociente, residuo };
 }
