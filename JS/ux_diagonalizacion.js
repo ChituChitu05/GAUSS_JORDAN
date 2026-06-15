@@ -323,7 +323,7 @@ function mostrarResultados(article, resultados) {
     matrizALine.appendChild(crearMatrizHTML(resultados.matrizOriginal));
     content.appendChild(matrizALine);
     
-    // ===== 2. MATRIZ A - λI (CON POLINOMIOS) =====
+    // ===== 2. MATRIZ A - λI =====
     const A_menos_lambdaI_Line = document.createElement("div");
     A_menos_lambdaI_Line.style.display = "flex";
     A_menos_lambdaI_Line.style.alignItems = "center";
@@ -331,14 +331,13 @@ function mostrarResultados(article, resultados) {
     A_menos_lambdaI_Line.style.gap = "10px";
     A_menos_lambdaI_Line.innerHTML = "<strong>A - λI =</strong>";
     
-    // Calcular A - λI (cambiar signos de λI - A que ya tenemos)
     const A_menos_lambdaI = resultados.lambdaImenosA.map(fila =>
         fila.map(pol => pol.map(coef => ({ num: -coef.num, den: coef.den })))
     );
     A_menos_lambdaI_Line.appendChild(crearMatrizPolinomiosHTML(A_menos_lambdaI));
     content.appendChild(A_menos_lambdaI_Line);
     
-    // ===== 3. DETERMINANTE = det(A - λI) =====
+    // ===== 3. DETERMINANTE det(A - λI) =====
     const detLine = document.createElement("div");
     detLine.style.display = "flex";
     detLine.style.alignItems = "center";
@@ -346,7 +345,6 @@ function mostrarResultados(article, resultados) {
     detLine.style.gap = "10px";
     detLine.innerHTML = "<strong>det(A - λI) =</strong>";
     
-    // Mostrar la matriz con λ en las diagonales
     const detMatrix = document.createElement("span");
     detMatrix.style.display = "inline-block";
     detMatrix.style.verticalAlign = "middle";
@@ -437,7 +435,81 @@ function mostrarResultados(article, resultados) {
     }
     content.appendChild(DLine);
     
-    // ===== 8. MENSAJE FINAL =====
+    // ===== 8. MATRIZ DE VECTORES PROPIOS P =====
+    if (resultados.matrizVectoresPropios && resultados.diagonalizacion.esDiagonalizable) {
+        const PLine = document.createElement("div");
+        PLine.style.display = "flex";
+        PLine.style.alignItems = "center";
+        PLine.style.flexWrap = "wrap";
+        PLine.style.gap = "10px";
+        PLine.innerHTML = "<strong>P =</strong>";
+        PLine.appendChild(crearMatrizHTML(resultados.matrizVectoresPropios));
+        content.appendChild(PLine);
+        
+        const vectoresTitle = document.createElement("div");
+        vectoresTitle.style.fontWeight = "600";
+        vectoresTitle.style.marginTop = "0.5rem";
+        vectoresTitle.style.marginBottom = "0.5rem";
+        vectoresTitle.innerHTML = "<strong>Vectores propios:</strong>";
+        content.appendChild(vectoresTitle);
+        
+        const vectoresList = document.createElement("div");
+        vectoresList.style.display = "flex";
+        vectoresList.style.flexDirection = "column";
+        vectoresList.style.gap = "0.5rem";
+        vectoresList.style.marginBottom = "0.5rem";
+        
+        const Pmatriz = resultados.matrizVectoresPropios;
+        const numVectores = Pmatriz[0]?.length || 0;
+        
+        for (let j = 0; j < numVectores; j++) {
+            const vector = Pmatriz.map(fila => fila[j]);
+            
+            const vectorDiv = document.createElement("div");
+            vectorDiv.style.display = "flex";
+            vectorDiv.style.alignItems = "center";
+            vectorDiv.style.flexWrap = "wrap";
+            vectorDiv.style.gap = "8px";
+            
+            const vLabel = document.createElement("span");
+            vLabel.style.fontWeight = "bold";
+            vLabel.style.color = "var(--primary)";
+            vLabel.textContent = `v${j + 1} =`;
+            vectorDiv.appendChild(vLabel);
+            
+            const leftParen = document.createElement("span");
+            leftParen.textContent = "(";
+            vectorDiv.appendChild(leftParen);
+            
+            vector.forEach((comp, idx) => {
+                const compSpan = document.createElement("span");
+                const str = Auxiliares.fraccionToString(comp);
+                if (str.includes("/")) {
+                    const [num, den] = str.split("/");
+                    compSpan.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+                } else {
+                    compSpan.textContent = str;
+                }
+                vectorDiv.appendChild(compSpan);
+                
+                if (idx < vector.length - 1) {
+                    const comma = document.createElement("span");
+                    comma.textContent = ", ";
+                    vectorDiv.appendChild(comma);
+                }
+            });
+            
+            const rightParen = document.createElement("span");
+            rightParen.textContent = ")";
+            vectorDiv.appendChild(rightParen);
+            
+            vectoresList.appendChild(vectorDiv);
+        }
+        
+        content.appendChild(vectoresList);
+    }
+    
+    // ===== 9. MENSAJE FINAL =====
     const mensajeLine = document.createElement("div");
     mensajeLine.style.fontWeight = "bold";
     mensajeLine.style.marginTop = "10px";
@@ -452,7 +524,6 @@ function mostrarResultados(article, resultados) {
     article.appendChild(section);
     section.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 function mostrarError(article, mensaje) {
     const prev = document.getElementById("diagResultSection");
     if (prev) prev.remove();

@@ -903,9 +903,40 @@ export function diagonalizarMatrizCompleta(A) {
     console.log("diagonalizacion:", diagonalizacion);
     
     let D = null;
+    let P = null;  // Matriz de vectores propios
+    
     if (diagonalizacion.esDiagonalizable) {
         // Construir D con TODOS los valores propios (incluyendo los no exactos)
         D = construirMatrizDiagonalCompleta(raices, n);
+        
+        // ===== CALCULAR VECTORES PROPIOS =====
+        const todosVectores = [];
+        
+        for (let idx = 0; idx < raices.length; idx++) {
+            const raiz = raices[idx];
+            
+            // Solo calculamos vectores propios para valores propios exactos
+            // (los no exactos como 5 ± √41 son dos valores distintos)
+            if (raiz.tipo === "exacta") {
+                const λ = raiz.valor;
+                const vectores = encontrarVectoresPropios(A, λ);
+                
+                // Agregar cada vector propio (uno por cada multiplicidad geométrica)
+                for (const v of vectores) {
+                    todosVectores.push(v);
+                }
+            }
+        }
+        
+        // Construir matriz P (vectores propios como columnas)
+        if (todosVectores.length === n) {
+            P = Array(n).fill().map(() => Array(n).fill({ num: 0, den: 1 }));
+            for (let j = 0; j < n; j++) {
+                for (let i = 0; i < n; i++) {
+                    P[i][j] = todosVectores[j][i];
+                }
+            }
+        }
     }
     
     return {
@@ -916,6 +947,67 @@ export function diagonalizarMatrizCompleta(A) {
         raices: raices,
         valoresPropios: valoresPropios,
         diagonalizacion: diagonalizacion,
-        matrizDiagonal: D
+        matrizDiagonal: D,
+        matrizVectoresPropios: P  // NUEVO: matriz de cambio de base (vectores propios)
     };
+}
+
+// ==================== FUNCIÓN AUXILIAR PARA VECTORES PROPIOS ====================
+
+// Resolver sistema homogéneo (A - λI)v = 0 usando Gauss-Jordan
+function encontrarVectoresPropios(A, λ) {
+    const n = A.length;
+    
+    // Construir A - λI
+    const A_menos_λI = A.map((fila, i) =>
+        fila.map((valor, j) => {
+            if (i === j) {
+                return normalizarSigno(restarFracciones(valor, λ));
+            }
+            return { num: valor.num, den: valor.den };
+        })
+    );
+    
+    // Aumentar con columna de ceros (sistema homogéneo)
+    const aumentada = A_menos_λI.map(fila => [...fila, { num: 0, den: 1 }]);
+    
+    // Usar tu función existente de Gauss-Jordan
+    const { matrizReducida, columnasPivote, rango } = aplicarGaussJordanConPivotes(aumentada, n);
+    
+    // Encontrar variables libres
+    const todasColumnas = new Set([...Array(n).keys()]);
+    const pivotes = new Set(columnasPivote);
+    const variablesLibres = [...todasColumnas].filter(col => !pivotes.has(col));
+    
+    const vectoresPropios = [];
+    
+    for (const varLibre of variablesLibres) {
+        const vector = Array(n).fill({ num: 0, den: 1 });
+        vector[varLibre] = { num: 1, den: 1 };
+        
+        // Resolver hacia atrás usando la matriz reducida
+        for (let i = matrizReducida.length - 1; i >= 0; i--) {
+            const fila = matrizReducida[i];
+            let suma = { num: 0, den: 1 };
+            let pivoteCol = -1;
+            
+            for (let j = 0; j < n; j++) {
+                if (!esCero(fila[j])) {
+                    if (pivoteCol === -1) {
+                        pivoteCol = j;
+                    } else {
+                        suma = restarFracciones(suma, multiplicarFracciones(fila[j], vector[j]));
+                    }
+                }
+            }
+            
+            if (pivoteCol !== -1 && pivoteCol !== varLibre) {
+                vector[pivoteCol] = dividirFracciones(suma, fila[pivoteCol]);
+            }
+        }
+        
+        vectoresPropios.push(vector.map(v => normalizarSigno(v)));
+    }
+    
+    return vectoresPropios;
 }
