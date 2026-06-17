@@ -4442,6 +4442,20 @@ body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
     font-weight: bold;
 }
 
+/* det(A - λI): bordes | | rectos en color primary */
+.det-primary::before {
+    border-left-color: var(--primary) !important;
+    border-top-color: transparent !important;
+    border-bottom-color: transparent !important;
+    border-radius: 0 !important;
+}
+.det-primary::after {
+    border-right-color: var(--primary) !important;
+    border-top-color: transparent !important;
+    border-bottom-color: transparent !important;
+    border-radius: 0 !important;
+}
+
 /* Diagonalización: resultado igual que resultSection */
 #diagResultSection h2 {
     color: var(--success);

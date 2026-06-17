@@ -21,6 +21,7 @@ function crearTd(row, col) {
 function crearMatrizEditable(id, filas = 2, columnas = 2) {
     const wrapper = document.createElement("div");
     wrapper.id = "wrapperA";
+    wrapper.style.justifyContent = "center";
 
     const label = document.createElement("label");
     label.textContent = "A =";
@@ -158,7 +159,7 @@ function crearMatrizPolinomiosHTML(M) {
                 td.textContent = val.num === 0 ? "0" : Auxiliares.fraccionToString(val);
             } 
             else {
-                td.textContent = polinomioToString(pol);
+                td.innerHTML = polinomioToHTML(polinomioToString(pol));
             }
             tr.appendChild(td);
         }
@@ -167,6 +168,11 @@ function crearMatrizPolinomiosHTML(M) {
     container.appendChild(table);
     return container;
 }
+// Convierte string con ^ a HTML con <sup>: "λ^2 - 3" → "λ<sup>2</sup> - 3"
+function polinomioToHTML(str) {
+    return str.replace(/\^(\d+)/g, "<sup>$1</sup>");
+}
+
 function crearFactorHTML(factor) {
     const span = document.createElement("span");
     span.className = "factor-item";
@@ -194,13 +200,13 @@ function crearFactorHTML(factor) {
                 span.textContent = `(λ - ${Auxiliares.fraccionToString(b)})`;
             }
         } else {
-            span.textContent = `(${polinomioToString(factor.coeficientes)})`;
+            span.innerHTML = `(${polinomioToHTML(polinomioToString(factor.coeficientes))})`;
         }
         return span;
     }
     
     if (factor.tipo === "cuadratico") {
-        span.textContent = `(${polinomioToString(factor.coeficientes)})`;
+        span.innerHTML = `(${polinomioToHTML(polinomioToString(factor.coeficientes))})`;
         return span;
     }
     
@@ -334,7 +340,7 @@ function mostrarResultados(article, resultados) {
     detLine.appendChild(detLabel);
     
     const detMatrix = document.createElement("div");
-    detMatrix.className = "det-container";
+    detMatrix.className = "result-matrix-container det-primary";
     const detTable = document.createElement("table");
     detTable.className = "result-table";
     
@@ -343,7 +349,9 @@ function mostrarResultados(article, resultados) {
         for (let j = 0; j < n; j++) {
             const td = document.createElement("td");
             if (i === j) {
-                td.innerHTML = `${Auxiliares.fraccionToString(resultados.matrizOriginal[i][j])} - λ`;
+                const val = resultados.matrizOriginal[i][j];
+                const esZero = val.num === 0;
+                td.innerHTML = esZero ? "-λ" : `${Auxiliares.fraccionToString(val)} - λ`;
             } else {
                 td.textContent = Auxiliares.fraccionToString(resultados.matrizOriginal[i][j]);
             }
@@ -362,7 +370,7 @@ function mostrarResultados(article, resultados) {
     polLine.style.alignItems = "center";
     polLine.style.flexWrap = "wrap";
     polLine.style.gap = "10px";
-    polLine.innerHTML = `<strong>Polinomio característico:</strong>&nbsp;${polinomioToString(resultados.polinomioCaracteristico)} = 0`;
+    polLine.innerHTML = `<strong>Polinomio característico:</strong>&nbsp;${polinomioToHTML(polinomioToString(resultados.polinomioCaracteristico))} = 0`;
     content.appendChild(polLine);
     
     // ===== 5. FACTORIZACIÓN =====
@@ -664,21 +672,6 @@ function diagonalizar() {
 // ==================== EVENTOS ====================
 
 function configurarEventosDiag(section, table) {
-    const btnRaiz = document.getElementById("btnRaizDiag");
-    if (btnRaiz) {
-        btnRaiz.addEventListener("click", async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const { insertarRaiz } = await import("./celdas.js");
-            insertarRaiz();
-            const filas = table.rows.length;
-            const cols = table.rows[0]?.cells.length ?? 0;
-            const n = Math.max(2, Math.min(filas, cols));
-            table.dataset.minRows = String(n);
-            table.dataset.minCols = String(n);
-        });
-    }
-    
     const btnDiagonalizar = document.getElementById("btnDiagonalizar");
     if (btnDiagonalizar) {
         const newBtn = btnDiagonalizar.cloneNode(true);
@@ -721,17 +714,6 @@ export function inicializarDiagonalizacion(article) {
     const { card, table } = crearMatrizEditable("diagInputTable", 2, 2);
     currentTable = table;
     
-    const btnRaiz = document.createElement("button");
-    btnRaiz.type = "button";
-    btnRaiz.id = "btnRaizDiag";
-    btnRaiz.className = "btn-raiz";
-    btnRaiz.textContent = "√";
-    btnRaiz.title = "Insertar raíz cuadrada";
-    
-    btnRaiz.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-    });
-    
     const btnDiagonalizar = UI.createButton("btnDiagonalizar", "Diagonalizar", "btnCalcular");
     btnDiagonalizar.type = "button";
     
@@ -740,7 +722,7 @@ export function inicializarDiagonalizacion(article) {
     
     const buttonGroup = document.createElement("div");
     buttonGroup.className = "matrix-actions";
-    buttonGroup.append(btnRaiz, btnDiagonalizar, btnLimpiar);
+    buttonGroup.append(btnDiagonalizar, btnLimpiar);
     
     mainSection.appendChild(card);
     mainSection.appendChild(buttonGroup);
