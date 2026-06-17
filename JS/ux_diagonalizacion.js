@@ -19,21 +19,20 @@ function crearTd(row, col) {
 }
 
 function crearMatrizEditable(id, filas = 2, columnas = 2) {
-    const card = document.createElement("div");
-    card.className = "diag-matrix-card";
+    const wrapper = document.createElement("div");
+    wrapper.id = "wrapperA";
 
-    const label = document.createElement("div");
-    label.className = "diag-matrix-label";
+    const label = document.createElement("label");
     label.textContent = "A =";
 
-    const container = document.createElement("div");
-    container.className = "diag-matrix-container";
+    const divTable = document.createElement("div");
+    divTable.id = "tableMain";
 
     const table = document.createElement("table");
     table.id = id;
     table.className = "diag-input-table";
-    table.dataset.minRows = "2"; 
-    table.dataset.minCols = "2"; 
+    table.dataset.minRows = "2";
+    table.dataset.minCols = "2";
 
     for (let i = 0; i < filas; i++) {
         const tr = document.createElement("tr");
@@ -43,9 +42,9 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
         table.appendChild(tr);
     }
 
-    container.appendChild(table);
-    card.append(label, container);
-    return { card, table };
+    divTable.appendChild(table);
+    wrapper.append(label, divTable);
+    return { card: wrapper, table };
 }
 
 // ==================== VALIDACIÓN ====================
@@ -86,19 +85,17 @@ function actualizarEstadoBotonCalcular(table, btnCalcular) {
 function crearMatrizHTML(matriz) {
     if (!matriz || matriz.length === 0) return document.createTextNode("");
     
+    const container = document.createElement("div");
+    container.className = "result-matrix-container";
+    
     const table = document.createElement("table");
     table.className = "result-table";
-    table.style.display = "inline-table";
-    table.style.margin = "0 10px";
     
     for (const fila of matriz) {
         const tr = document.createElement("tr");
         for (const valor of fila) {
             const td = document.createElement("td");
-            td.style.padding = "4px 8px";
-            td.style.textAlign = "center";
             
-            // 🔥 VERIFICAR si es un valor con raíz
             if (valor && valor.tipo === "raiz") {
                 const expr = {
                     tipo: "raiz",
@@ -120,27 +117,25 @@ function crearMatrizHTML(matriz) {
         }
         table.appendChild(tr);
     }
-    return table;
+    container.appendChild(table);
+    return container;
 }
 
 function crearMatrizPolinomiosHTML(M) {
     if (!M || M.length === 0) return document.createTextNode("");
     
+    const container = document.createElement("div");
+    container.className = "result-matrix-container";
+    
     const table = document.createElement("table");
     table.className = "result-table";
-    table.style.display = "inline-table";
-    table.style.margin = "0 10px";
     
     for (const fila of M) {
         const tr = document.createElement("tr");
         for (const pol of fila) {
             const td = document.createElement("td");
-            td.style.padding = "8px 12px";
-            td.style.textAlign = "center";
             
-            // pol es [constante, coeficiente_de_λ]
             if (pol.length === 2 && pol[1].num === -1 && pol[1].den === 1) {
-                // Caso: -λ + a  → mostrar a - λ
                 const a = pol[0];
                 if (a.num === 0) {
                     td.textContent = "-λ";
@@ -150,7 +145,6 @@ function crearMatrizPolinomiosHTML(M) {
                 }
             } 
             else if (pol.length === 2 && pol[1].num === 1 && pol[1].den === 1) {
-                // Caso: λ - a  → mostrar -a + λ
                 const a = pol[0];
                 const negA = { num: -a.num, den: a.den };
                 if (negA.num === 0) {
@@ -160,7 +154,6 @@ function crearMatrizPolinomiosHTML(M) {
                 }
             } 
             else if (pol.length === 1) {
-                // Término constante (fuera de la diagonal)
                 const val = pol[0];
                 td.textContent = val.num === 0 ? "0" : Auxiliares.fraccionToString(val);
             } 
@@ -171,7 +164,8 @@ function crearMatrizPolinomiosHTML(M) {
         }
         table.appendChild(tr);
     }
-    return table;
+    container.appendChild(table);
+    return container;
 }
 function crearFactorHTML(factor) {
     const span = document.createElement("span");
@@ -302,34 +296,28 @@ function mostrarResultados(article, resultados) {
     if (prev) prev.remove();
     
     const section = UI.createSection("diagResultSection", "RESULTADO: DIAGONALIZACIÓN");
-    section.className = "diag-results-section";
     const content = document.createElement("div");
     content.className = "diag-results-content";
-    content.style.display = "flex";
-    content.style.flexDirection = "column";
-    content.style.gap = "1.5rem";
-    content.style.alignItems = "flex-start";
-    content.style.width = "100%";
     
     const n = resultados.matrizOriginal.length;
     
     // ===== 1. MATRIZ ORIGINAL A =====
     const matrizALine = document.createElement("div");
-    matrizALine.style.display = "flex";
-    matrizALine.style.alignItems = "center";
-    matrizALine.style.flexWrap = "wrap";
-    matrizALine.style.gap = "10px";
-    matrizALine.innerHTML = "<strong>A =</strong>";
+    matrizALine.className = "result-wrapper";
+    const matrizALabel = document.createElement("div");
+    matrizALabel.className = "result-label";
+    matrizALabel.textContent = "A =";
+    matrizALine.appendChild(matrizALabel);
     matrizALine.appendChild(crearMatrizHTML(resultados.matrizOriginal));
     content.appendChild(matrizALine);
     
     // ===== 2. MATRIZ A - λI =====
     const A_menos_lambdaI_Line = document.createElement("div");
-    A_menos_lambdaI_Line.style.display = "flex";
-    A_menos_lambdaI_Line.style.alignItems = "center";
-    A_menos_lambdaI_Line.style.flexWrap = "wrap";
-    A_menos_lambdaI_Line.style.gap = "10px";
-    A_menos_lambdaI_Line.innerHTML = "<strong>A - λI =</strong>";
+    A_menos_lambdaI_Line.className = "result-wrapper";
+    const A_menos_lambdaI_Label = document.createElement("div");
+    A_menos_lambdaI_Label.className = "result-label";
+    A_menos_lambdaI_Label.textContent = "A - λI =";
+    A_menos_lambdaI_Line.appendChild(A_menos_lambdaI_Label);
     
     const A_menos_lambdaI = resultados.lambdaImenosA.map(fila =>
         fila.map(pol => pol.map(coef => ({ num: -coef.num, den: coef.den })))
@@ -339,26 +327,21 @@ function mostrarResultados(article, resultados) {
     
     // ===== 3. DETERMINANTE det(A - λI) =====
     const detLine = document.createElement("div");
-    detLine.style.display = "flex";
-    detLine.style.alignItems = "center";
-    detLine.style.flexWrap = "wrap";
-    detLine.style.gap = "10px";
-    detLine.innerHTML = "<strong>det(A - λI) =</strong>";
+    detLine.className = "result-wrapper";
+    const detLabel = document.createElement("div");
+    detLabel.className = "result-label";
+    detLabel.textContent = "det(A - λI) =";
+    detLine.appendChild(detLabel);
     
-    const detMatrix = document.createElement("span");
-    detMatrix.style.display = "inline-block";
-    detMatrix.style.verticalAlign = "middle";
+    const detMatrix = document.createElement("div");
+    detMatrix.className = "det-container";
     const detTable = document.createElement("table");
     detTable.className = "result-table";
-    detTable.style.display = "inline-table";
-    detTable.style.margin = "0";
     
     for (let i = 0; i < n; i++) {
         const tr = document.createElement("tr");
         for (let j = 0; j < n; j++) {
             const td = document.createElement("td");
-            td.style.padding = "8px 12px";
-            td.style.textAlign = "center";
             if (i === j) {
                 td.innerHTML = `${Auxiliares.fraccionToString(resultados.matrizOriginal[i][j])} - λ`;
             } else {
@@ -379,7 +362,7 @@ function mostrarResultados(article, resultados) {
     polLine.style.alignItems = "center";
     polLine.style.flexWrap = "wrap";
     polLine.style.gap = "10px";
-    polLine.innerHTML = `<strong>Polinomio característico:</strong> ${polinomioToString(resultados.polinomioCaracteristico)} = 0`;
+    polLine.innerHTML = `<strong>Polinomio característico:</strong>&nbsp;${polinomioToString(resultados.polinomioCaracteristico)} = 0`;
     content.appendChild(polLine);
     
     // ===== 5. FACTORIZACIÓN =====
@@ -418,11 +401,11 @@ function mostrarResultados(article, resultados) {
     
     // ===== 7. MATRIZ DIAGONAL D =====
     const DLine = document.createElement("div");
-    DLine.style.display = "flex";
-    DLine.style.alignItems = "center";
-    DLine.style.flexWrap = "wrap";
-    DLine.style.gap = "10px";
-    DLine.innerHTML = "<strong>D =</strong>";
+    DLine.className = "result-wrapper";
+    const DLabel = document.createElement("div");
+    DLabel.className = "result-label";
+    DLabel.textContent = "D =";
+    DLine.appendChild(DLabel);
     
     if (resultados.diagonalizacion.esDiagonalizable && resultados.matrizDiagonal) {
         DLine.appendChild(crearMatrizHTML(resultados.matrizDiagonal));
@@ -438,11 +421,11 @@ function mostrarResultados(article, resultados) {
     // ===== 8. MATRIZ DE VECTORES PROPIOS P =====
     if (resultados.matrizVectoresPropios && resultados.diagonalizacion.esDiagonalizable) {
         const PLine = document.createElement("div");
-        PLine.style.display = "flex";
-        PLine.style.alignItems = "center";
-        PLine.style.flexWrap = "wrap";
-        PLine.style.gap = "10px";
-        PLine.innerHTML = "<strong>P =</strong>";
+        PLine.className = "result-wrapper";
+        const PLabel = document.createElement("div");
+        PLabel.className = "result-label";
+        PLabel.textContent = "P =";
+        PLine.appendChild(PLabel);
         PLine.appendChild(crearMatrizHTML(resultados.matrizVectoresPropios));
         content.appendChild(PLine);
         
@@ -734,7 +717,6 @@ export function inicializarDiagonalizacion(article) {
     while (article.firstChild) article.removeChild(article.firstChild);
     
     const mainSection = UI.createSection("mainSection", "DIAGONALIZACIÓN DE MATRICES");
-    mainSection.classList.add("diag-section");
     
     const { card, table } = crearMatrizEditable("diagInputTable", 2, 2);
     currentTable = table;
@@ -757,7 +739,7 @@ export function inicializarDiagonalizacion(article) {
     btnLimpiar.type = "button";
     
     const buttonGroup = document.createElement("div");
-    buttonGroup.className = "diag-actions";
+    buttonGroup.className = "matrix-actions";
     buttonGroup.append(btnRaiz, btnDiagonalizar, btnLimpiar);
     
     mainSection.appendChild(card);

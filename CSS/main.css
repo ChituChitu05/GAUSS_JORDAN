@@ -4442,6 +4442,92 @@ body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
     font-weight: bold;
 }
 
+/* Diagonalización: resultado igual que resultSection */
+#diagResultSection h2 {
+    color: var(--success);
+    border-bottom-color: var(--success);
+}
+
+#diagResultSection {
+    width: fit-content;
+    min-width: fit-content;
+    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#diagResultSection .result-label {
+    color: var(--success);
+}
+
+.diag-results-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+
 .aside-hidden {
     display: none !important;
+}
+/* Diagonalización: celdas idénticas a ux_matrices */
+.diag-input-table {
+    border-spacing: 8px;
+    border-collapse: separate;
+}
+
+.diag-input-table td {
+    padding: 0;
+    min-width: 75px;
+    height: 55px;
+    text-align: center;
+    vertical-align: middle;
+    border: none;          /* sin bordes internos */
+    background: transparent;
+}
+
+.diag-input-table .cell-input,
+.diag-input-table .cell-span {
+    width: 75px;
+    height: 55px;
+    text-align: center;
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    background: var(--cell-bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    outline: none;
+}
+
+.diag-input-table .cell-input:focus {
+    border-color: var(--primary);
+    background: var(--input-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.diag-input-table .cell-span {
+    cursor: pointer;
+    user-select: none;
+}
+
+.diag-input-table .cell-span:hover {
+    background: var(--cell-hover);
+    border-color: var(--primary);
+}
+
+.diag-input-table .cell-span:focus {
+    border-color: var(--primary);
+    background: var(--cell-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.diag-input-table .cell-span[data-value=""] {
+    color: transparent;
 }
