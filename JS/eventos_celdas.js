@@ -405,8 +405,9 @@ function _matrixStructBackspace(e, table, input) {
     const colIndex = cell.cellIndex;
 
     const currentOp = getCurrentOperation();
-    const minRows = currentOp === "axb" ? 2 : 2;
-    const minCols = currentOp === "axb" ? 3 : 2;
+    const esDiag = _table?.id === "diagInputTable" || currentOp === "diagonalizacion";
+    const minRows = (!esDiag && currentOp === "axb") ? 2 : Math.max(2, parseInt(table.dataset.minRows) || 2);
+    const minCols = (!esDiag && currentOp === "axb") ? 3 : Math.max(2, parseInt(table.dataset.minCols) || 2);
 
     function _replaceCurrentEditableWithEmpty() {
         const currentCell = table.rows[rowIndex]?.cells[colIndex];
@@ -491,16 +492,15 @@ function _columnaVaciaOCero(table, colIndex) {
 
 function _matrixRevisarBorrado(table, rowIndex, colIndex) {
     const currentOp = getCurrentOperation();
+    const esDiag = table?.id === "diagInputTable" || currentOp === "diagonalizacion";
 
     let minRows, minCols;
-    if (currentOp === "axb") {
+    if (!esDiag && currentOp === "axb") {
         minRows = 2;
         minCols = 3;
     } else {
-        const dsRows = parseInt(table.dataset.minRows) || 2;
-        const dsCols = parseInt(table.dataset.minCols) || 2;
-        minRows = Math.max(2, dsRows);
-        minCols = Math.max(2, dsCols);
+        minRows = Math.max(2, parseInt(table.dataset.minRows) || 2);
+        minCols = Math.max(2, parseInt(table.dataset.minCols) || 2);
     }
     setTimeout(() => {
         let tr = rowIndex, tc = colIndex;

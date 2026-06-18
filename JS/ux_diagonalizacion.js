@@ -22,6 +22,7 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
     const wrapper = document.createElement("div");
     wrapper.id = "wrapperA";
     wrapper.style.justifyContent = "center";
+    wrapper.style.margin = "0 auto";
 
     const label = document.createElement("label");
     label.textContent = "A =";
@@ -131,9 +132,11 @@ function crearMatrizPolinomiosHTML(M) {
     const table = document.createElement("table");
     table.className = "result-table";
     
-    for (const fila of M) {
+    for (let i = 0; i < M.length; i++) {
         const tr = document.createElement("tr");
-        for (const pol of fila) {
+        for (let j = 0; j < M[i].length; j++) {
+            const pol = M[i][j];
+            const esDiagonal = i === j;
             const td = document.createElement("td");
             
             if (pol.length === 2 && pol[1].num === -1 && pol[1].den === 1) {
@@ -156,7 +159,12 @@ function crearMatrizPolinomiosHTML(M) {
             } 
             else if (pol.length === 1) {
                 const val = pol[0];
-                td.textContent = val.num === 0 ? "0" : Auxiliares.fraccionToString(val);
+                // En la diagonal, {num:-1,den:1} significa -λ (el coeficiente λ fue negado)
+                if (esDiagonal && val.num === -1 && val.den === 1) {
+                    td.textContent = "-λ";
+                } else {
+                    td.textContent = val.num === 0 ? "0" : Auxiliares.fraccionToString(val);
+                }
             } 
             else {
                 td.innerHTML = polinomioToHTML(polinomioToString(pol));
@@ -168,9 +176,11 @@ function crearMatrizPolinomiosHTML(M) {
     container.appendChild(table);
     return container;
 }
-// Convierte string con ^ a HTML con <sup>: "λ^2 - 3" → "λ<sup>2</sup> - 3"
+// Convierte exponentes en <sup> y los envuelve con nowrap para que λ² no se parta
 function polinomioToHTML(str) {
-    return str.replace(/\^(\d+)/g, "<sup>$1</sup>");
+    return str
+        .replace(/λ\^(\d+)/g, "<span style='white-space:nowrap'>λ<sup>$1</sup></span>")
+        .replace(/λ(\d+)/g,   "<span style='white-space:nowrap'>λ<sup>$1</sup></span>");
 }
 
 function crearFactorHTML(factor) {
@@ -192,12 +202,12 @@ function crearFactorHTML(factor) {
         const b = factor.coeficientes[0];
         if (a.num === 1 && a.den === 1) {
             if (b.num === 0) {
-                span.textContent = "λ";
+                span.innerHTML = "λ";
             } else if (b.num < 0) {
                 const positivo = { num: -b.num, den: b.den };
-                span.textContent = `(λ + ${Auxiliares.fraccionToString(positivo)})`;
+                span.innerHTML = polinomioToHTML(`(λ + ${Auxiliares.fraccionToString(positivo)})`);
             } else {
-                span.textContent = `(λ - ${Auxiliares.fraccionToString(b)})`;
+                span.innerHTML = polinomioToHTML(`(λ - ${Auxiliares.fraccionToString(b)})`);
             }
         } else {
             span.innerHTML = `(${polinomioToHTML(polinomioToString(factor.coeficientes))})`;
@@ -387,25 +397,40 @@ function mostrarResultados(article, resultados) {
     content.appendChild(factoresDiv);
     
     // ===== 6. VALORES PROPIOS =====
-    const vpLine = document.createElement("div");
-    vpLine.style.display = "flex";
-    vpLine.style.alignItems = "center";
-    vpLine.style.flexWrap = "wrap";
-    vpLine.style.gap = "10px";
-    vpLine.innerHTML = "<strong>Valores propios:</strong> { ";
-    
+    const vpContainer = document.createElement("div");
+    vpContainer.style.display = "flex";
+    vpContainer.style.flexDirection = "column";
+    vpContainer.style.alignItems = "center";
+    vpContainer.style.gap = "6px";
+    vpContainer.style.margin = "0 auto";
+
+    const vpTitle = document.createElement("strong");
+    vpTitle.textContent = "Valores propios:";
+    vpContainer.appendChild(vpTitle);
+
     if (resultados.raices && resultados.raices.length > 0) {
         resultados.raices.forEach((raiz, idx) => {
+            const vpLine = document.createElement("div");
+            vpLine.style.display = "flex";
+            vpLine.style.alignItems = "center";
+            vpLine.style.gap = "6px";
+
+            const lbl = document.createElement("span");
+            lbl.innerHTML = `λ<sub>${idx + 1}</sub> =`;
+            lbl.style.fontWeight = "bold";
+            lbl.style.color = "var(--primary)";
+            lbl.style.whiteSpace = "nowrap";
+
+            vpLine.appendChild(lbl);
             vpLine.appendChild(crearRaizHTML(raiz));
-            if (idx < resultados.raices.length - 1) {
-                vpLine.appendChild(document.createTextNode(", "));
-            }
+            vpContainer.appendChild(vpLine);
         });
     } else {
-        vpLine.appendChild(document.createTextNode("No hay valores propios reales"));
+        const noReal = document.createElement("span");
+        noReal.textContent = "No hay valores propios reales";
+        vpContainer.appendChild(noReal);
     }
-    vpLine.appendChild(document.createTextNode(" }"));
-    content.appendChild(vpLine);
+    content.appendChild(vpContainer);
     
     // ===== 7. MATRIZ DIAGONAL D =====
     const DLine = document.createElement("div");
@@ -653,6 +678,18 @@ function diagonalizar() {
     if (!currentTable) return;
     
     try {
+        // Sustituir celdas vacías de la matriz editable por 0
+        currentTable.querySelectorAll("td").forEach(td => {
+            const span = td.querySelector(".cell-span");
+            const input = td.querySelector(".cell-input");
+            if (input && input.value.trim() === "") {
+                input.value = "0";
+            } else if (span && (span.getAttribute("data-value") || "").trim() === "") {
+                span.setAttribute("data-value", "0");
+                span.textContent = "0";
+            }
+        });
+
         finalizarTodasLasEntradas();
         
         if (!esMatrizCuadrada(currentTable)) {
@@ -729,6 +766,10 @@ export function inicializarDiagonalizacion(article) {
     article.appendChild(mainSection);
     
     configurarEventos(article, table, currentMode);
+    // Forzar dimensiones mínimas 2x2 después de configurarEventos
+    // (configurarEventos puede sobreescribir los dataset según el modo)
+    table.dataset.minRows = "2";
+    table.dataset.minCols = "2";
     configurarEventosDiag(mainSection, table);
     
     setTimeout(() => {
