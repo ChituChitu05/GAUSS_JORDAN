@@ -25,7 +25,7 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
     wrapper.style.margin = "0 auto";
 
     const label = document.createElement("label");
-    label.textContent = "A =";
+    label.textContent = "A [γ↓] =";
 
     const divTable = document.createElement("div");
     divTable.id = "tableMain";
