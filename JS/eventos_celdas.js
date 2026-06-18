@@ -499,6 +499,14 @@ function _columnaVaciaOCero(table, colIndex) {
 }
 
 function _matrixRevisarBorrado(table, rowIndex, colIndex) {
+    if (!table || !table.isConnected) return;
+
+    // Guard de concurrencia: evita que dos Backspace casi simultáneos
+    // intenten borrar la misma fila/columna dos veces, lo que provoca
+    // "The node to be removed is no longer a child of this node".
+    if (table._borradoEnProceso) return;
+    table._borradoEnProceso = true;
+
     const currentOp = table.dataset.operation;
     const esDiag = table?.id === "diagInputTable" || currentOp === "diagonalizacion";
 
@@ -511,35 +519,40 @@ function _matrixRevisarBorrado(table, rowIndex, colIndex) {
         minCols = Math.max(2, parseInt(table.dataset.minCols) || 2);
     }
     setTimeout(() => {
-        let tr = rowIndex, tc = colIndex;
+        try {
+            let tr = rowIndex, tc = colIndex;
 
-        if (table.rows.length > minRows && _filaVaciaOCero(table, rowIndex)) {
-            Auxiliares.eliminarFila(table, rowIndex);
-            tr = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
-            if (currentOp === "axb") {
-                actualizarSeparadorGlobal(table);
-            } else {
-                eliminarSeparadorGlobal(table);
+            if (table.rows.length > minRows && table.rows[rowIndex] && _filaVaciaOCero(table, rowIndex)) {
+                Auxiliares.eliminarFila(table, rowIndex);
+                tr = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
+                if (currentOp === "axb") {
+                    actualizarSeparadorGlobal(table);
+                } else {
+                    eliminarSeparadorGlobal(table);
+                }
             }
-        }
 
-        if ((table.rows[0]?.cells.length ?? 0) > minCols && _columnaVaciaOCero(table, colIndex)) {
-            Auxiliares.eliminarColumna(table, colIndex);
-            tc = Math.max(0, Math.min(colIndex - 1, (table.rows[0]?.cells.length ?? 1) - 1));
-            if (currentOp === "axb") {
-                actualizarSeparadorGlobal(table);
-            } else {
-                eliminarSeparadorGlobal(table);
+            const anchoActual = table.rows[0]?.cells.length ?? 0;
+            if (anchoActual > minCols && colIndex < anchoActual && _columnaVaciaOCero(table, colIndex)) {
+                Auxiliares.eliminarColumna(table, colIndex);
+                tc = Math.max(0, Math.min(colIndex - 1, (table.rows[0]?.cells.length ?? 1) - 1));
+                if (currentOp === "axb") {
+                    actualizarSeparadorGlobal(table);
+                } else {
+                    eliminarSeparadorGlobal(table);
+                }
             }
-        }
 
-        if (tr === rowIndex && tc === colIndex) {
-            if (colIndex > 0) tc = colIndex - 1;
-            else if (rowIndex > 0) { tr = rowIndex - 1; tc = (table.rows[tr]?.cells.length ?? 1) - 1; }
-        }
+            if (tr === rowIndex && tc === colIndex) {
+                if (colIndex > 0) tc = colIndex - 1;
+                else if (rowIndex > 0) { tr = rowIndex - 1; tc = (table.rows[tr]?.cells.length ?? 1) - 1; }
+            }
 
-        _focusCell(tr, tc);
-        _sync();
+            _focusCell(tr, tc);
+            _sync();
+        } finally {
+            table._borradoEnProceso = false;
+        }
     }, 0);
 }
 

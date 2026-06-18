@@ -243,19 +243,44 @@ function eliminarColumnaBasica(table, colIndex) {
 }
 
 function revisarBorradoEstructural(table, rowIndex, colIndex) {
-    let targetRow = rowIndex;
-    let targetCol = colIndex;
+    if (!table || !table.isConnected) return;
 
-    if (filaVacia(table, rowIndex) && eliminarFilaBasica(table, rowIndex)) {
-        targetRow = Math.max(0, rowIndex - 1);
+    // Guard de concurrencia: evita que dos Backspace casi simultáneos
+    // (auto-repeat de teclado, o navegación rápida entre celdas) intenten
+    // borrar la misma fila/columna dos veces, lo que provoca
+    // "The node to be removed is no longer a child of this node".
+    if (table._borradoEnProceso) return;
+    table._borradoEnProceso = true;
+
+    try {
+        let targetRow = rowIndex;
+        let targetCol = colIndex;
+
+        if (table.rows[rowIndex] && filaVacia(table, rowIndex) && eliminarFilaBasica(table, rowIndex)) {
+            targetRow = Math.max(0, rowIndex - 1);
+        }
+
+        // Revalidar colIndex contra el ancho actual de la tabla, ya que
+        // eliminar la fila anterior pudo dejarla en otro estado.
+        const anchoActual = table.rows[0]?.cells.length ?? 0;
+        if (colIndex < anchoActual && columnaVacia(table, colIndex) && eliminarColumnaBasica(table, colIndex)) {
+            targetCol = Math.max(0, colIndex - 1);
+        }
+
+        targetRow = Math.max(0, Math.min(targetRow, table.rows.length - 1));
+        if (table.rows[targetRow]) {
+            targetCol = Math.max(0, Math.min(targetCol, table.rows[targetRow].cells.length - 1));
+        }
+
+        ajustarTodasColumnasBasicas(table);
+        setTimeout(() => {
+            table._borradoEnProceso = false;
+            if (table.isConnected) enfocarCelda(table, targetRow, targetCol);
+        }, 10);
+    } catch (error) {
+        table._borradoEnProceso = false;
+        throw error;
     }
-
-    if (columnaVacia(table, colIndex) && eliminarColumnaBasica(table, colIndex)) {
-        targetCol = Math.max(0, colIndex - 1);
-    }
-
-    ajustarTodasColumnasBasicas(table);
-    setTimeout(() => enfocarCelda(table, targetRow, targetCol), 10);
 }
 
 function finalizarEntrada(input) {
@@ -272,6 +297,16 @@ function moverDesde(table, rowIndex, colIndex, deltaRow, deltaCol) {
     const targetCol = colIndex + deltaCol;
     if (targetRow < 0 || targetRow >= table.rows.length) return;
     if (targetCol < 0 || targetCol >= table.rows[targetRow].cells.length) return;
+
+    // Finalizar la celda de origen de forma síncrona ANTES de mover el foco,
+    // igual que en cambio de base, para evitar que el listener de 'blur'
+    // del input dispare inputToSpan sobre un nodo ya removido por otra ruta.
+    const origenCell = table.rows[rowIndex]?.cells[colIndex];
+    const origenInput = origenCell?.querySelector(".cell-input");
+    if (origenInput && origenInput.isConnected) {
+        finalizarEntrada(origenInput);
+    }
+
     enfocarCelda(table, targetRow, targetCol);
 }
 

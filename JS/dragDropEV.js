@@ -1,4 +1,3 @@
-// dragDropEV.js
 import { actualizarBotonCalcularEV } from "./celdas.js?v=13";
 import Auxiliares from "./auxiliares.js?v=13";
 

@@ -331,10 +331,13 @@ export function spanToInput(span) {
         lastFocusedCell = input;
         ultimaCeldaEditada = input;
     });
-    input.addEventListener('blur', () => { 
-        if (celdaEnfocada === input) celdaEnfocada = null;
-        inputToSpan(input);
-    });
+input.addEventListener('blur', () => { 
+    if (celdaEnfocada === input) celdaEnfocada = null;
+
+    if (!input.isConnected) return;
+
+    inputToSpan(input);
+});
     
     input.addEventListener('input', function(e) {
         let v = this.value;
@@ -374,8 +377,14 @@ export function spanToInput(span) {
 }
 
 export function inputToSpan(input) {
-    if (!input || input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return null;
-
+        if (
+        !input ||
+        !input.isConnected ||
+        input.tagName !== 'INPUT' ||
+        !input.classList.contains('cell-input')
+    ) {
+        return null;
+    }
     const row = parseInt(input.getAttribute('data-row'));
     const col = parseInt(input.getAttribute('data-col'));
     let value = input.value.trim();
