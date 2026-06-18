@@ -1,6 +1,6 @@
 import Auxiliares from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
-import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux_matrices.js";
+import { actualizarSeparadorGlobal, eliminarSeparadorGlobal } from "./ux_matrices.js";
 import { syncTableToFileData } from "./dragDrop.js";
 import { actualizarBotonCalcularEV } from "./celdas.js";
 
@@ -374,13 +374,21 @@ function _keydownMatrixSpan(e, span) {
 
 function _matrixNewCol(table, rowIndex, colIndex) {
     Auxiliares.insertarColumna(table, colIndex + 1);
-    if (getCurrentOperation() === "axb") actualizarSeparadorGlobal(table);
+    if (table.dataset.operation === "axb") {
+        actualizarSeparadorGlobal(table);
+    } else {
+        eliminarSeparadorGlobal(table);
+    }
     setTimeout(() => _focusCell(rowIndex, colIndex + 1), 10);
 }
 
 function _matrixNewRow(table, rowIndex, colIndex) {
     Auxiliares.insertarFila(table, rowIndex + 1);
-    if (getCurrentOperation() === "axb") requestAnimationFrame(() => actualizarSeparadorGlobal(table));
+    if (table.dataset.operation === "axb") {
+        requestAnimationFrame(() => actualizarSeparadorGlobal(table));
+    } else {
+        eliminarSeparadorGlobal(table);
+    }
     const numCols = table.rows[0].cells.length;
     for (let j = 0; j < numCols; j++) ajustarAnchoColumna(table, j);
     setTimeout(() => _focusCell(rowIndex + 1, colIndex), 10);
@@ -404,7 +412,7 @@ function _matrixStructBackspace(e, table, input) {
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
 
-    const currentOp = getCurrentOperation();
+    const currentOp = table.dataset.operation;
     const esDiag = _table?.id === "diagInputTable" || currentOp === "diagonalizacion";
     const minRows = (!esDiag && currentOp === "axb") ? 2 : Math.max(2, parseInt(table.dataset.minRows) || 2);
     const minCols = (!esDiag && currentOp === "axb") ? 3 : Math.max(2, parseInt(table.dataset.minCols) || 2);
@@ -491,7 +499,7 @@ function _columnaVaciaOCero(table, colIndex) {
 }
 
 function _matrixRevisarBorrado(table, rowIndex, colIndex) {
-    const currentOp = getCurrentOperation();
+    const currentOp = table.dataset.operation;
     const esDiag = table?.id === "diagInputTable" || currentOp === "diagonalizacion";
 
     let minRows, minCols;
@@ -508,13 +516,21 @@ function _matrixRevisarBorrado(table, rowIndex, colIndex) {
         if (table.rows.length > minRows && _filaVaciaOCero(table, rowIndex)) {
             Auxiliares.eliminarFila(table, rowIndex);
             tr = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
-            if (currentOp === "axb") actualizarSeparadorGlobal(table);
+            if (currentOp === "axb") {
+                actualizarSeparadorGlobal(table);
+            } else {
+                eliminarSeparadorGlobal(table);
+            }
         }
 
         if ((table.rows[0]?.cells.length ?? 0) > minCols && _columnaVaciaOCero(table, colIndex)) {
             Auxiliares.eliminarColumna(table, colIndex);
             tc = Math.max(0, Math.min(colIndex - 1, (table.rows[0]?.cells.length ?? 1) - 1));
-            if (currentOp === "axb") actualizarSeparadorGlobal(table);
+            if (currentOp === "axb") {
+                actualizarSeparadorGlobal(table);
+            } else {
+                eliminarSeparadorGlobal(table);
+            }
         }
 
         if (tr === rowIndex && tc === colIndex) {

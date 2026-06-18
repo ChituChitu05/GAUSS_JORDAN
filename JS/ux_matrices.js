@@ -57,6 +57,7 @@ function reconstruirMatrizVacia(table, modo = currentOperation) {
 
     table.dataset.minRows = modo === "axb" ? "2" : "1";
     table.dataset.minCols = modo === "axb" ? "3" : "1";
+    table.dataset.operation = modo;
 
     for (let i = 0; i < filas; i++) {
         const row = UI.createRow(`row${i}`);
@@ -105,6 +106,7 @@ export function inicializarMatriz(article, modo) {
         table.dataset.minRows = "1";
         table.dataset.minCols = "1";
     }
+    table.dataset.operation = modo;
 
     for (let i = 0; i < filasIniciales; i++) {
         const row = UI.createRow(`row${i}`);
@@ -276,6 +278,7 @@ export function cambiarModo(article, nuevoModo) {
 
     currentOperation = nuevoModo;
     const btn = document.getElementById("btnCalcular");
+    table.dataset.operation = nuevoModo;
 
     if (nuevoModo === "axb") {
         btn.textContent = "Calcular AX = B";
