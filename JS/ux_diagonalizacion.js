@@ -241,9 +241,7 @@ function crearRaizHTML(raiz) {
     
     if (raiz.tipo === "raiz") {
         const container = document.createElement("span");
-        container.style.display = "inline-flex";
-        container.style.alignItems = "center";
-        container.style.gap = "2px";
+        container.className = "root-expression";
         
         if (raiz.parteReal) {
             const realSpan = document.createElement("span");
@@ -271,14 +269,12 @@ function crearRaizHTML(raiz) {
         }
         
         const rootSymbol = document.createElement("span");
+        rootSymbol.className = "root-symbol";
         rootSymbol.textContent = "√";
-        rootSymbol.style.fontSize = "1.2em";
         container.appendChild(rootSymbol);
         
         const radicandoSpan = document.createElement("span");
-        radicandoSpan.style.borderTop = "1px solid currentColor";
-        radicandoSpan.style.paddingTop = "2px";
-        radicandoSpan.style.marginLeft = "2px";
+        radicandoSpan.className = "root-radicando";
         
         const rad = raiz.radicando;
         if (rad.den === 1) {

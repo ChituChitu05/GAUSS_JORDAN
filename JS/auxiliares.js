@@ -917,9 +917,6 @@ export function crearRaizHTML(expr) {
     if (expr.tipo === "raiz") {
         const container = document.createElement("span");
         container.className = "root-expression";
-        container.style.display = "inline-flex";
-        container.style.alignItems = "center";
-        container.style.gap = "2px";
         
         const coef = expr.coeficiente;
         const coefVal = coef.num / coef.den;
@@ -942,14 +939,10 @@ export function crearRaizHTML(expr) {
         const rootSymbol = document.createElement("span");
         rootSymbol.className = "root-symbol";
         rootSymbol.textContent = "√";
-        rootSymbol.style.fontSize = "1.2em";
         container.appendChild(rootSymbol);
         
         const radicandoSpan = document.createElement("span");
         radicandoSpan.className = "root-radicando";
-        radicandoSpan.style.borderTop = "1px solid currentColor";
-        radicandoSpan.style.paddingTop = "2px";
-        radicandoSpan.style.marginLeft = "2px";
         
         const radVal = expr.radicando;
         if (radVal.den === 1) {

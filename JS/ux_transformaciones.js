@@ -753,4 +753,4 @@ export function limpiarTransformaciones() {
     Object.values(MATRICES).forEach(m => { m.locked = false; m.isIdentity = false; });
     _tfDesconfigurar();
     _article = null;
-} 
+}
