@@ -246,24 +246,21 @@ function revisarBorradoEstructural(table, rowIndex, colIndex) {
     if (!table || !table.isConnected) return;
 
     // Guard de concurrencia: evita que dos Backspace casi simultáneos
-    // (auto-repeat de teclado, o navegación rápida entre celdas) intenten
-    // borrar la misma fila/columna dos veces, lo que provoca
-    // "The node to be removed is no longer a child of this node".
     if (table._borradoEnProceso) return;
     table._borradoEnProceso = true;
 
     try {
+        const minRows = parseInt(table.dataset.minRows) || 1;
+        const minCols = parseInt(table.dataset.minCols) || 1;
         let targetRow = rowIndex;
         let targetCol = colIndex;
 
-        if (table.rows[rowIndex] && filaVacia(table, rowIndex) && eliminarFilaBasica(table, rowIndex)) {
+        if (table.rows[rowIndex] && filaVacia(table, rowIndex) && table.rows.length > minRows && eliminarFilaBasica(table, rowIndex)) {
             targetRow = Math.max(0, rowIndex - 1);
         }
 
-        // Revalidar colIndex contra el ancho actual de la tabla, ya que
-        // eliminar la fila anterior pudo dejarla en otro estado.
         const anchoActual = table.rows[0]?.cells.length ?? 0;
-        if (colIndex < anchoActual && columnaVacia(table, colIndex) && eliminarColumnaBasica(table, colIndex)) {
+        if (anchoActual > minCols && colIndex < anchoActual && columnaVacia(table, colIndex) && eliminarColumnaBasica(table, colIndex)) {
             targetCol = Math.max(0, colIndex - 1);
         }
 
@@ -298,9 +295,7 @@ function moverDesde(table, rowIndex, colIndex, deltaRow, deltaCol) {
     if (targetRow < 0 || targetRow >= table.rows.length) return;
     if (targetCol < 0 || targetCol >= table.rows[targetRow].cells.length) return;
 
-    // Finalizar la celda de origen de forma síncrona ANTES de mover el foco,
-    // igual que en cambio de base, para evitar que el listener de 'blur'
-    // del input dispare inputToSpan sobre un nodo ya removido por otra ruta.
+    // Finalizar la celda de origen de forma síncrona ANTES de mover el foco
     const origenCell = table.rows[rowIndex]?.cells[colIndex];
     const origenInput = origenCell?.querySelector(".cell-input");
     if (origenInput && origenInput.isConnected) {
@@ -351,7 +346,11 @@ function manejarKeydownBasicas(event, article) {
         if (event.key === "Backspace" || event.key === "Delete") {
             event.preventDefault();
             limpiarValorSpan(target);
-            revisarBorradoEstructural(table, rowIndex, colIndex);
+            setTimeout(() => {
+                if (table && table.isConnected) {
+                    revisarBorradoEstructural(table, rowIndex, colIndex);
+                }
+            }, 10);
             return;
         }
         if (event.key === "ArrowLeft") return moverDesde(table, rowIndex, colIndex, 0, -1);
@@ -407,9 +406,13 @@ function manejarKeydownBasicas(event, article) {
 
     if ((event.key === "Backspace" || event.key === "Delete") && target.value === "") {
         event.preventDefault();
-        const span = crearSpanCelda("", rowIndex, colIndex);
-        target.replaceWith(span);
-        revisarBorradoEstructural(table, rowIndex, colIndex);
+        // NO hacer target.replaceWith(span) aquí - eso causa el error
+        setTimeout(() => {
+            if (table && table.isConnected) {
+                revisarBorradoEstructural(table, rowIndex, colIndex);
+            }
+        }, 10);
+        return;
     }
 }
 
