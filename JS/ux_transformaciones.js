@@ -62,8 +62,8 @@ function _tfTablaTieneErrores(table) {
         if (celda.classList && celda.classList.contains('cell-error')) {
             return true;
         }
-        const valor = celda.classList?.contains('cell-input') 
-            ? celda.value 
+        const valor = celda.classList?.contains('cell-input')
+            ? celda.value
             : (celda.getAttribute?.('data-value') || celda.textContent || "");
         if (valor && valor !== "" && !Auxiliares.esValorNumericoValido(valor, true)) {
             return true;
@@ -157,7 +157,7 @@ function _tfInput(e) {
     if (/^-\.\d/.test(v)) v = "-0" + v.slice(1);
     if (input.value !== v) input.value = v;
     input.style.width = (v.length + 1) + "ch";
-    
+
     // Marcar error si el valor no es válido
     const esValido = v === "" || v === "-" || Auxiliares.esValorNumericoValido(v, true);
     input.classList.toggle('cell-error', !esValido);
@@ -200,14 +200,14 @@ function _tfKeydown(e) {
     if (e.key === "ArrowUp") {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
-        if (r > 0) _tfMoveTo(table, r - 1, Math.min(c, (table.rows[r-1]?.cells.length ?? 1) - 1));
+        if (r > 0) _tfMoveTo(table, r - 1, Math.min(c, (table.rows[r - 1]?.cells.length ?? 1) - 1));
         else _tfMoveTo(table, 0, c);
         return;
     }
     if (e.key === "ArrowDown") {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
-        if (r < table.rows.length - 1) _tfMoveTo(table, r + 1, Math.min(c, (table.rows[r+1]?.cells.length ?? 1) - 1));
+        if (r < table.rows.length - 1) _tfMoveTo(table, r + 1, Math.min(c, (table.rows[r + 1]?.cells.length ?? 1) - 1));
         else _tfMoveTo(table, r, c);
         return;
     }
@@ -355,7 +355,7 @@ function crearTablaResultado(matriz, id) {
 function leerMatrizCompleta(tableId) {
     const table = document.getElementById(tableId);
     if (!table || !table.rows.length) return { matriz: null, completa: false, tieneErrores: false };
-    
+
     try {
         let todasCompletas = true;
         let tieneErrores = false;
@@ -364,38 +364,38 @@ function leerMatrizCompleta(tableId) {
                 const input = cell.querySelector(".cell-input");
                 const span = cell.querySelector(".cell-span");
                 let valor = "";
-                
+
                 if (input) {
                     valor = input.value.trim();
                 } else if (span) {
                     valor = span.getAttribute("data-value") || "";
                 }
-                
+
                 // Verificar si la celda tiene error visual
-                if ((input && input.classList.contains('cell-error')) || 
+                if ((input && input.classList.contains('cell-error')) ||
                     (span && span.classList.contains('cell-error'))) {
                     tieneErrores = true;
                 }
-                
+
                 // Una celda está vacía si su string está vacío
                 if (valor === "") {
                     todasCompletas = false;
                     return { num: 0, den: 1 };
                 }
-                
+
                 // Validar que sea un número válido
                 if (!Auxiliares.esValorNumericoValido(valor, true)) {
                     tieneErrores = true;
                     todasCompletas = false;
                     return { num: 0, den: 1 };
                 }
-                
+
                 const f = Auxiliares.parsearFraccion(valor);
                 const [num, den] = Auxiliares.simplificar(f.num, f.den);
                 return { num, den };
             })
         );
-        
+
         return { matriz: raw, completa: todasCompletas, tieneErrores: tieneErrores };
     } catch {
         return { matriz: null, completa: false, tieneErrores: true };
@@ -428,13 +428,13 @@ function ponerIdentidad(tableId) {
             const val = i === j ? "1" : "0";
             const span = cell.querySelector(".cell-span");
             const input = cell.querySelector(".cell-input");
-            if (input) { 
-                input.value = val; 
-                inputToSpan(input); 
+            if (input) {
+                input.value = val;
+                inputToSpan(input);
             }
-            if (span) { 
-                span.setAttribute("data-value", val); 
-                span.textContent = val; 
+            if (span) {
+                span.setAttribute("data-value", val);
+                span.textContent = val;
             }
         }
     }
@@ -588,7 +588,7 @@ function toggleIdentidad(key) {
     console.log(`toggleIdentidad [${key}]: isNowChecked =`, isNowChecked, "activeRef =", activeRef);
 
     if (isNowChecked) {
-        const pairingKey = (grupo === "V") 
+        const pairingKey = (grupo === "V")
             ? (key === "B1" ? "B2" : "B1")
             : (key === "B3" ? "B4" : "B3");
 
@@ -617,34 +617,34 @@ function actualizarMatricesDerivadas() {
     const b2Data = leerMatrizCompleta(MATRICES.B2.id);
     const b3Data = leerMatrizCompleta(MATRICES.B3.id);
     const b4Data = leerMatrizCompleta(MATRICES.B4.id);
-    
+
     // Verificar si hay errores en alguna tabla
     const hayErrores = b1Data.tieneErrores || b2Data.tieneErrores || b3Data.tieneErrores || b4Data.tieneErrores;
     const todasCompletas = b1Data.completa && b2Data.completa && b3Data.completa && b4Data.completa;
-    
+
     if (hayErrores || !todasCompletas) {
         // Mostrar placeholder en todas las zonas de resultado
         renderizarResultados(null, null, null, null, true);
         return;
     }
-    
+
     const B1 = b1Data.matriz ? limpiarMatriz(b1Data.matriz) : null;
     const B2 = b2Data.matriz ? limpiarMatriz(b2Data.matriz) : null;
     const B3 = b3Data.matriz ? limpiarMatriz(b3Data.matriz) : null;
     const B4 = b4Data.matriz ? limpiarMatriz(b4Data.matriz) : null;
-    
+
     // P = matriz cambio de B1 → B2 (solo si B1 y B2 están COMPLETAS y tienen mismas dimensiones)
     let P = null;
     if (todasCompletas && B1 && B2 && esMatrizCuadrada(B1) && mismasDimensiones(B1, B2)) {
         try { P = matrizCambioBase(B1, B2); } catch { P = null; }
     }
-    
+
     // Q = matriz cambio de B3 → B4 (solo si B3 y B4 están COMPLETAS y tienen mismas dimensiones)
     let Q = null;
     if (todasCompletas && B3 && B4 && esMatrizCuadrada(B3) && mismasDimensiones(B3, B4)) {
         try { Q = matrizCambioBase(B3, B4); } catch { Q = null; }
     }
-    
+
     // A = matriz transformación de B2 → B3 (solo si B2 y B3 están COMPLETAS y mismas dimensiones)
     let A = null;
     if (todasCompletas && B2 && B3 && esMatrizCuadrada(B2) && esMatrizCuadrada(B3) && B2.length === B3.length) {
@@ -656,16 +656,16 @@ function actualizarMatricesDerivadas() {
             A = matrizTransformacion(identidad, B2, B3);
         } catch { A = null; }
     }
-    
+
     // C = Q·A·P (solo si P, A y Q existen)
     let C = null;
     if (P && A && Q) {
-        try { 
-            const AP = multiplicarMatrices(A, P); 
-            C = multiplicarMatrices(Q, AP); 
+        try {
+            const AP = multiplicarMatrices(A, P);
+            C = multiplicarMatrices(Q, AP);
         } catch { C = null; }
     }
-    
+
     renderizarResultados(P, Q, A, C, false);
 }
 
@@ -686,7 +686,7 @@ function renderMatrizDerivada(zoneId, nombre, subindice, matriz, hayErrores = fa
     lbl.className = "tf-derived-label";
     lbl.innerHTML = subindice ? `${nombre}<sub>${subindice}</sub> =` : `${nombre} =`;
     row.appendChild(lbl);
-    
+
     if (hayErrores || !matriz) {
         const placeholder = document.createElement("div");
         placeholder.className = "tf-derived-placeholder";
@@ -790,7 +790,7 @@ export function inicializarTransformaciones(article) {
 
     const section = UI.createSection("mainSection", "TRANSFORMACIONES LINEALES");
     section.className = "tf-section";
-    section.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2rem;padding:2rem;min-width:max-content;width:100%;box-sizing:border-box;";
+    section.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2rem;padding:2rem;width:100%;box-sizing:border-box;";
 
     const formula = document.createElement("p");
     formula.className = "tf-formula";
