@@ -1,6 +1,6 @@
-import { esCero, multiplicarFracciones, dividirFracciones, restarFracciones, normalizarSigno, fraccionToString, sumarFraccionesObj, esVectorCero, obtenerColumna, vectorToString } from "./auxiliares.js";
-import { productoPunto, normaCuadrada, multiplicarVectorPorEscalar, restarVectores, sumarVectores, multiplicarMatrices } from "./operaciones.js";
-import gaussJordan from "./gaussJordan.js";
+import { esCero, multiplicarFracciones, dividirFracciones, restarFracciones, normalizarSigno, fraccionToString, sumarFraccionesObj, esVectorCero, obtenerColumna, vectorToString } from "./auxiliares.js?v=38";
+import { productoPunto, normaCuadrada, multiplicarVectorPorEscalar, restarVectores, sumarVectores, multiplicarMatrices } from "./operaciones.js?v=38";
+import gaussJordan from "./gaussJordan.js?v=38";
 import { 
     obtenerPolinomioCaracteristico,
     matrizPolinomiosDesdeMatrizNumerica,
@@ -781,7 +781,7 @@ export function verificarDiagonalizacion(A, valoresPropios) {
     if (valoresPropios.length === 0) {
         return { 
             esDiagonalizable: false, 
-            razon: "La matriz no tiene valores propios reales. No es diagonalizable en ℝ." 
+            razon: "La matriz no tiene valores característicos reales. No es diagonalizable en ℝ." 
         };
     }
     
@@ -790,7 +790,7 @@ export function verificarDiagonalizacion(A, valoresPropios) {
         if (vp.tipo === "complejo") {
             return { 
                 esDiagonalizable: false, 
-                razon: "La matriz tiene valores propios complejos (no reales). No es diagonalizable en ℝ." 
+                razon: "La matriz tiene valores característicos complejos (no reales). No es diagonalizable en ℝ." 
             };
         }
     }
@@ -911,6 +911,7 @@ export function diagonalizarMatrizCompleta(A) {
         
         // ===== CALCULAR VECTORES PROPIOS =====
         const todosVectores = [];
+        const procesados = new Set();
         
         for (let idx = 0; idx < raices.length; idx++) {
             const raiz = raices[idx];
@@ -919,6 +920,10 @@ export function diagonalizarMatrizCompleta(A) {
             // (los no exactos como 5 ± √41 son dos valores distintos)
             if (raiz.tipo === "exacta") {
                 const λ = raiz.valor;
+                const key = `${λ.num}/${λ.den}`;
+                if (procesados.has(key)) continue;
+                procesados.add(key);
+                
                 const vectores = encontrarVectoresPropios(A, λ);
                 
                 // Agregar cada vector propio (uno por cada multiplicidad geométrica)
