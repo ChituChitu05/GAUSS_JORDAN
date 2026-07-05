@@ -1,6 +1,6 @@
-import { crearSpanCelda, inputToSpan } from "./celdas.js";
-import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux_matrices.js";
-import Auxiliares from "./auxiliares.js";
+import { crearSpanCelda, inputToSpan } from "./celdas.js?v=38";
+import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux_matrices.js?v=38";
+import Auxiliares from "./auxiliares.js?v=38";
 
 let currentFileData = null;
 let currentFileName = null;
