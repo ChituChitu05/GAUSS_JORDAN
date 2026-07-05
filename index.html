@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Gauss-Jordan</title>
-    <link rel="stylesheet" href="./CSS/main.css?v=25">
+    <link rel="stylesheet" href="./CSS/main.css?v=38">
     <link rel="icon" href="./img/los-pollos-hermanos-logo-png_seeklogo-502644.png?v=2">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
+
 <body>
     <header id="hearder">
         <a class="brand" href="#" aria-label="Inicio Gauss-Jordan">
@@ -18,7 +20,8 @@
         <nav id="topNav" class="top-nav" aria-label="Apartados principales"></nav>
 
         <div class="header-actions">
-            <button id="themeToggle" class="theme-switch" type="button" aria-label="Cambiar modo de color" aria-pressed="false">
+            <button id="themeToggle" class="theme-switch" type="button" aria-label="Cambiar modo de color"
+                aria-pressed="false">
                 <span class="theme-icon sun" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false">
                         <circle cx="12" cy="12" r="4"></circle>
@@ -44,7 +47,7 @@
     </header>
     <aside id="aside"></aside>
     <article id="article"></article>
-    
+
     <!-- Modal de ayuda -->
     <div id="helpModal" class="modal">
         <div class="modal-content">
@@ -60,7 +63,8 @@
                         <li><kbd>Tab</kbd> - Mover a la siguiente celda</li>
                         <li><kbd>Enter</kbd> - Crear nueva fila</li>
                         <li><kbd>Espacio</kbd> - Crear nueva columna</li>
-                        <li><kbd>Backspace</kbd> / <kbd>Delete</kbd> - Borrar contenido y eliminar filas o columnas vacías</li>
+                        <li><kbd>Backspace</kbd> / <kbd>Delete</kbd> - Borrar contenido y eliminar filas o columnas
+                            vacías</li>
                         <li><kbd>Esc</kbd> - Cancelar edición</li>
                         <li><kbd>Ctrl + Enter</kbd> - Calcular resultado</li>
                     </ul>
@@ -107,7 +111,7 @@
             </div>
         </div>
     </div>
-    
+
 
     <script>
         window.addEventListener("DOMContentLoaded", function () {
@@ -155,6 +159,9 @@
         });
     </script>
 
-    <script type="module" src="./JS/main.js?v=25"></script>
+    <button id="floatingSqrtBtn" class="floating-sqrt-btn" type="button" title="Insertar raíz cuadrada (√)">√</button>
+
+    <script type="module" src="./JS/main.js?v=38"></script>
 </body>
+
 </html>
