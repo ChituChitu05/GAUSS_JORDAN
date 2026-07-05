@@ -1,8 +1,8 @@
-import Auxiliares from "./auxiliares.js";
-import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
-import { actualizarSeparadorGlobal, eliminarSeparadorGlobal } from "./ux_matrices.js";
-import { syncTableToFileData } from "./dragDrop.js";
-import { actualizarBotonCalcularEV } from "./celdas.js";
+import Auxiliares from "./auxiliares.js?v=38";
+import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js?v=38";
+import { actualizarSeparadorGlobal, eliminarSeparadorGlobal } from "./ux_matrices.js?v=38";
+import { syncTableToFileData } from "./dragDrop.js?v=38";
+import { actualizarBotonCalcularEV } from "./celdas.js?v=38";
 
 let _article       = null;
 let _table         = null;
@@ -353,9 +353,13 @@ function _keydownMatrixSpan(e, span) {
         case 'Backspace':
         case 'Delete':
             e.preventDefault();
-            span.setAttribute('data-value', '');
-            span.innerHTML = '';
-            _matrixRevisarBorrado(table, rowIndex, colIndex);
+            const val = (span.getAttribute('data-value') ?? span.textContent ?? "").trim();
+            if (val === "") {
+                _matrixRevisarBorrado(table, rowIndex, colIndex);
+            } else {
+                span.setAttribute('data-value', '');
+                span.innerHTML = '';
+            }
             _sync();
             break;
         case 'ArrowLeft':  e.preventDefault(); _matrixLeft();  break;
@@ -385,7 +389,7 @@ function _matrixNewCol(table, rowIndex, colIndex) {
 function _matrixNewRow(table, rowIndex, colIndex) {
     Auxiliares.insertarFila(table, rowIndex + 1);
     if (table.dataset.operation === "axb") {
-        requestAnimationFrame(() => actualizarSeparadorGlobal(table));
+        actualizarSeparadorGlobal(table);
     } else {
         eliminarSeparadorGlobal(table);
     }
@@ -446,30 +450,6 @@ function _matrixStructBackspace(e, table, input) {
         _matrixRevisarBorrado(table, rowIndex, colIndex);
         return;
     }
-
-    setTimeout(() => {
-        const currentCell = table.rows[rowIndex]?.cells[colIndex];
-        if (!currentCell) return;
-
-        const currentInput = currentCell.querySelector('.cell-input');
-        const currentSpan  = currentCell.querySelector('.cell-span');
-
-        if (currentInput) {
-            if (currentInput.value.trim() === "") {
-                const enMinimo = table.rows.length <= minRows && (table.rows[0]?.cells.length ?? 0) <= minCols;
-                if (enMinimo) return;
-                _replaceCurrentEditableWithEmpty();
-                _matrixRevisarBorrado(table, rowIndex, colIndex);
-            }
-        } else if (currentSpan) {
-            const val = (currentSpan.getAttribute('data-value') ?? currentSpan.textContent ?? "").trim();
-            if (val === "") {
-                const enMinimo = table.rows.length <= minRows && (table.rows[0]?.cells.length ?? 0) <= minCols;
-                if (enMinimo) return;
-                _matrixRevisarBorrado(table, rowIndex, colIndex);
-            }
-        }
-    }, 0);
 }
 
 
@@ -499,14 +479,6 @@ function _columnaVaciaOCero(table, colIndex) {
 }
 
 function _matrixRevisarBorrado(table, rowIndex, colIndex) {
-    if (!table || !table.isConnected) return;
-
-    // Guard de concurrencia: evita que dos Backspace casi simultáneos
-    // intenten borrar la misma fila/columna dos veces, lo que provoca
-    // "The node to be removed is no longer a child of this node".
-    if (table._borradoEnProceso) return;
-    table._borradoEnProceso = true;
-
     const currentOp = table.dataset.operation;
     const esDiag = table?.id === "diagInputTable" || currentOp === "diagonalizacion";
 
@@ -519,40 +491,35 @@ function _matrixRevisarBorrado(table, rowIndex, colIndex) {
         minCols = Math.max(2, parseInt(table.dataset.minCols) || 2);
     }
     setTimeout(() => {
-        try {
-            let tr = rowIndex, tc = colIndex;
+        let tr = rowIndex, tc = colIndex;
 
-            if (table.rows.length > minRows && table.rows[rowIndex] && _filaVaciaOCero(table, rowIndex)) {
-                Auxiliares.eliminarFila(table, rowIndex);
-                tr = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
-                if (currentOp === "axb") {
-                    actualizarSeparadorGlobal(table);
-                } else {
-                    eliminarSeparadorGlobal(table);
-                }
+        if (table.rows.length > minRows && _filaVaciaOCero(table, rowIndex)) {
+            Auxiliares.eliminarFila(table, rowIndex);
+            tr = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
+            if (currentOp === "axb") {
+                actualizarSeparadorGlobal(table);
+            } else {
+                eliminarSeparadorGlobal(table);
             }
-
-            const anchoActual = table.rows[0]?.cells.length ?? 0;
-            if (anchoActual > minCols && colIndex < anchoActual && _columnaVaciaOCero(table, colIndex)) {
-                Auxiliares.eliminarColumna(table, colIndex);
-                tc = Math.max(0, Math.min(colIndex - 1, (table.rows[0]?.cells.length ?? 1) - 1));
-                if (currentOp === "axb") {
-                    actualizarSeparadorGlobal(table);
-                } else {
-                    eliminarSeparadorGlobal(table);
-                }
-            }
-
-            if (tr === rowIndex && tc === colIndex) {
-                if (colIndex > 0) tc = colIndex - 1;
-                else if (rowIndex > 0) { tr = rowIndex - 1; tc = (table.rows[tr]?.cells.length ?? 1) - 1; }
-            }
-
-            _focusCell(tr, tc);
-            _sync();
-        } finally {
-            table._borradoEnProceso = false;
         }
+
+        if ((table.rows[0]?.cells.length ?? 0) > minCols && _columnaVaciaOCero(table, colIndex)) {
+            Auxiliares.eliminarColumna(table, colIndex);
+            tc = Math.max(0, Math.min(colIndex - 1, (table.rows[0]?.cells.length ?? 1) - 1));
+            if (currentOp === "axb") {
+                actualizarSeparadorGlobal(table);
+            } else {
+                eliminarSeparadorGlobal(table);
+            }
+        }
+
+        if (tr === rowIndex && tc === colIndex) {
+            if (colIndex > 0) tc = colIndex - 1;
+            else if (rowIndex > 0) { tr = rowIndex - 1; tc = (table.rows[tr]?.cells.length ?? 1) - 1; }
+        }
+
+        _focusCell(tr, tc);
+        _sync();
     }, 0);
 }
 
