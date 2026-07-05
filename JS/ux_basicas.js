@@ -1,7 +1,7 @@
-import UI from "./ui.js";
-import Auxiliares, { multiplicarFracciones, sumarFraccionesObj, restarFracciones, normalizarSigno } from "./auxiliares.js";
-import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
-import { sumarMatrices, restarMatrices, multiplicarMatrices, multiplicarMatrizPorEscalar, validarDimensionesMatrices } from "./operaciones.js";
+import UI from "./ui.js?v=38";
+import Auxiliares, { multiplicarFracciones, sumarFraccionesObj, restarFracciones, normalizarSigno } from "./auxiliares.js?v=38";
+import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js?v=38";
+import { sumarMatrices, restarMatrices, multiplicarMatrices, multiplicarMatrizPorEscalar, validarDimensionesMatrices } from "./operaciones.js?v=38";
 
 let currentBasicOperation = "suma";
 
@@ -183,7 +183,7 @@ function ajustarTodasColumnasBasicas(table) {
     for (let j = 0; j < cols; j++) ajustarAnchoColumnaBasica(table, j);
 }
 
-function insertarFilaBasica(table, rowIndex, colIndex) {
+function insertarFilaBasica(table, rowIndex, colIndex, sync = true) {
     const columnas = table.rows[0].cells.length;
     const nuevaFila = table.insertRow(rowIndex + 1);
     for (let j = 0; j < columnas; j++) {
@@ -193,16 +193,46 @@ function insertarFilaBasica(table, rowIndex, colIndex) {
     }
     actualizarAtributosTabla(table);
     ajustarTodasColumnasBasicas(table);
+
+    if (sync) {
+        const otherId = table.id === "basicMatrixA" ? "basicMatrixB" : "basicMatrixA";
+        const otherTable = document.getElementById(otherId);
+        if (otherTable) {
+            if (currentBasicOperation === "suma" || currentBasicOperation === "resta") {
+                insertarFilaBasica(otherTable, rowIndex, colIndex, false);
+            } else if (currentBasicOperation === "multiplicacion") {
+                if (table.id === "basicMatrixB") {
+                    insertarColumnaBasica(otherTable, 0, rowIndex, false);
+                }
+            }
+        }
+    }
+
     setTimeout(() => enfocarCelda(table, rowIndex + 1, colIndex), 10);
 }
 
-function insertarColumnaBasica(table, rowIndex, colIndex) {
+function insertarColumnaBasica(table, rowIndex, colIndex, sync = true) {
     Array.from(table.rows).forEach((row, i) => {
         const td = row.insertCell(colIndex + 1);
         td.appendChild(crearSpanCelda("", i, colIndex + 1));
     });
     actualizarAtributosTabla(table);
     ajustarTodasColumnasBasicas(table);
+
+    if (sync) {
+        const otherId = table.id === "basicMatrixA" ? "basicMatrixB" : "basicMatrixA";
+        const otherTable = document.getElementById(otherId);
+        if (otherTable) {
+            if (currentBasicOperation === "suma" || currentBasicOperation === "resta") {
+                insertarColumnaBasica(otherTable, rowIndex, colIndex, false);
+            } else if (currentBasicOperation === "multiplicacion") {
+                if (table.id === "basicMatrixA") {
+                    insertarFilaBasica(otherTable, colIndex, 0, false);
+                }
+            }
+        }
+    }
+
     setTimeout(() => enfocarCelda(table, rowIndex, colIndex + 1), 10);
 }
 
@@ -228,56 +258,98 @@ function columnaVacia(table, colIndex) {
     return Array.from(table.rows).every(row => celdaVacia(row.cells[colIndex]));
 }
 
-function eliminarFilaBasica(table, rowIndex) {
+function eliminarFilaBasica(table, rowIndex, sync = true) {
     if (table.rows.length <= 1) return false;
     table.deleteRow(rowIndex);
     actualizarAtributosTabla(table);
+
+    if (sync) {
+        const otherId = table.id === "basicMatrixA" ? "basicMatrixB" : "basicMatrixA";
+        const otherTable = document.getElementById(otherId);
+        if (otherTable) {
+            if (currentBasicOperation === "suma" || currentBasicOperation === "resta") {
+                eliminarFilaBasica(otherTable, rowIndex, false);
+            } else if (currentBasicOperation === "multiplicacion") {
+                if (table.id === "basicMatrixB") {
+                    eliminarColumnaBasica(otherTable, rowIndex, false);
+                }
+            }
+        }
+    }
     return true;
 }
 
-function eliminarColumnaBasica(table, colIndex) {
+function eliminarColumnaBasica(table, colIndex, sync = true) {
     if (!table.rows.length || table.rows[0].cells.length <= 1) return false;
     Array.from(table.rows).forEach(row => row.deleteCell(colIndex));
     actualizarAtributosTabla(table);
+
+    if (sync) {
+        const otherId = table.id === "basicMatrixA" ? "basicMatrixB" : "basicMatrixA";
+        const otherTable = document.getElementById(otherId);
+        if (otherTable) {
+            if (currentBasicOperation === "suma" || currentBasicOperation === "resta") {
+                eliminarColumnaBasica(otherTable, colIndex, false);
+            } else if (currentBasicOperation === "multiplicacion") {
+                if (table.id === "basicMatrixA") {
+                    eliminarFilaBasica(otherTable, colIndex, false);
+                }
+            }
+        }
+    }
     return true;
 }
 
 function revisarBorradoEstructural(table, rowIndex, colIndex) {
-    if (!table || !table.isConnected) return;
-
-    // Guard de concurrencia: evita que dos Backspace casi simultáneos
-    if (table._borradoEnProceso) return;
-    table._borradoEnProceso = true;
-
-    try {
-        const minRows = parseInt(table.dataset.minRows) || 1;
-        const minCols = parseInt(table.dataset.minCols) || 1;
+    console.log("revisarBorradoEstructural called. Table ID:", table.id, "Row:", rowIndex, "Col:", colIndex);
+    setTimeout(() => {
         let targetRow = rowIndex;
         let targetCol = colIndex;
+        let deletedRow = false;
+        let deletedCol = false;
 
-        if (table.rows[rowIndex] && filaVacia(table, rowIndex) && table.rows.length > minRows && eliminarFilaBasica(table, rowIndex)) {
-            targetRow = Math.max(0, rowIndex - 1);
+        const rowEmpty = filaVacia(table, rowIndex);
+        const colEmpty = columnaVacia(table, colIndex);
+        console.log("Checking deletion: rowEmpty =", rowEmpty, "colEmpty =", colEmpty, "Row count:", table.rows.length, "Col count:", table.rows[0]?.cells.length);
+
+        if (rowEmpty) {
+            console.log("Row is empty. Deleting row:", rowIndex);
+            if (eliminarFilaBasica(table, rowIndex, true)) {
+                targetRow = Math.max(0, rowIndex - 1);
+                deletedRow = true;
+                console.log("Row deleted. New row count:", table.rows.length);
+            }
         }
-
-        const anchoActual = table.rows[0]?.cells.length ?? 0;
-        if (anchoActual > minCols && colIndex < anchoActual && columnaVacia(table, colIndex) && eliminarColumnaBasica(table, colIndex)) {
-            targetCol = Math.max(0, colIndex - 1);
-        }
-
-        targetRow = Math.max(0, Math.min(targetRow, table.rows.length - 1));
-        if (table.rows[targetRow]) {
-            targetCol = Math.max(0, Math.min(targetCol, table.rows[targetRow].cells.length - 1));
+        if (colEmpty) {
+            console.log("Col is empty. Deleting col:", colIndex);
+            if (eliminarColumnaBasica(table, colIndex, true)) {
+                targetCol = Math.max(0, colIndex - 1);
+                deletedCol = true;
+                console.log("Col deleted. New col count:", table.rows[0]?.cells.length);
+            }
         }
 
         ajustarTodasColumnasBasicas(table);
-        setTimeout(() => {
-            table._borradoEnProceso = false;
-            if (table.isConnected) enfocarCelda(table, targetRow, targetCol);
-        }, 10);
-    } catch (error) {
-        table._borradoEnProceso = false;
-        throw error;
-    }
+        const otherId = table.id === "basicMatrixA" ? "basicMatrixB" : "basicMatrixA";
+        const otherTable = document.getElementById(otherId);
+        if (otherTable) {
+            console.log("Syncing width for other table:", otherId);
+            ajustarTodasColumnasBasicas(otherTable);
+        }
+
+        if (!deletedRow && !deletedCol) {
+            const numCols = table.rows[0]?.cells.length || 0;
+            if (colIndex > 0) {
+                targetCol = colIndex - 1;
+            } else if (rowIndex > 0) {
+                targetRow = rowIndex - 1;
+                targetCol = numCols - 1;
+            }
+        }
+
+        console.log("Focusing cell:", targetRow, targetCol);
+        enfocarCelda(table, targetRow, targetCol);
+    }, 0);
 }
 
 function finalizarEntrada(input) {
@@ -294,14 +366,6 @@ function moverDesde(table, rowIndex, colIndex, deltaRow, deltaCol) {
     const targetCol = colIndex + deltaCol;
     if (targetRow < 0 || targetRow >= table.rows.length) return;
     if (targetCol < 0 || targetCol >= table.rows[targetRow].cells.length) return;
-
-    // Finalizar la celda de origen de forma síncrona ANTES de mover el foco
-    const origenCell = table.rows[rowIndex]?.cells[colIndex];
-    const origenInput = origenCell?.querySelector(".cell-input");
-    if (origenInput && origenInput.isConnected) {
-        finalizarEntrada(origenInput);
-    }
-
     enfocarCelda(table, targetRow, targetCol);
 }
 
@@ -345,12 +409,12 @@ function manejarKeydownBasicas(event, article) {
         }
         if (event.key === "Backspace" || event.key === "Delete") {
             event.preventDefault();
-            limpiarValorSpan(target);
-            setTimeout(() => {
-                if (table && table.isConnected) {
-                    revisarBorradoEstructural(table, rowIndex, colIndex);
-                }
-            }, 10);
+            const val = (target.getAttribute("data-value") ?? target.textContent ?? "").trim();
+            if (val === "") {
+                revisarBorradoEstructural(table, rowIndex, colIndex);
+            } else {
+                limpiarValorSpan(target);
+            }
             return;
         }
         if (event.key === "ArrowLeft") return moverDesde(table, rowIndex, colIndex, 0, -1);
@@ -404,15 +468,14 @@ function manejarKeydownBasicas(event, article) {
     if (event.key === "ArrowUp") return moverDesde(table, rowIndex, colIndex, -1, 0);
     if (event.key === "ArrowDown") return moverDesde(table, rowIndex, colIndex, 1, 0);
 
-    if ((event.key === "Backspace" || event.key === "Delete") && target.value === "") {
-        event.preventDefault();
-        // NO hacer target.replaceWith(span) aquí - eso causa el error
-        setTimeout(() => {
-            if (table && table.isConnected) {
-                revisarBorradoEstructural(table, rowIndex, colIndex);
-            }
-        }, 10);
-        return;
+    if (event.key === "Backspace" || event.key === "Delete") {
+        console.log("KEYDOWN: Backspace/Delete detected on target:", target.className, "Value:", target.value);
+        if (target.value === "") {
+            console.log("Immediate empty delete triggered.");
+            event.preventDefault();
+            finalizarEntrada(target);
+            revisarBorradoEstructural(table, rowIndex, colIndex);
+        }
     }
 }
 
