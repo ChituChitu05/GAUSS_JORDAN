@@ -1,11 +1,12 @@
-import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=16";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=16";
-import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=16";
-import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.js?v=16";
-import UI from "./ui.js";
+import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=38";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=38";
+import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=38";
+import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.js?v=38";
+import UI from "./ui.js?v=38";
 
-import { desconfigurarEventos as desconfigurarEventosMatri, desconfigurarEventos as desconfigurarEventosEV } from "./eventos_celdas.js";
-import { inicializarTransformaciones, limpiarTransformaciones } from "./ux_transformaciones.js";
+import { desconfigurarEventos as desconfigurarEventosMatri, desconfigurarEventos as desconfigurarEventosEV } from "./eventos_celdas.js?v=38";
+import { inicializarTransformaciones, limpiarTransformaciones } from "./ux_transformaciones.js?v=38";
+import { insertarRaiz } from "./celdas.js?v=38";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
@@ -145,7 +146,7 @@ function buildAside() {
         aside.classList.add("aside-hidden");
         return;
     }
-    
+
     aside.classList.remove("aside-hidden");
 
     const ul = document.createElement("ul");
@@ -252,7 +253,7 @@ function switchModule(module) {
     else if (module === "diagonalizacion") {
         currentAsideSelection = "";
         // Importar dinámicamente el módulo de diagonalización
-        import("./ux_diagonalizacion.js").then(module => {
+        import("./ux_diagonalizacion.js?v=38").then(module => {
             module.inicializarDiagonalizacion(article);
         }).catch(error => {
             console.error("Error al cargar el módulo de diagonalización:", error);
@@ -277,4 +278,15 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         switchModule("matrices");
     });
+
+    const floatingSqrtBtn = document.getElementById("floatingSqrtBtn");
+    if (floatingSqrtBtn) {
+        floatingSqrtBtn.addEventListener("mousedown", (e) => {
+            e.preventDefault(); // Prevents active input cell from losing focus
+        });
+        floatingSqrtBtn.addEventListener("click", () => {
+            insertarRaiz();
+        });
+    }
+
 });
