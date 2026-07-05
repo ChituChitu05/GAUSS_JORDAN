@@ -129,19 +129,9 @@ export function inicializarMatriz(article, modo) {
     const button = UI.createButton("btnCalcular", buttonText, "btnCalcular");
     const btnLimpiar = UI.createButton("btnLimpiarMatriz", "Borrar matriz", "btnCalcular btnLimpiarEV");
     
-    const btnRaiz = document.createElement("button");
-    btnRaiz.type = "button";
-    btnRaiz.className = "btn-raiz";
-    btnRaiz.textContent = "√";
-    btnRaiz.title = "Insertar raíz cuadrada (selecciona una celda)";
-
-    btnRaiz.addEventListener('mousedown', (e) => {
-        e.preventDefault();  // Evita que el botón tome el foco
-    });
-
     const buttonGroup = document.createElement("div");
     buttonGroup.className = "matrix-actions";
-    buttonGroup.append(btnRaiz, button, btnLimpiar);
+    buttonGroup.append(button, btnLimpiar);
 
     mainSection.appendChild(wrapper);
     mainSection.appendChild(buttonGroup);
@@ -155,15 +145,6 @@ export function inicializarMatriz(article, modo) {
 
     const btnCalcular = document.getElementById("btnCalcular");
     const btnLimpiarMatriz = document.getElementById("btnLimpiarMatriz");
-
-    // Evento del botón de raíz - AHORA FUNCIONA CORRECTAMENTE
-    btnRaiz.addEventListener("click", async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const { insertarRaiz } = await import("./celdas.js?v=38");
-        insertarRaiz();
-    });
 
     // Botón limpiar
     if (btnLimpiarMatriz) {
