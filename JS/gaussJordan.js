@@ -1,5 +1,5 @@
-import { swapFilas, multiplicarFila, sumarFilas, restarFilas } from './operaciones.js';
-import { esCero, dividirFracciones, normalizarSigno, multiplicarFracciones, restarFracciones} from './auxiliares.js';
+import { swapFilas, multiplicarFila, sumarFilas, restarFilas } from './operaciones.js?v=38';
+import { esCero, dividirFracciones, normalizarSigno, multiplicarFracciones, restarFracciones} from './auxiliares.js?v=38';
 
 export function buscarPivote(matriz, filaActual, columnaActual) {
     if (!esCero(matriz[filaActual][columnaActual])) {
