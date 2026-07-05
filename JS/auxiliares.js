@@ -707,16 +707,60 @@ export function vectorToString(vector) {
 
 // ==================== SIMPLIFICACIÓN DE EXPRESIONES ====================
 
+export function decimalAFraccion(decimal, tolerance = 1.e-9) {
+    if (Math.abs(decimal) < tolerance) return { num: 0, den: 1 };
+    
+    const signo = decimal < 0 ? -1 : 1;
+    const absVal = Math.abs(decimal);
+    
+    let h1 = 1, h2 = 0, k1 = 0, k2 = 1;
+    let b = absVal;
+    let iterations = 0;
+    while (iterations < 100) {
+        let a = Math.floor(b);
+        let aux = h1; h1 = a * h1 + h2; h2 = aux;
+        aux = k1; k1 = a * k1 + k2; k2 = aux;
+        if (Math.abs(b - a) < tolerance) break;
+        b = 1 / (b - a);
+        if (Math.abs(absVal - h1 / k1) < tolerance) break;
+        iterations++;
+    }
+
+    const [ns, ds] = simplificar(signo * h1, k1);
+    return { num: ns, den: ds };
+}
+
 export function simplificarExpresion(expresion) {
     if (!expresion || typeof expresion !== 'string') return expresion;
     
     const trimmed = expresion.trim();
+
+    // Si es una simple fracción de la forma -?a/b (por ejemplo, "2/4" o "-1/3")
+    const simpleFracPattern = /^(-?\d+)\/(\d+)$/;
+    const simpleMatch = trimmed.match(simpleFracPattern);
+    if (simpleMatch) {
+        const num = parseInt(simpleMatch[1]);
+        const den = parseInt(simpleMatch[2]);
+        if (den !== 0) {
+            const [ns, ds] = simplificar(num, den);
+            return ds === 1 ? `${ns}` : `${ns}/${ds}`;
+        }
+    }
     
     if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(trimmed)) {
         try {
             const resultado = Function('"use strict"; return (' + trimmed + ')')();
             if (typeof resultado === 'number' && !isNaN(resultado) && isFinite(resultado)) {
                 if (Number.isInteger(resultado)) return resultado.toString();
+                
+                // Si el usuario usó una diagonal '/' en la expresión original,
+                // intentamos retornar el resultado como fracción.
+                if (trimmed.includes("/")) {
+                    const frac = decimalAFraccion(resultado);
+                    if (frac) {
+                        return frac.den === 1 ? `${frac.num}` : `${frac.num}/${frac.den}`;
+                    }
+                }
                 return resultado.toString();
             }
         } catch (e) {}
