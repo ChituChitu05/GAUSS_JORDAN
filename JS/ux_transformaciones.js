@@ -1,9 +1,9 @@
-import UI from "./ui.js";
-import Auxiliares from "./auxiliares.js";
-import { crearSpanCelda, inputToSpan, spanToInput } from "./celdas.js";
-import { ajustarAnchoColumna } from "./eventos_celdas.js";
-import { matrizCambioBase, matrizTransformacion } from "./calculos.js";
-import { multiplicarMatrices } from "./operaciones.js";
+import UI from "./ui.js?v=38";
+import Auxiliares from "./auxiliares.js?v=38";
+import { crearSpanCelda, inputToSpan, spanToInput } from "./celdas.js?v=38";
+import { ajustarAnchoColumna } from "./eventos_celdas.js?v=38";
+import { matrizCambioBase, matrizTransformacion } from "./calculos.js?v=38";
+import { multiplicarMatrices } from "./operaciones.js?v=38";
 
 const MATRICES = {
     B1: { id: "tfB1", label: "B₁", rows: 2, cols: 2, locked: false, isIdentity: false },
@@ -116,7 +116,6 @@ function _tfMousedown(e) {
     if (!tableEl) return;
 
     const tableKey = Object.keys(MATRICES).find(k => MATRICES[k].id === tableEl.id);
-    if (tableKey && MATRICES[tableKey].locked) return;
 
     e.preventDefault();
     const inp = spanToInput(span);
@@ -176,7 +175,6 @@ function _tfKeydown(e) {
     if (!table) return;
 
     const tableKey = Object.keys(MATRICES).find(k => MATRICES[k].id === table.id);
-    if (tableKey && MATRICES[tableKey].locked) return;
 
     const td = target.closest("td");
     const row = td?.parentElement;
@@ -234,6 +232,7 @@ function _tfKeydown(e) {
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         Auxiliares.insertarColumna(table, c + 1);
         _tfAjustarTabla(table);
+        actualizarMatricesDerivadas();
         setTimeout(() => _tfMoveTo(table, r, c + 1), 10);
         return;
     }
@@ -243,27 +242,26 @@ function _tfKeydown(e) {
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         Auxiliares.insertarFila(table, r + 1);
         _tfAjustarTabla(table);
+        actualizarMatricesDerivadas();
         setTimeout(() => _tfMoveTo(table, r + 1, c), 10);
         return;
     }
 
     if (e.key === "Backspace" || e.key === "Delete") {
         if (isInput) {
-            const quedaVacio = target.value === "" ||
-                (target.value.length === 1 && target.selectionStart === 1) ||
-                (target.selectionStart !== target.selectionEnd);
-
-            if (!quedaVacio) return;
-
+            if (target.value !== "") return;
             e.preventDefault();
-            target.value = "";
             _tfRevisarBorrado(table, r, c);
         } else if (isSpan) {
             e.preventDefault();
-            target.setAttribute("data-value", "");
-            target.textContent = "";
-            target.innerHTML = "";
-            _tfRevisarBorrado(table, r, c);
+            const val = (target.getAttribute("data-value") ?? target.textContent ?? "").trim();
+            if (val === "") {
+                _tfRevisarBorrado(table, r, c);
+            } else {
+                target.setAttribute("data-value", "");
+                target.textContent = "";
+                target.innerHTML = "";
+            }
         }
         return;
     }
@@ -417,8 +415,12 @@ function mismasDimensiones(a, b) {
 }
 
 function ponerIdentidad(tableId) {
+    console.log("ponerIdentidad called for tableId:", tableId);
     const table = document.getElementById(tableId);
-    if (!table) return;
+    if (!table) {
+        console.error("ponerIdentidad error: Table not found in DOM for ID:", tableId);
+        return;
+    }
     const n = table.rows.length;
     for (let i = 0; i < n; i++) {
         for (let j = 0; j < table.rows[i].cells.length; j++) {
@@ -426,23 +428,148 @@ function ponerIdentidad(tableId) {
             const val = i === j ? "1" : "0";
             const span = cell.querySelector(".cell-span");
             const input = cell.querySelector(".cell-input");
-            if (input) { input.value = val; inputToSpan(input); }
-            if (span) { span.setAttribute("data-value", val); span.textContent = val; }
+            if (input) { 
+                input.value = val; 
+                inputToSpan(input); 
+            }
+            if (span) { 
+                span.setAttribute("data-value", val); 
+                span.textContent = val; 
+            }
         }
     }
-    table.querySelectorAll(".cell-span, .cell-input").forEach(el => {
-        el.style.pointerEvents = "none";
-        el.style.opacity = "0.6";
-    });
 }
 
-function desbloquearTabla(tableId) {
+function limpiarTablaTransformaciones(tableId) {
+    console.log("limpiarTablaTransformaciones called for tableId:", tableId);
     const table = document.getElementById(tableId);
     if (!table) return;
-    table.querySelectorAll(".cell-span, .cell-input").forEach(el => {
-        el.style.pointerEvents = "";
-        el.style.opacity = "";
-    });
+    for (let i = 0; i < table.rows.length; i++) {
+        for (let j = 0; j < table.rows[i].cells.length; j++) {
+            const cell = table.rows[i].cells[j];
+            const span = cell.querySelector(".cell-span");
+            const input = cell.querySelector(".cell-input");
+            if (input) { input.value = ""; inputToSpan(input); }
+            if (span) { span.setAttribute("data-value", ""); span.textContent = ""; }
+        }
+    }
+    _tfAjustarTabla(table);
+}
+
+function fraccionTFIgualA(valor, esperado) {
+    const texto = Auxiliares.normalizarValorTexto(valor);
+    if (!Auxiliares.esValorNumericoValido(texto, false)) return false;
+    const fraccion = Auxiliares.normalizarSigno(Auxiliares.parsearFraccion(texto));
+    const [num, den] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+    return num === esperado && den === 1;
+}
+
+function esCeroVisualTF(valor) {
+    const texto = String(valor || "").trim();
+    if (texto === "") return true;
+    return fraccionTFIgualA(texto, 0);
+}
+
+function esUnoVisualTF(valor) {
+    const texto = String(valor || "").trim();
+    return fraccionTFIgualA(texto, 1);
+}
+
+function esMatrizIdentidadTF(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table || !table.rows.length) {
+        console.log("esMatrizIdentidadTF returns false (table not found or empty) for:", tableId);
+        return false;
+    }
+
+    const filas = table.rows.length;
+    const columnas = table.rows[0]?.cells.length || 0;
+    if (filas === 0 || columnas === 0 || filas !== columnas) {
+        console.log("esMatrizIdentidadTF returns false (not square, size:", filas, "x", columnas, ") for:", tableId);
+        return false;
+    }
+
+    for (let i = 0; i < filas; i++) {
+        for (let j = 0; j < columnas; j++) {
+            const cell = table.rows[i].cells[j];
+            const input = cell.querySelector(".cell-input");
+            const span = cell.querySelector(".cell-span");
+            const valor = (input?.value ?? span?.getAttribute("data-value") ?? span?.textContent ?? "").trim();
+
+            if (i === j) {
+                if (!esUnoVisualTF(valor)) {
+                    console.log(`esMatrizIdentidadTF [${tableId}] diagonal cell (${i},${j}) is not 1. value:`, valor);
+                    return false;
+                }
+            } else {
+                if (!esCeroVisualTF(valor)) {
+                    console.log(`esMatrizIdentidadTF [${tableId}] non-diagonal cell (${i},${j}) is not 0. value:`, valor);
+                    return false;
+                }
+            }
+        }
+    }
+    console.log(`esMatrizIdentidadTF [${tableId}] is indeed identity.`);
+    return true;
+}
+
+function desactivarCanonicaBasesPair(key) {
+    console.log("desactivarCanonicaBasesPair called for key:", key);
+    const cfg = MATRICES[key];
+    cfg.isIdentity = false;
+    cfg.locked = false;
+
+    const checkbox = document.getElementById(`tfCanonica_${key}`);
+    if (checkbox) {
+        checkbox.checked = false;
+        checkbox.setAttribute("aria-checked", "false");
+    }
+    _actualizarVisualToggle(key, false);
+
+    limpiarTablaTransformaciones(cfg.id);
+
+    const grupo = (key === "B1" || key === "B2") ? "V" : "W";
+    if (grupo === "V" && activeV === key) activeV = null;
+    if (grupo === "W" && activeW === key) activeW = null;
+}
+
+function sincronizarSwitchCanonicaTF(key) {
+    const cfg = MATRICES[key];
+    const tableId = cfg.id;
+    const isIdentityNow = esMatrizIdentidadTF(tableId);
+
+    console.log(`sincronizarSwitchCanonicaTF [${key}]: isIdentityNow =`, isIdentityNow);
+    cfg.isIdentity = isIdentityNow;
+
+    const checkbox = document.getElementById(`tfCanonica_${key}`);
+    if (checkbox) {
+        checkbox.checked = isIdentityNow;
+        checkbox.setAttribute("aria-checked", String(isIdentityNow));
+    }
+    _actualizarVisualToggle(key, isIdentityNow);
+
+    const grupo = (key === "B1" || key === "B2") ? "V" : "W";
+    if (isIdentityNow) {
+        if (grupo === "V") {
+            if (activeV !== key) {
+                const pairingKey = key === "B1" ? "B2" : "B1";
+                desactivarCanonicaBasesPair(pairingKey);
+                activeV = key;
+            }
+        } else {
+            if (activeW !== key) {
+                const pairingKey = key === "B3" ? "B4" : "B3";
+                desactivarCanonicaBasesPair(pairingKey);
+                activeW = key;
+            }
+        }
+    } else {
+        if (grupo === "V" && activeV === key) {
+            activeV = null;
+        } else if (grupo === "W" && activeW === key) {
+            activeW = null;
+        }
+    }
 }
 
 function _actualizarVisualToggle(key, isOn) {
@@ -452,36 +579,31 @@ function _actualizarVisualToggle(key, isOn) {
 }
 
 function toggleIdentidad(key) {
+    console.log("toggleIdentidad called for key:", key);
     const grupo = (key === "B1" || key === "B2") ? "V" : "W";
     const activeRef = grupo === "V" ? activeV : activeW;
 
     const input = document.getElementById(`tfCanonica_${key}`);
     const isNowChecked = input?.checked ?? false;
+    console.log(`toggleIdentidad [${key}]: isNowChecked =`, isNowChecked, "activeRef =", activeRef);
 
     if (isNowChecked) {
-        if (activeRef !== null && activeRef !== key) {
-            MATRICES[activeRef].isIdentity = false;
-            MATRICES[activeRef].locked = false;
-            desbloquearTabla(MATRICES[activeRef].id);
-            _actualizarVisualToggle(activeRef, false);
-            
-            const pairingInput = document.getElementById(`tfCanonica_${activeRef}`);
-            if (pairingInput) {
-                pairingInput.checked = false;
-                pairingInput.closest(".canonical-switch-wrapper")?.classList.remove("is-active");
-            }
+        const pairingKey = (grupo === "V") 
+            ? (key === "B1" ? "B2" : "B1")
+            : (key === "B3" ? "B4" : "B3");
+
+        if (activeRef !== null && activeRef === pairingKey) {
+            desactivarCanonicaBasesPair(pairingKey);
         }
 
         MATRICES[key].isIdentity = true;
-        MATRICES[key].locked = true;
         ponerIdentidad(MATRICES[key].id);
         _actualizarVisualToggle(key, true);
         if (grupo === "V") activeV = key; else activeW = key;
     } else {
         MATRICES[key].isIdentity = false;
-        MATRICES[key].locked = false;
-        desbloquearTabla(MATRICES[key].id);
         _actualizarVisualToggle(key, false);
+        limpiarTablaTransformaciones(MATRICES[key].id);
         if (grupo === "V") activeV = null; else activeW = null;
     }
 
@@ -489,6 +611,7 @@ function toggleIdentidad(key) {
 }
 
 function actualizarMatricesDerivadas() {
+    Object.keys(MATRICES).forEach(sincronizarSwitchCanonicaTF);
     // Leer cada matriz y verificar si está completa y sin errores
     const b1Data = leerMatrizCompleta(MATRICES.B1.id);
     const b2Data = leerMatrizCompleta(MATRICES.B2.id);
@@ -603,10 +726,10 @@ function crearBloqueMatrizEditable(key, simbolo) {
     const topRow = document.createElement("div");
     topRow.style.cssText = "display:flex;justify-content:flex-end;align-items:center;gap:0.6rem;";
 
-    const switchLabel = document.createElement("label");
+    const switchLabel = document.createElement("div");
     switchLabel.className = "canonical-switch-wrapper tf-canonical-switch";
-    switchLabel.setAttribute("for", `tfCanonica_${key}`);
     switchLabel.setAttribute("title", `Usar base canónica para ${cfg.label}`);
+    switchLabel.style.cursor = "pointer";
 
     const symbolSpan = document.createElement("span");
     symbolSpan.className = "canonical-switch-symbol";
@@ -618,7 +741,12 @@ function crearBloqueMatrizEditable(key, simbolo) {
     input.id = `tfCanonica_${key}`;
     input.className = "canonical-switch-input";
     input.setAttribute("aria-label", `Usar base canónica para ${cfg.label}`);
-    input.addEventListener("change", () => {
+
+    switchLabel.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        input.checked = !input.checked;
+        console.log(`Switch clicked for key ${key}. New Checked state:`, input.checked);
         toggleIdentidad(key);
     });
 
@@ -660,7 +788,8 @@ export function inicializarTransformaciones(article) {
     _article = article;
     while (article.firstChild) article.removeChild(article.firstChild);
 
-    const section = UI.createSection("tfSection", "TRANSFORMACIONES LINEALES");
+    const section = UI.createSection("mainSection", "TRANSFORMACIONES LINEALES");
+    section.className = "tf-section";
     section.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2rem;padding:2rem;min-width:max-content;width:100%;box-sizing:border-box;";
 
     const formula = document.createElement("p");
