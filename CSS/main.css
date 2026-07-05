@@ -1247,21 +1247,23 @@ kbd {
     #wrapperVectores,
     .result-wrapper,
     .basic-matrices-zone,
-    .basic-matrix-container,
+    .basic-matrix-card,
+    .cambio-base-card,
     .cambio-base-zone,
-    #tableMain,
-    .result-matrix-container,
-    .det-container,
     .diag-matrix-card,
     .step-matrix-item,
     .matrix-eq-item,
     .eigen-vectors-list,
     .factores-display,
-    .tf-derived-row {
+    .tf-derived-row,
+    .tf-matrix-block,
+    .tf-diagram-flex,
+    .det-content {
         max-width: 100% !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
         box-sizing: border-box !important;
+        justify-content: flex-start !important;
     }
 
     section h2 {
@@ -4208,6 +4210,29 @@ body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
     border-top: 3px solid var(--primary);
     border-bottom: 3px solid var(--primary);
     border-radius: 0 8px 8px 0;
+}
+
+/* Evitar que los corchetes/barras de matrices y determinantes tengan scroll interno, permitiendo que se dibujen completos en los bordes correctos */
+#tableMain,
+.result-matrix-container,
+.basic-matrix-container,
+.tf-matrix-container,
+.det-container {
+    overflow: visible !important;
+    max-width: none !important;
+    width: fit-content !important;
+    display: inline-flex !important;
+}
+
+/* Diagrama de transformaciones flex */
+.tf-diagram-flex {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
 }
 
 /* Estilos para raíces: símbolo √ y radicando como un solo trazo continuo */
