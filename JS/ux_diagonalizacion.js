@@ -1,9 +1,9 @@
-import UI from "./ui.js";
-import Auxiliares from "./auxiliares.js";
-import { diagonalizarMatrizCompleta } from "./calculos.js";
-import { crearSpanCelda, inputToSpan, spanToInput } from "./celdas.js";
-import { ajustarAnchoColumna, configurarEventos } from "./eventos_celdas.js";
-import { polinomioToString } from "./operaciones.js";
+import UI from "./ui.js?v=38";
+import Auxiliares from "./auxiliares.js?v=38";
+import { diagonalizarMatrizCompleta } from "./calculos.js?v=38";
+import { crearSpanCelda, inputToSpan, spanToInput } from "./celdas.js?v=38";
+import { ajustarAnchoColumna, configurarEventos } from "./eventos_celdas.js?v=38";
+import { polinomioToString } from "./operaciones.js?v=38";
 
 let currentTable = null;
 let currentObserver = null;
@@ -25,7 +25,7 @@ function crearMatrizEditable(id, filas = 2, columnas = 2) {
     wrapper.style.margin = "0 auto";
 
     const label = document.createElement("label");
-    label.textContent = "A [γ↓] =";
+    label.textContent = "A =";
 
     const divTable = document.createElement("div");
     divTable.id = "tableMain";
@@ -313,37 +313,55 @@ function mostrarResultados(article, resultados) {
     
     const n = resultados.matrizOriginal.length;
     
-    // ===== 1. MATRIZ ORIGINAL A =====
-    const matrizALine = document.createElement("div");
-    matrizALine.className = "result-wrapper";
-    const matrizALabel = document.createElement("div");
-    matrizALabel.className = "result-label";
-    matrizALabel.textContent = "A =";
-    matrizALine.appendChild(matrizALabel);
-    matrizALine.appendChild(crearMatrizHTML(resultados.matrizOriginal));
-    content.appendChild(matrizALine);
+    // ===== CARD 1: PLANTEAMIENTO Y MATRICES DEL SISTEMA =====
+    const card1 = document.createElement("div");
+    card1.className = "result-block";
+    card1.innerHTML = `<h3>Paso 1: Planteamiento y matrices del sistema</h3>`;
     
-    // ===== 2. MATRIZ A - λI =====
-    const A_menos_lambdaI_Line = document.createElement("div");
-    A_menos_lambdaI_Line.className = "result-wrapper";
-    const A_menos_lambdaI_Label = document.createElement("div");
-    A_menos_lambdaI_Label.className = "result-label";
-    A_menos_lambdaI_Label.textContent = "A - λI =";
-    A_menos_lambdaI_Line.appendChild(A_menos_lambdaI_Label);
+    const stepMatricesGrid = document.createElement("div");
+    stepMatricesGrid.className = "step-matrices-grid";
+    
+    // Matriz Original A
+    const itemA = document.createElement("div");
+    itemA.className = "step-matrix-item";
+    const labelA = document.createElement("div");
+    labelA.className = "step-matrix-label";
+    labelA.textContent = "A =";
+    itemA.appendChild(labelA);
+    itemA.appendChild(crearMatrizHTML(resultados.matrizOriginal));
+    stepMatricesGrid.appendChild(itemA);
+    
+    // Matriz A - λI
+    const itemAMenosI = document.createElement("div");
+    itemAMenosI.className = "step-matrix-item";
+    const labelAMenosI = document.createElement("div");
+    labelAMenosI.className = "step-matrix-label";
+    labelAMenosI.textContent = "A - λI =";
+    itemAMenosI.appendChild(labelAMenosI);
     
     const A_menos_lambdaI = resultados.lambdaImenosA.map(fila =>
         fila.map(pol => pol.map(coef => ({ num: -coef.num, den: coef.den })))
     );
-    A_menos_lambdaI_Line.appendChild(crearMatrizPolinomiosHTML(A_menos_lambdaI));
-    content.appendChild(A_menos_lambdaI_Line);
+    itemAMenosI.appendChild(crearMatrizPolinomiosHTML(A_menos_lambdaI));
+    stepMatricesGrid.appendChild(itemAMenosI);
     
-    // ===== 3. DETERMINANTE det(A - λI) =====
-    const detLine = document.createElement("div");
-    detLine.className = "result-wrapper";
-    const detLabel = document.createElement("div");
-    detLabel.className = "result-label";
-    detLabel.textContent = "det(A - λI) =";
-    detLine.appendChild(detLabel);
+    card1.appendChild(stepMatricesGrid);
+    content.appendChild(card1);
+    
+    // ===== CARD 2: ECUACIÓN CARACTERÍSTICA Y FACTORIZACIÓN =====
+    const card2 = document.createElement("div");
+    card2.className = "result-block";
+    card2.innerHTML = `<h3>Paso 2: Ecuación característica y factorización</h3>`;
+    
+    const equationFlow = document.createElement("div");
+    equationFlow.className = "equation-flow";
+    
+    // Fila determinante
+    const rowDet = document.createElement("div");
+    rowDet.className = "eq-row";
+    rowDet.innerHTML = `<span class="eq-row-label-det" style="font-weight: 600; color: var(--text-secondary);">Determinante det(A - λI) = 0:</span>`;
+    const detContent = document.createElement("div");
+    detContent.className = "eq-content";
     
     const detMatrix = document.createElement("div");
     detMatrix.className = "result-matrix-container det-primary";
@@ -366,171 +384,234 @@ function mostrarResultados(article, resultados) {
         detTable.appendChild(tr);
     }
     detMatrix.appendChild(detTable);
-    detLine.appendChild(detMatrix);
-    detLine.appendChild(document.createTextNode(" = 0"));
-    content.appendChild(detLine);
+    detContent.appendChild(detMatrix);
     
-    // ===== 4. POLINOMIO CARACTERÍSTICO =====
-    const polLine = document.createElement("div");
-    polLine.style.display = "flex";
-    polLine.style.alignItems = "center";
-    polLine.style.flexWrap = "wrap";
-    polLine.style.gap = "10px";
-    polLine.innerHTML = `<strong>Polinomio característico:</strong>&nbsp;${polinomioToHTML(polinomioToString(resultados.polinomioCaracteristico))} = 0`;
-    content.appendChild(polLine);
+    const eqSymbol = document.createElement("span");
+    eqSymbol.className = "eq-symbol";
+    eqSymbol.textContent = " = 0";
+    detContent.appendChild(eqSymbol);
     
-    // ===== 5. FACTORIZACIÓN =====
-    const factoresDiv = document.createElement("div");
-    factoresDiv.style.display = "flex";
-    factoresDiv.style.alignItems = "center";
-    factoresDiv.style.flexWrap = "wrap";
-    factoresDiv.style.gap = "8px";
-    factoresDiv.innerHTML = "<strong>Factorización:</strong> ";
+    rowDet.appendChild(detContent);
+    equationFlow.appendChild(rowDet);
+    
+    // Divider
+    const div1 = document.createElement("div");
+    div1.className = "eq-divider";
+    equationFlow.appendChild(div1);
+    
+    // Fila polinomio
+    const rowPol = document.createElement("div");
+    rowPol.className = "eq-row";
+    rowPol.innerHTML = `<span class="eq-label" style="font-weight: 600; color: var(--text-secondary);">Polinomio característico:</span>
+        <div class="eq-content poly-display" style="font-weight: 600;">
+            p(λ) = ${polinomioToHTML(polinomioToString(resultados.polinomioCaracteristico))} = 0
+        </div>`;
+    equationFlow.appendChild(rowPol);
+    
+    // Divider
+    const div2 = document.createElement("div");
+    div2.className = "eq-divider";
+    equationFlow.appendChild(div2);
+    
+    // Fila factorización
+    const rowFact = document.createElement("div");
+    rowFact.className = "eq-row";
+    const factLabel = document.createElement("span");
+    factLabel.className = "eq-label";
+    factLabel.style.fontWeight = "600";
+    factLabel.style.color = "var(--text-secondary)";
+    factLabel.textContent = "Factorización:";
+    rowFact.appendChild(factLabel);
+    
+    const factContent = document.createElement("div");
+    factContent.className = "eq-content factores-display";
     for (const factor of resultados.factoresPolinomio) {
-        factoresDiv.appendChild(crearFactorHTML(factor));
+        factContent.appendChild(crearFactorHTML(factor));
     }
-    factoresDiv.appendChild(document.createTextNode(" = 0"));
-    content.appendChild(factoresDiv);
+    factContent.appendChild(document.createTextNode(" = 0"));
+    rowFact.appendChild(factContent);
+    equationFlow.appendChild(rowFact);
     
-    // ===== 6. VALORES PROPIOS =====
-    const vpContainer = document.createElement("div");
-    vpContainer.style.display = "flex";
-    vpContainer.style.flexDirection = "column";
-    vpContainer.style.alignItems = "center";
-    vpContainer.style.gap = "6px";
-    vpContainer.style.margin = "0 auto";
-
-    const vpTitle = document.createElement("strong");
-    vpTitle.textContent = "Valores propios:";
-    vpContainer.appendChild(vpTitle);
-
-    if (resultados.raices && resultados.raices.length > 0) {
-        resultados.raices.forEach((raiz, idx) => {
-            const vpLine = document.createElement("div");
-            vpLine.style.display = "flex";
-            vpLine.style.alignItems = "center";
-            vpLine.style.gap = "6px";
-
-            const lbl = document.createElement("span");
-            lbl.innerHTML = `λ<sub>${idx + 1}</sub> =`;
-            lbl.style.fontWeight = "bold";
-            lbl.style.color = "var(--primary)";
-            lbl.style.whiteSpace = "nowrap";
-
-            vpLine.appendChild(lbl);
-            vpLine.appendChild(crearRaizHTML(raiz));
-            vpContainer.appendChild(vpLine);
+    card2.appendChild(equationFlow);
+    content.appendChild(card2);
+    
+    // ===== CARD 3: VALORES Y VECTORES CARACTERÍSTICOS =====
+    const card3 = document.createElement("div");
+    card3.className = "result-block";
+    card3.innerHTML = `<h3>Paso 3: Valores y vectores característicos</h3>`;
+    
+    const eigenPairsContainer = document.createElement("div");
+    eigenPairsContainer.className = "eigen-pairs-container";
+    
+    const Pmatriz = resultados.matrizVectoresPropios;
+    const esDiag = resultados.diagonalizacion.esDiagonalizable && Pmatriz;
+    
+    const grupos = [];
+    if (esDiag) {
+        let vectorColIdx = 0;
+        for (let idx = 0; idx < resultados.raices.length; idx++) {
+            const raiz = resultados.raices[idx];
+            if (raiz.tipo === "exacta") {
+                const vector = Pmatriz.map(fila => fila[vectorColIdx]);
+                vectorColIdx++;
+                
+                const raizStr = Auxiliares.fraccionToString(raiz.valor);
+                let grupo = grupos.find(g => g.raiz.tipo === "exacta" && Auxiliares.fraccionToString(g.raiz.valor) === raizStr);
+                
+                if (grupo) {
+                    grupo.vectores.push(vector);
+                } else {
+                    grupos.push({ raiz, vectores: [vector] });
+                }
+            } else {
+                grupos.push({ raiz, vectores: [] });
+            }
+        }
+    } else {
+        for (const raiz of resultados.raices) {
+            grupos.push({ raiz, vectores: [] });
+        }
+    }
+    
+    if (grupos.length > 0) {
+        grupos.forEach((grupo, gIdx) => {
+            const pairCard = document.createElement("div");
+            pairCard.className = "eigen-pair-card";
+            
+            const badge = document.createElement("div");
+            badge.className = "eigen-value-badge";
+            
+            const labelSpan = document.createElement("span");
+            labelSpan.innerHTML = `λ<sub>${gIdx + 1}</sub> = `;
+            badge.appendChild(labelSpan);
+            badge.appendChild(crearRaizHTML(grupo.raiz));
+            
+            pairCard.appendChild(badge);
+            
+            const vectorsList = document.createElement("div");
+            vectorsList.className = "eigen-vectors-list";
+            
+            if (grupo.vectores.length > 0) {
+                grupo.vectores.forEach((vector, vIdx) => {
+                    const vecItem = document.createElement("div");
+                    vecItem.className = "eigen-vector-item";
+                    
+                    const vLabel = document.createElement("span");
+                    vLabel.style.fontWeight = "bold";
+                    vLabel.style.color = "var(--primary)";
+                    vLabel.textContent = `v${vIdx + 1} = (`;
+                    vecItem.appendChild(vLabel);
+                    
+                    vector.forEach((comp, cIdx) => {
+                        const compSpan = document.createElement("span");
+                        const str = Auxiliares.fraccionToString(comp);
+                        if (str.includes("/")) {
+                            const [num, den] = str.split("/");
+                            compSpan.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+                        } else {
+                            compSpan.textContent = str;
+                        }
+                        vecItem.appendChild(compSpan);
+                        
+                        if (cIdx < vector.length - 1) {
+                            const comma = document.createElement("span");
+                            comma.textContent = ", ";
+                            vecItem.appendChild(comma);
+                        }
+                    });
+                    
+                    const rParen = document.createElement("span");
+                    rParen.textContent = ")";
+                    vecItem.appendChild(rParen);
+                    
+                    vectorsList.appendChild(vecItem);
+                });
+            } else {
+                const noVecs = document.createElement("span");
+                noVecs.style.fontStyle = "italic";
+                noVecs.style.color = "var(--text-secondary)";
+                if (grupo.raiz.tipo === "complejo") {
+                    noVecs.textContent = "Sin vectores característicos reales asociados";
+                } else if (!esDiag) {
+                    noVecs.textContent = "No diagonalizable (no se calculan vectores asociados)";
+                } else {
+                    noVecs.textContent = "No se pudieron calcular vectores característicos";
+                }
+                vectorsList.appendChild(noVecs);
+            }
+            
+            pairCard.appendChild(vectorsList);
+            eigenPairsContainer.appendChild(pairCard);
         });
     } else {
-        const noReal = document.createElement("span");
-        noReal.textContent = "No hay valores propios reales";
-        vpContainer.appendChild(noReal);
+        const noReal = document.createElement("div");
+        noReal.style.fontStyle = "italic";
+        noReal.style.color = "var(--text-secondary)";
+        noReal.style.textAlign = "center";
+        noReal.style.width = "100%";
+        noReal.textContent = "No hay valores característicos reales";
+        eigenPairsContainer.appendChild(noReal);
     }
-    content.appendChild(vpContainer);
     
-    // ===== 7. MATRIZ DIAGONAL D =====
-    const DLine = document.createElement("div");
-    DLine.className = "result-wrapper";
-    const DLabel = document.createElement("div");
-    DLabel.className = "result-label";
-    DLabel.textContent = "D =";
-    DLine.appendChild(DLabel);
+    card3.appendChild(eigenPairsContainer);
+    content.appendChild(card3);
     
-    if (resultados.diagonalizacion.esDiagonalizable && resultados.matrizDiagonal) {
-        DLine.appendChild(crearMatrizHTML(resultados.matrizDiagonal));
-    } else {
-        const noDiagSpan = document.createElement("span");
-        noDiagSpan.textContent = "No es diagonalizable en ℝ";
-        noDiagSpan.style.fontStyle = "italic";
-        noDiagSpan.style.color = "var(--text-muted)";
-        DLine.appendChild(noDiagSpan);
-    }
-    content.appendChild(DLine);
-    
-    // ===== 8. MATRIZ DE VECTORES PROPIOS P =====
-    if (resultados.matrizVectoresPropios && resultados.diagonalizacion.esDiagonalizable) {
-        const PLine = document.createElement("div");
-        PLine.className = "result-wrapper";
-        const PLabel = document.createElement("div");
-        PLabel.className = "result-label";
-        PLabel.textContent = "P =";
-        PLine.appendChild(PLabel);
-        PLine.appendChild(crearMatrizHTML(resultados.matrizVectoresPropios));
-        content.appendChild(PLine);
+    // ===== CARD 4: MATRIZ DIAGONAL D Y MATRIZ DE PASO P =====
+    if (resultados.diagonalizacion.esDiagonalizable) {
+        const card4 = document.createElement("div");
+        card4.className = "result-block";
+        card4.innerHTML = `<h3>Paso 4: Diagonalización (A = PDP⁻¹)</h3>
+            <h4 class="diag-eq-title">A = P · D · P<sup>-1</sup></h4>`;
+            
+        const diagEqFlow = document.createElement("div");
+        diagEqFlow.className = "diag-equation-flow";
         
-        const vectoresTitle = document.createElement("div");
-        vectoresTitle.style.fontWeight = "600";
-        vectoresTitle.style.marginTop = "0.5rem";
-        vectoresTitle.style.marginBottom = "0.5rem";
-        vectoresTitle.innerHTML = "<strong>Vectores propios:</strong>";
-        content.appendChild(vectoresTitle);
-        
-        const vectoresList = document.createElement("div");
-        vectoresList.style.display = "flex";
-        vectoresList.style.flexDirection = "column";
-        vectoresList.style.gap = "0.5rem";
-        vectoresList.style.marginBottom = "0.5rem";
-        
-        const Pmatriz = resultados.matrizVectoresPropios;
-        const numVectores = Pmatriz[0]?.length || 0;
-        
-        for (let j = 0; j < numVectores; j++) {
-            const vector = Pmatriz.map(fila => fila[j]);
-            
-            const vectorDiv = document.createElement("div");
-            vectorDiv.style.display = "flex";
-            vectorDiv.style.alignItems = "center";
-            vectorDiv.style.flexWrap = "wrap";
-            vectorDiv.style.gap = "8px";
-            
-            const vLabel = document.createElement("span");
-            vLabel.style.fontWeight = "bold";
-            vLabel.style.color = "var(--primary)";
-            vLabel.textContent = `v${j + 1} =`;
-            vectorDiv.appendChild(vLabel);
-            
-            const leftParen = document.createElement("span");
-            leftParen.textContent = "(";
-            vectorDiv.appendChild(leftParen);
-            
-            vector.forEach((comp, idx) => {
-                const compSpan = document.createElement("span");
-                const str = Auxiliares.fraccionToString(comp);
-                if (str.includes("/")) {
-                    const [num, den] = str.split("/");
-                    compSpan.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
-                } else {
-                    compSpan.textContent = str;
-                }
-                vectorDiv.appendChild(compSpan);
-                
-                if (idx < vector.length - 1) {
-                    const comma = document.createElement("span");
-                    comma.textContent = ", ";
-                    vectorDiv.appendChild(comma);
-                }
-            });
-            
-            const rightParen = document.createElement("span");
-            rightParen.textContent = ")";
-            vectorDiv.appendChild(rightParen);
-            
-            vectoresList.appendChild(vectorDiv);
+        // Matriz P
+        if (resultados.matrizVectoresPropios) {
+            const itemP = document.createElement("div");
+            itemP.className = "matrix-eq-item";
+            const labelP = document.createElement("div");
+            labelP.className = "matrix-eq-label";
+            labelP.textContent = "P =";
+            itemP.appendChild(labelP);
+            itemP.appendChild(crearMatrizHTML(resultados.matrizVectoresPropios));
+            diagEqFlow.appendChild(itemP);
         }
         
-        content.appendChild(vectoresList);
+        // Matriz D
+        if (resultados.matrizDiagonal) {
+            const itemD = document.createElement("div");
+            itemD.className = "matrix-eq-item";
+            const labelD = document.createElement("div");
+            labelD.className = "matrix-eq-label";
+            labelD.textContent = "D =";
+            itemD.appendChild(labelD);
+            itemD.appendChild(crearMatrizHTML(resultados.matrizDiagonal));
+            diagEqFlow.appendChild(itemD);
+        }
+        
+        card4.appendChild(diagEqFlow);
+        content.appendChild(card4);
     }
     
-    // ===== 9. MENSAJE FINAL =====
-    const mensajeLine = document.createElement("div");
-    mensajeLine.style.fontWeight = "bold";
-    mensajeLine.style.marginTop = "10px";
-    mensajeLine.style.padding = "12px";
-    mensajeLine.style.borderRadius = "8px";
-    mensajeLine.style.backgroundColor = resultados.diagonalizacion.esDiagonalizable ? "rgba(0,200,0,0.1)" : "rgba(200,0,0,0.1)";
-    mensajeLine.style.borderLeft = `4px solid ${resultados.diagonalizacion.esDiagonalizable ? "green" : "red"}`;
-    mensajeLine.textContent = resultados.diagonalizacion.razon;
-    content.appendChild(mensajeLine);
+    // ===== ALERTA FINAL DE DIAGNÓSTICO =====
+    const alertBox = document.createElement("div");
+    alertBox.className = `diag-alert ${resultados.diagonalizacion.esDiagonalizable ? "diag-alert-success" : "diag-alert-error"}`;
+    
+    const iconSpan = document.createElement("div");
+    iconSpan.className = "diag-alert-icon";
+    if (resultados.diagonalizacion.esDiagonalizable) {
+        iconSpan.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+    } else {
+        iconSpan.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+    }
+    
+    const bodySpan = document.createElement("div");
+    bodySpan.className = "diag-alert-body";
+    bodySpan.textContent = resultados.diagonalizacion.razon;
+    
+    alertBox.append(iconSpan, bodySpan);
+    content.appendChild(alertBox);
     
     section.appendChild(content);
     article.appendChild(section);
