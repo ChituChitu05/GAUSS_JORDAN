@@ -1,9 +1,9 @@
-import UI from "./ui.js";
-import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_celdas.js";
-import Auxiliares from "./auxiliares.js?v=16";
-import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar, matrizCambioBase } from "./calculos.js";
-import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=16";
-import { crearSpanCelda, spanToInput, inputToSpan, setEVMode, ajustarTodasColumnasEV, actualizarBotonCalcularEV, validarCamposEV } from "./celdas.js?v=16";
+import UI from "./ui.js?v=38";
+import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_celdas.js?v=38";
+import Auxiliares from "./auxiliares.js?v=38";
+import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar, matrizCambioBase } from "./calculos.js?v=38";
+import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=38";
+import { crearSpanCelda, spanToInput, inputToSpan, setEVMode, ajustarTodasColumnasEV, actualizarBotonCalcularEV, validarCamposEV } from "./celdas.js?v=38";
 
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
@@ -64,7 +64,13 @@ export function inicializarEV(article, modo, preserveState = false) {
                     const firstCell = row.cells[0];
                     if (firstCell && (firstCell.innerHTML.includes("α") || firstCell.innerHTML.includes("β"))) {
                         const span = row.querySelector('.cell-span');
-                        if (span) span.click();
+                        if (span) {
+                            const input = spanToInput(span);
+                            if (input) {
+                                input.focus();
+                                input.select();
+                            }
+                        }
                         break;
                     }
                 }
@@ -250,7 +256,7 @@ export function inicializarEV(article, modo, preserveState = false) {
                 }
             }
 
-            verificarEliminarFilasColumnas();
+            construirFilasVectores();
             if (vectoresHorizontales && vectoresHorizontales.length > 0) {
                 savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
             }
@@ -482,8 +488,13 @@ function enfocarCelda(r, c) {
     const elemento = celdasComponentes[c];
     if (!elemento) return;
 
-    if (elemento.classList.contains('cell-span')) elemento.click();
-    else {
+    if (elemento.classList.contains('cell-span')) {
+        const input = spanToInput(elemento);
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    } else {
         elemento.focus();
         elemento.select();
     }
@@ -505,9 +516,8 @@ function guardarVectoresDesdeTabla() {
         if (primeraCelda && (primeraCelda.innerHTML.includes("α") || primeraCelda.innerHTML.includes("β"))) {
             const vector = Array.from(celdas).map(el => {
                 let valor = el.tagName === "INPUT" ? el.value : (el.getAttribute("data-value") || "");
-                // Convertir celdas vacías a "0"
                 if (valor === "" || valor === null || valor === undefined) {
-                    return "0";
+                    return "";
                 }
                 return Auxiliares.normalizarValorTexto(valor);
             });
@@ -754,7 +764,23 @@ function ajustarTodasColumnasCambioBase(table) {
     for (let j = 0; j < cols; j++) ajustarAnchoColumnaCambioBase(table, j);
 }
 
-function insertarFilaCambioBase(table, rowIndex, colIndex) {
+function insertarFilaCambioBase(table, rowIndex, colIndex, sync = true) {
+    if (sync) {
+        const b1 = document.getElementById("baseOrigenTable");
+        const b2 = document.getElementById("baseDestinoTable");
+        if (b1 && b2) {
+            insertarFilaCambioBase(b1, rowIndex, colIndex, false);
+            insertarFilaCambioBase(b2, rowIndex, colIndex, false);
+            insertarColumnaCambioBase(b1, rowIndex, rowIndex, false);
+            insertarColumnaCambioBase(b2, rowIndex, rowIndex, false);
+
+            sincronizarSwitchCanonicoCambioBase(b1);
+            sincronizarSwitchCanonicoCambioBase(b2);
+            setTimeout(() => enfocarCeldaCambioBase(table, rowIndex + 1, colIndex), 20);
+            return;
+        }
+    }
+
     const columnas = table.rows[0].cells.length;
     const nuevaFila = table.insertRow(rowIndex + 1);
     for (let j = 0; j < columnas; j++) {
@@ -763,10 +789,27 @@ function insertarFilaCambioBase(table, rowIndex, colIndex) {
     actualizarAtributosCambioBase(table);
     ajustarTodasColumnasCambioBase(table);
     sincronizarSwitchCanonicoCambioBase(table);
+    if (!sync) return;
     setTimeout(() => enfocarCeldaCambioBase(table, rowIndex + 1, colIndex), 10);
 }
 
-function insertarColumnaCambioBase(table, rowIndex, colIndex) {
+function insertarColumnaCambioBase(table, rowIndex, colIndex, sync = true) {
+    if (sync) {
+        const b1 = document.getElementById("baseOrigenTable");
+        const b2 = document.getElementById("baseDestinoTable");
+        if (b1 && b2) {
+            insertarColumnaCambioBase(b1, rowIndex, colIndex, false);
+            insertarColumnaCambioBase(b2, rowIndex, colIndex, false);
+            insertarFilaCambioBase(b1, colIndex, colIndex, false);
+            insertarFilaCambioBase(b2, colIndex, colIndex, false);
+
+            sincronizarSwitchCanonicoCambioBase(b1);
+            sincronizarSwitchCanonicoCambioBase(b2);
+            setTimeout(() => enfocarCeldaCambioBase(table, rowIndex, colIndex + 1), 20);
+            return;
+        }
+    }
+
     Array.from(table.rows).forEach((row, i) => {
         const td = row.insertCell(colIndex + 1);
         td.appendChild(crearSpanCelda("", i, colIndex + 1));
@@ -774,6 +817,7 @@ function insertarColumnaCambioBase(table, rowIndex, colIndex) {
     actualizarAtributosCambioBase(table);
     ajustarTodasColumnasCambioBase(table);
     sincronizarSwitchCanonicoCambioBase(table);
+    if (!sync) return;
     setTimeout(() => enfocarCeldaCambioBase(table, rowIndex, colIndex + 1), 10);
 }
 
@@ -800,7 +844,21 @@ function columnaVaciaCambioBase(table, colIndex) {
     return Array.from(table.rows).every(row => celdaVaciaCambioBase(row.cells[colIndex]));
 }
 
-function eliminarFilaCambioBase(table, rowIndex) {
+function eliminarFilaCambioBase(table, rowIndex, sync = true) {
+    if (sync) {
+        const b1 = document.getElementById("baseOrigenTable");
+        const b2 = document.getElementById("baseDestinoTable");
+        if (b1 && b2) {
+            const success1 = eliminarFilaCambioBase(b1, rowIndex, false);
+            const success2 = eliminarFilaCambioBase(b2, rowIndex, false);
+            eliminarColumnaCambioBase(b1, rowIndex, false);
+            eliminarColumnaCambioBase(b2, rowIndex, false);
+            sincronizarSwitchCanonicoCambioBase(b1);
+            sincronizarSwitchCanonicoCambioBase(b2);
+            return success1 || success2;
+        }
+    }
+
     if (table.rows.length <= 1) return false;
     table.deleteRow(rowIndex);
     actualizarAtributosCambioBase(table);
@@ -808,7 +866,21 @@ function eliminarFilaCambioBase(table, rowIndex) {
     return true;
 }
 
-function eliminarColumnaCambioBase(table, colIndex) {
+function eliminarColumnaCambioBase(table, colIndex, sync = true) {
+    if (sync) {
+        const b1 = document.getElementById("baseOrigenTable");
+        const b2 = document.getElementById("baseDestinoTable");
+        if (b1 && b2) {
+            const success1 = eliminarColumnaCambioBase(b1, colIndex, false);
+            const success2 = eliminarColumnaCambioBase(b2, colIndex, false);
+            eliminarFilaCambioBase(b1, colIndex, false);
+            eliminarFilaCambioBase(b2, colIndex, false);
+            sincronizarSwitchCanonicoCambioBase(b1);
+            sincronizarSwitchCanonicoCambioBase(b2);
+            return success1 || success2;
+        }
+    }
+
     if (!table.rows.length || table.rows[0].cells.length <= 1) return false;
     Array.from(table.rows).forEach(row => row.deleteCell(colIndex));
     actualizarAtributosCambioBase(table);
@@ -817,62 +889,58 @@ function eliminarColumnaCambioBase(table, colIndex) {
 }
 
 function revisarBorradoCambioBase(table, rowIndex, colIndex) {
-    if (!table || !table.isConnected) return;
+    console.log("revisarBorradoCambioBase called. Table ID:", table.id, "Row:", rowIndex, "Col:", colIndex);
+    setTimeout(() => {
+        let targetRow = rowIndex;
+        let targetCol = colIndex;
+        let deletedRow = false;
+        let deletedCol = false;
 
-    // Guard de concurrencia: si ya hay un borrado estructural en curso para
-    // esta tabla, ignorar esta llamada. Sin este guard, dos Backspace
-    // disparados casi al mismo tiempo (p. ej. al mantener la tecla
-    // presionada) ejecutan dos setTimeout que intentan borrar filas/columnas
-    // sobre índices que ya cambiaron, terminando en intentos de eliminar el
-    // mismo <td>/<tr> dos veces → "The node to be removed is no longer a
-    // child of this node".
-    if (table._borradoEnProceso) return;
-    table._borradoEnProceso = true;
+        const rowEmpty = filaVaciaCambioBase(table, rowIndex);
+        const colEmpty = columnaVaciaCambioBase(table, colIndex);
+        console.log("Checking base change deletion: rowEmpty =", rowEmpty, "colEmpty =", colEmpty, "Row count:", table.rows.length, "Col count:", table.rows[0]?.cells.length);
 
-    try {
-        const minRows = parseInt(table.dataset.minRows) || 1;
-        const minCols = parseInt(table.dataset.minCols) || 1;
-
-        let newRow = rowIndex;
-        let newCol = colIndex;
-
-        // Verificar si la fila está vacía y se puede eliminar
-        if (table.rows.length > minRows && table.rows[rowIndex] && filaVaciaCambioBase(table, rowIndex)) {
-            table.deleteRow(rowIndex);
-            newRow = Math.max(0, rowIndex - 1);
-        }
-
-        // Verificar si la columna está vacía y se puede eliminar.
-        // Se vuelve a comprobar colIndex contra el nuevo ancho de la tabla
-        // por si la fila eliminada arriba dejó la tabla en otro estado.
-        const anchoActual = table.rows[0]?.cells.length ?? 0;
-        if (table.rows.length > 0 && anchoActual > minCols && colIndex < anchoActual && columnaVaciaCambioBase(table, colIndex)) {
-            for (let i = 0; i < table.rows.length; i++) {
-                if (table.rows[i].cells[colIndex]) {
-                    table.rows[i].deleteCell(colIndex);
-                }
+        if (rowEmpty) {
+            console.log("Row is empty. Deleting row & col corresponding to index:", rowIndex);
+            if (eliminarFilaCambioBase(table, rowIndex, true)) {
+                targetRow = Math.max(0, rowIndex - 1);
+                deletedRow = true;
+                console.log("Row/col deleted. New size:", table.rows.length);
             }
-            newCol = Math.max(0, colIndex - 1);
+        }
+        else if (colEmpty) {
+            console.log("Col is empty. Deleting col & row corresponding to index:", colIndex);
+            if (eliminarColumnaCambioBase(table, colIndex, true)) {
+                targetCol = Math.max(0, colIndex - 1);
+                deletedCol = true;
+                console.log("Col/row deleted. New size:", table.rows.length);
+            }
         }
 
-        // Ajustar índices
-        newRow = Math.max(0, Math.min(newRow, table.rows.length - 1));
-        if (table.rows[newRow]) {
-            newCol = Math.max(0, Math.min(newCol, table.rows[newRow].cells.length - 1));
+        const b1 = document.getElementById("baseOrigenTable");
+        const b2 = document.getElementById("baseDestinoTable");
+        if (b1) {
+            ajustarTodasColumnasCambioBase(b1);
+            sincronizarSwitchCanonicoCambioBase(b1);
+        }
+        if (b2) {
+            ajustarTodasColumnasCambioBase(b2);
+            sincronizarSwitchCanonicoCambioBase(b2);
         }
 
-        actualizarAtributosCambioBase(table);
-        ajustarTodasColumnasCambioBase(table);
-        sincronizarSwitchCanonicoCambioBase(table);
+        if (!deletedRow && !deletedCol) {
+            const numCols = table.rows[0]?.cells.length || 0;
+            if (colIndex > 0) {
+                targetCol = colIndex - 1;
+            } else if (rowIndex > 0) {
+                targetRow = rowIndex - 1;
+                targetCol = numCols - 1;
+            }
+        }
 
-        setTimeout(() => {
-            table._borradoEnProceso = false;
-            if (table.isConnected) enfocarCeldaCambioBase(table, newRow, newCol);
-        }, 10);
-    } catch (error) {
-        table._borradoEnProceso = false;
-        throw error;
-    }
+        console.log("Focusing cell in base change:", targetRow, targetCol);
+        enfocarCeldaCambioBase(table, targetRow, targetCol);
+    }, 0);
 }
 
 function finalizarEntradaCambioBase(input) {
@@ -890,18 +958,6 @@ function moverCambioBase(table, rowIndex, colIndex, deltaRow, deltaCol) {
     const targetCol = colIndex + deltaCol;
     if (targetRow < 0 || targetRow >= table.rows.length) return;
     if (targetCol < 0 || targetCol >= table.rows[targetRow].cells.length) return;
-
-    // Finalizar la celda de origen de forma síncrona ANTES de mover el foco.
-    // Esto evita que el listener de 'blur' del input (que llama a inputToSpan)
-    // se dispare más tarde sobre un nodo que ya fue removido por otra ruta
-    // (p. ej. al insertar/eliminar filas o columnas), lo cual provocaba
-    // "The node to be removed is no longer a child of this node".
-    const origenCell = table.rows[rowIndex]?.cells[colIndex];
-    const origenInput = origenCell?.querySelector(".cell-input");
-    if (origenInput && origenInput.isConnected) {
-        finalizarEntradaCambioBase(origenInput);
-    }
-
     enfocarCeldaCambioBase(table, targetRow, targetCol);
 }
 
@@ -1090,6 +1146,7 @@ function sanitizarValorCambioBase(valor) {
 
     return limpio;
 }
+
 function manejarKeydownCambioBase(event) {
     const target = event.target;
     const table = target.closest?.(".cambio-base-table");
@@ -1113,40 +1170,22 @@ function manejarKeydownCambioBase(event) {
     }
 
     if (target.classList.contains("cell-span")) {
-        if (event.key === "Enter") {
-            insertarFilaCambioBase(table, rowIndex, colIndex);
-            return;
-        }
-        if (event.key === " ") {
-            insertarColumnaCambioBase(table, rowIndex, colIndex);
-            return;
-        }
+        if (event.key === "Enter") return insertarFilaCambioBase(table, rowIndex, colIndex);
+        if (event.key === " ") return insertarColumnaCambioBase(table, rowIndex, colIndex);
         if (event.key === "Backspace" || event.key === "Delete") {
             event.preventDefault();
-            limpiarValorSpanCambioBase(target);
-            setTimeout(() => {
-                if (table && table.isConnected) {
-                    revisarBorradoCambioBase(table, rowIndex, colIndex);
-                }
-            }, 10);
+            const val = (target.getAttribute("data-value") ?? target.textContent ?? "").trim();
+            if (val === "") {
+                revisarBorradoCambioBase(table, rowIndex, colIndex);
+            } else {
+                limpiarValorSpanCambioBase(target);
+            }
             return;
         }
-        if (event.key === "ArrowLeft") {
-            moverCambioBase(table, rowIndex, colIndex, 0, -1);
-            return;
-        }
-        if (event.key === "ArrowRight") {
-            moverCambioBase(table, rowIndex, colIndex, 0, 1);
-            return;
-        }
-        if (event.key === "ArrowUp") {
-            moverCambioBase(table, rowIndex, colIndex, -1, 0);
-            return;
-        }
-        if (event.key === "ArrowDown") {
-            moverCambioBase(table, rowIndex, colIndex, 1, 0);
-            return;
-        }
+        if (event.key === "ArrowLeft") return moverCambioBase(table, rowIndex, colIndex, 0, -1);
+        if (event.key === "ArrowRight") return moverCambioBase(table, rowIndex, colIndex, 0, 1);
+        if (event.key === "ArrowUp") return moverCambioBase(table, rowIndex, colIndex, -1, 0);
+        if (event.key === "ArrowDown") return moverCambioBase(table, rowIndex, colIndex, 1, 0);
 
         if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
             event.preventDefault();
@@ -1180,13 +1219,9 @@ function manejarKeydownCambioBase(event) {
     if (event.key === "Tab") {
         event.preventDefault();
         finalizarEntradaCambioBase(target);
-        if (colIndex < row.cells.length - 1) {
-            enfocarCeldaCambioBase(table, rowIndex, colIndex + 1);
-        } else if (rowIndex < table.rows.length - 1) {
-            enfocarCeldaCambioBase(table, rowIndex + 1, 0);
-        } else {
-            document.getElementById("btnCalcularCambioBase")?.focus();
-        }
+        if (colIndex < row.cells.length - 1) enfocarCeldaCambioBase(table, rowIndex, colIndex + 1);
+        else if (rowIndex < table.rows.length - 1) enfocarCeldaCambioBase(table, rowIndex + 1, 0);
+        else document.getElementById("btnCalcularCambioBase")?.focus();
         return;
     }
 
@@ -1196,33 +1231,22 @@ function manejarKeydownCambioBase(event) {
         return;
     }
 
-    if (event.key === "ArrowLeft") {
-        moverCambioBase(table, rowIndex, colIndex, 0, -1);
-        return;
-    }
-    if (event.key === "ArrowRight") {
-        moverCambioBase(table, rowIndex, colIndex, 0, 1);
-        return;
-    }
-    if (event.key === "ArrowUp") {
-        moverCambioBase(table, rowIndex, colIndex, -1, 0);
-        return;
-    }
-    if (event.key === "ArrowDown") {
-        moverCambioBase(table, rowIndex, colIndex, 1, 0);
-        return;
-    }
+    if (event.key === "ArrowLeft") return moverCambioBase(table, rowIndex, colIndex, 0, -1);
+    if (event.key === "ArrowRight") return moverCambioBase(table, rowIndex, colIndex, 0, 1);
+    if (event.key === "ArrowUp") return moverCambioBase(table, rowIndex, colIndex, -1, 0);
+    if (event.key === "ArrowDown") return moverCambioBase(table, rowIndex, colIndex, 1, 0);
 
-    if ((event.key === "Backspace" || event.key === "Delete") && target.value === "") {
-        event.preventDefault();
-        setTimeout(() => {
-            if (table && table.isConnected) {
-                revisarBorradoCambioBase(table, rowIndex, colIndex);
-            }
-        }, 10);
-        return;
+    if (event.key === "Backspace" || event.key === "Delete") {
+        console.log("KEYDOWN (CambioBase): Backspace/Delete detected on target:", target.className, "Value:", target.value);
+        if (target.value === "") {
+            console.log("Immediate empty delete triggered (CambioBase).");
+            event.preventDefault();
+            finalizarEntradaCambioBase(target);
+            revisarBorradoCambioBase(table, rowIndex, colIndex);
+        }
     }
 }
+
 function manejarInputCambioBase(event) {
     const input = event.target;
     if (!input.classList?.contains("cell-input")) return;
