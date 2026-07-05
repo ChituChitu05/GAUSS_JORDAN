@@ -798,7 +798,7 @@ export function inicializarTransformaciones(article) {
     section.appendChild(formula);
 
     const threeColumns = document.createElement("div");
-    threeColumns.style.cssText = "display:flex;align-items:stretch;justify-content:center;gap:2rem;flex-wrap:nowrap;overflow-x:auto;width:100%;";
+    threeColumns.className = "tf-diagram-flex";
 
     const col1 = document.createElement("div");
     col1.style.cssText = "display:flex;flex-direction:column;align-items:center;";
