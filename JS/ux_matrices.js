@@ -1,8 +1,8 @@
-import UI, { createSection } from "./ui.js";
-import Auxiliares from "./auxiliares.js";
-import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
-import { crearSpanCelda, inputToSpan, spanToInput, setLastFocusedCell, guardarCeldaActual, restaurarFoco } from "./celdas.js";
-import { configurarEventos, ajustarAnchoColumna } from "./eventos_celdas.js";
+import UI, { createSection } from "./ui.js?v=38";
+import Auxiliares from "./auxiliares.js?v=38";
+import { resolverAXB, resolverInv, calcularDet } from "./calculos.js?v=38";
+import { crearSpanCelda, inputToSpan, spanToInput, setLastFocusedCell, guardarCeldaActual, restaurarFoco } from "./celdas.js?v=38";
+import { configurarEventos, ajustarAnchoColumna } from "./eventos_celdas.js?v=38";
 
 let currentOperation = "axb";
 let currentMatrixState = null;
@@ -13,15 +13,13 @@ export function actualizarSeparadorGlobal(table) {
     eliminarSeparadorGlobal(table);
     const sep = table.rows[0].cells.length - 2;
     if (sep >= 0) {
-        requestAnimationFrame(() => {
-            for (let row of table.rows) {
-                const cell = row.cells[sep];
-                if (cell) {
-                    cell.style.borderRight = "2px solid var(--primary)";
-                    cell.classList.add("separator");
-                }
+        for (let row of table.rows) {
+            const cell = row.cells[sep];
+            if (cell) {
+                cell.style.borderRight = "2px solid var(--primary)";
+                cell.classList.add("separator");
             }
-        });
+        }
     }
 }
 
@@ -163,7 +161,7 @@ export function inicializarMatriz(article, modo) {
         e.preventDefault();
         e.stopPropagation();
         
-        const { insertarRaiz } = await import("./celdas.js");
+        const { insertarRaiz } = await import("./celdas.js?v=38");
         insertarRaiz();
     });
 
@@ -260,6 +258,7 @@ function ajustarTodaLaTabla(table) {
 }
 
 export function cambiarModo(article, nuevoModo) {
+    limpiarResultados();
     const table = document.getElementById("inputTable");
 
     if (table) {
