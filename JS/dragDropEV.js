@@ -1,5 +1,6 @@
-import { actualizarBotonCalcularEV } from "./celdas.js?v=13";
-import Auxiliares from "./auxiliares.js?v=13";
+// dragDropEV.js
+import { actualizarBotonCalcularEV } from "./celdas.js?v=38";
+import Auxiliares from "./auxiliares.js?v=38";
 
 let onMatrixLoadCallback = null;
 let evDropListenersAttached = false;
@@ -168,11 +169,11 @@ export function parseMatrixToVectors(text, modo = "lista") {
     if (greekVectors) return greekVectors;
 
     const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
-    
+
     if (lines.length === 0) {
         throw new Error("Archivo vacío");
     }
-    
+
     const matrix = normalizarFilas(lines.map((line, index) => {
         const tokens = line.trim().split(/[\s,;]+/).filter(token => token);
         if (tokens.length === 0) {
@@ -180,7 +181,7 @@ export function parseMatrixToVectors(text, modo = "lista") {
         }
         return tokens;
     }));
-    
+
     return modo === "matriz" ? transponerMatriz(matrix) : matrix;
 }
 
@@ -248,11 +249,11 @@ function findErrorsInVectors(vectores) {
 // Marcar errores en la tabla EV
 function markErrorsInEVTable(table, errors) {
     if (!table) return;
-    
+
     // Limpiar errores existentes
     const allSpans = table.querySelectorAll('.cell-span');
     allSpans.forEach(span => span.classList.remove('cell-error'));
-    
+
     // Marcar nuevos errores
     errors.forEach(({ row, col }) => {
         let filaActual = 0;
@@ -270,10 +271,10 @@ function markErrorsInEVTable(table, errors) {
             }
         }
     });
-    
+
     // Actualizar indicador de archivo
     updateEVFileIndicatorBasedOnErrors(errors.length > 0);
-    
+
     // Actualizar botón calcular
     actualizarBotonCalcularEV();
 }
@@ -281,7 +282,7 @@ function markErrorsInEVTable(table, errors) {
 function updateEVFileIndicatorBasedOnErrors(hasErrors) {
     let indicator = document.querySelector(".file-indicator-ev");
     if (!indicator) return;
-    
+
     const statusSpan = indicator.querySelector(".file-status");
     if (statusSpan) {
         if (hasErrors) {
